@@ -4,6 +4,16 @@ from zeep import Client
 from zeep.transports import Transport
 import mysql.connector
 from dotenv import load_dotenv
+import logging
+import traceback
+
+# Configurar el logging
+log_file_path = os.path.splitext(__file__)[0] + '.txt'
+logging.basicConfig(
+    filename=log_file_path,
+    level=logging.DEBUG,  # Nivel de detalle
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 # Cargar variables de entorno desde el archivo .env
 load_dotenv()
@@ -22,6 +32,11 @@ mysql_user = os.getenv("MYSQL_USER")
 mysql_password = os.getenv("MYSQL_PASSWORD")
 mysql_database = os.getenv("MYSQL_DATABASE")
 
+logging.debug(f'Variables de entorno cargadas: WSDL_URL={wsdl_url}, API_KEY={api_key}, '
+              f'CODIGO_AMBIENTE={codigo_ambiente}, CODIGO_PUNTO_VENTA={codigo_punto_venta}, '
+              f'CODIGO_SISTEMA={codigo_sistema}, CODIGO_SUCURSAL={codigo_sucursal}, CUIS={cuis}, NIT={nit}, '
+              f'MYSQL_HOST={mysql_host}, MYSQL_USER={mysql_user}, MYSQL_DATABASE={mysql_database}')
+
 # Configuración de la conexión a la base de datos
 db_config = {
     "host": mysql_host,
@@ -32,39 +47,51 @@ db_config = {
 
 def sincronizar_lista_productos_servicios():
     mydb = None
-
+    logging.debug('Iniciando sincronización de lista de productos y servicios...')
+    
     # Crear el cliente SOAP
-    session = requests.Session()
-    session.headers.update({"apikey": api_key})
-    transport = Transport(session=session)
-    client = Client(wsdl_url, transport=transport)
+    try:
+        session = requests.Session()
+        session.headers.update({"apikey": api_key})
+        transport = Transport(session=session)
+        client = Client(wsdl_url, transport=transport)
+        logging.debug('Cliente SOAP creado.')
+    except Exception as e:
+        logging.error(f'Error al crear el cliente SOAP: {e}')
+        logging.error(traceback.format_exc())
+        return
 
     # Definir la estructura solicitudSincronizacion
-    SolicitudSincronizacion = client.get_type('ns0:solicitudSincronizacion')
-
-    # Crear el objeto SolicitudSincronizacion con los datos
-    solicitud = SolicitudSincronizacion(
-        codigoAmbiente=codigo_ambiente,
-        codigoPuntoVenta=codigo_punto_venta,
-        codigoSistema=codigo_sistema,
-        codigoSucursal=codigo_sucursal,
-        cuis=cuis,
-        nit=nit
-    )
+    try:
+        SolicitudSincronizacion = client.get_type('ns0:solicitudSincronizacion')
+        solicitud = SolicitudSincronizacion(
+            codigoAmbiente=codigo_ambiente,
+            codigoPuntoVenta=codigo_punto_venta,
+            codigoSistema=codigo_sistema,
+            codigoSucursal=codigo_sucursal,
+            cuis=cuis,
+            nit=nit
+        )
+        logging.info(f'Solicitud enviada: {solicitud}')
+    except Exception as e:
+        logging.error(f'Error al crear la solicitud de sincronización: {e}')
+        logging.error(traceback.format_exc())
+        return
 
     try:
         # Llamar al método sincronizarListaProductosServicios
         response = client.service.sincronizarListaProductosServicios(solicitud)
-        print("Respuesta completa del servicio SOAP:", response)
+        logging.info(f'Respuesta completa del servicio SOAP: {response}')
 
         # Verificar si la transacción fue exitosa
         if not response.transaccion:
-            print("Error en la transacción SOAP:", response.mensajesList)
+            logging.error(f'Error en la transacción SOAP: {response.mensajesList}')
             return  # Salir si hay error
 
         # Conexión a MySQL
         mydb = mysql.connector.connect(**db_config)
         cursor = mydb.cursor()
+        logging.debug('Conexión a MySQL establecida.')
 
         # Crear la tabla de relación si no existe
         cursor.execute("""
@@ -82,12 +109,11 @@ def sincronizar_lista_productos_servicios():
         CHARACTER SET utf8mb4,
         COLLATE=utf8mb4_unicode_ci;
         """)
-
-        
+        logging.debug('Tabla sincronizarListaProductosServicios verificada/creada.')
 
         if response.listaCodigos:
             for codigo in response.listaCodigos:
-                print("Procesando código:", codigo)
+                logging.info(f'Procesando código: {codigo}')
                 codigoActividad = codigo.codigoActividad
                 codigoProducto = codigo.codigoProducto
                 descripcionProducto = codigo.descripcionProducto
@@ -97,25 +123,35 @@ def sincronizar_lista_productos_servicios():
                 # Insertar o actualizar datos
                 sql = """
                 INSERT INTO sincronizarListaProductosServicios (codigoActividad, codigoProducto, descripcionProducto, nandina, fecha_creacion, fecha_sincronizacion, estado_sincronizacion)
-                VALUES (%s, %s, %s, %s, NOW(), NOW(), %s)
+                VALUES (%s, %s, %s, %s, NOW(), NOW(), 'actualizado')
                 ON DUPLICATE KEY UPDATE descripcionProducto = VALUES(descripcionProducto), nandina = VALUES(nandina), fecha_sincronizacion = NOW(), estado_sincronizacion = 'actualizado';
                 """
                 val = (codigoActividad, codigoProducto, descripcionProducto, nandina, 'actualizado')
+                logging.debug(f'Ejecutando SQL: {sql} con valores {val}')
                 cursor.execute(sql, val)
 
             # Confirmar los cambios en la base de datos
             mydb.commit()
+            logging.debug('Cambios en la base de datos confirmados.')
+        else:
+            logging.info("No se encontraron códigos para procesar.")
 
-        print("¡Sincronización completada con éxito!")
+        logging.info("¡Sincronización completada con éxito!")
 
+    except mysql.connector.Error as err:
+        logging.error(f"Error en MySQL: {err}")
+        logging.error(traceback.format_exc())
     except Exception as e:
-        print(f"Error durante la sincronización: {e}")
-
+        logging.error(f"Error durante la sincronización: {e}")
+        logging.error(traceback.format_exc())
     finally:
         # Cerrar la conexión (si está abierta)
         if mydb and mydb.is_connected():
             cursor.close()
             mydb.close()
+            logging.debug('Conexión a MySQL cerrada.')
 
 if __name__ == "__main__":
+    logging.debug('Inicio de la función principal.')
     sincronizar_lista_productos_servicios()
+    logging.debug('Fin de la función principal.')

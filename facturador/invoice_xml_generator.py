@@ -50,12 +50,12 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
                          codigo_punto_venta: Optional[int], fecha_emision: str, nombre_razon_social: Optional[str],
                          codigo_tipo_documento_identidad: int, numero_documento: str, complemento: Optional[str], 
                          codigo_cliente: str, codigo_metodo_pago: int, ultimos_digitos_tarjeta: Optional[str], 
-                         monto_total: float, monto_total_sujeto_iva: float, codigo_moneda: int, tipo_cambio: float, 
+                         subtotal: float, total: float, codigo_moneda: int, tipo_cambio: float, 
                          monto_total_moneda: float, monto_giftcard: Optional[float], descuento_adicional: Optional[float], 
                          leyenda: str, usuario: str, codigo_documento_sector: int, lineas_productos: List[Dict[str, str]]) -> str:
 
     logging.info("Iniciando la generación del XML de la factura.")
-    logging.debug("Valores recibidos: nit_emisor=%s, razon_social_emisor=%s, municipio=%s, telefono=%s, numero_factura=%s, cuf=%s, cufd=%s, codigo_sucursal=%s, direccion=%s, codigo_punto_venta=%s, fecha_emision=%s, nombre_razon_social=%s, codigo_tipo_documento_identidad=%s, numero_documento=%s, complemento=%s, codigo_cliente=%s, codigo_metodo_pago=%s, ultimos_digitos_tarjeta=%s, monto_total=%s, monto_total_sujeto_iva=%s, codigo_moneda=%s, tipo_cambio=%s, monto_total_moneda=%s, monto_giftcard=%s, descuento_adicional=%s, leyenda=%s, usuario=%s, codigo_documento_sector=%s, lineas_productos=%s", nit_emisor, razon_social_emisor, municipio, telefono, numero_factura, cuf, cufd, codigo_sucursal, direccion, codigo_punto_venta, fecha_emision, nombre_razon_social, codigo_tipo_documento_identidad, numero_documento, complemento, codigo_cliente, codigo_metodo_pago, ultimos_digitos_tarjeta, monto_total, monto_total_sujeto_iva, codigo_moneda, tipo_cambio, monto_total_moneda, monto_giftcard, descuento_adicional, leyenda, usuario, codigo_documento_sector, lineas_productos)
+    logging.debug("Valores recibidos: nit_emisor=%s, razon_social_emisor=%s, municipio=%s, telefono=%s, numero_factura=%s, cuf=%s, cufd=%s, codigo_sucursal=%s, direccion=%s, codigo_punto_venta=%s, fecha_emision=%s, nombre_razon_social=%s, codigo_tipo_documento_identidad=%s, numero_documento=%s, complemento=%s, codigo_cliente=%s, codigo_metodo_pago=%s, ultimos_digitos_tarjeta=%s, subtotal=%s, total=%s, codigo_moneda=%s, tipo_cambio=%s, monto_total_moneda=%s, monto_giftcard=%s, descuento_adicional=%s, leyenda=%s, usuario=%s, codigo_documento_sector=%s, lineas_productos=%s", nit_emisor, razon_social_emisor, municipio, telefono, numero_factura, cuf, cufd, codigo_sucursal, direccion, codigo_punto_venta, fecha_emision, nombre_razon_social, codigo_tipo_documento_identidad, numero_documento, complemento, codigo_cliente, codigo_metodo_pago, ultimos_digitos_tarjeta, subtotal, total, codigo_moneda, tipo_cambio, monto_total_moneda, monto_giftcard, descuento_adicional, leyenda, usuario, codigo_documento_sector, lineas_productos)
 
     # Validar y formatear fechaEmision
     fecha_emision = validate_and_format_datetime(fecha_emision)
@@ -79,12 +79,12 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
     ET.SubElement(cabecera, "numeroFactura").text = str(numero_factura)
     ET.SubElement(cabecera, "cuf").text = cuf
     ET.SubElement(cabecera, "cufd").text = cufd
-    ET.SubElement(cabecera, "codigoSucursal").text = str(CODIGO_SUCURSAL)
+    ET.SubElement(cabecera, "codigoSucursal").text = str(codigo_sucursal)
     ET.SubElement(cabecera, "direccion").text = direccion
     
     # Manejo de nillable para codigoPuntoVenta
     if codigo_punto_venta is not None:
-        ET.SubElement(cabecera, "codigoPuntoVenta").text = str(CODIGO_PUNTO_VENTA)  # Punto de venta por defecto
+        ET.SubElement(cabecera, "codigoPuntoVenta").text = str(codigo_punto_venta)  # Punto de venta por defecto
     else:
         ET.SubElement(cabecera, "codigoPuntoVenta", attrib={"xsi:nil": "true"})
     
@@ -92,7 +92,7 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
     
     # Manejo de nillable para nombreRazonSocial
     if nombre_razon_social:
-        ET.SubElement(cabecera, "nombreRazonSocial").text = nombre_razon_social
+        ET.SubElement(cabecera, "nombreRazonSocial").text = nombre_razon_social.upper()
     else:
         ET.SubElement(cabecera, "nombreRazonSocial", attrib={"xsi:nil": "true"})
     
@@ -114,11 +114,12 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
     else:
         ET.SubElement(cabecera, "numeroTarjeta", attrib={"xsi:nil": "true"})
     
-    ET.SubElement(cabecera, "montoTotal").text = "{:.2f}".format(monto_total)
-    ET.SubElement(cabecera, "montoTotalSujetoIva").text = "{:.2f}".format(monto_total_sujeto_iva)
+    ET.SubElement(cabecera, "montoTotal").text = "{:.2f}".format(total)  # montoTotal original antes de aplicar la gift card
+    ET.SubElement(cabecera, "montoTotalSujetoIva").text = "{:.2f}".format(total - monto_giftcard if monto_giftcard else total)
+
     ET.SubElement(cabecera, "codigoMoneda").text = str(codigo_moneda)
     ET.SubElement(cabecera, "tipoCambio").text = "{:.2f}".format(tipo_cambio)
-    ET.SubElement(cabecera, "montoTotalMoneda").text = "{:.2f}".format(monto_total_moneda)
+    ET.SubElement(cabecera, "montoTotalMoneda").text = "{:.2f}".format(total / tipo_cambio)  # montoTotalMoneda = montoTotal / tipoCambio
     
     # Manejo de nillable para montoGiftCard
     if monto_giftcard is not None:
@@ -171,7 +172,7 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
             ET.SubElement(detalle, "numeroImei", attrib={"xsi:nil": "true"})
 
     xml_string = ET.tostring(factura, encoding='utf-8', method='xml').decode('utf-8')
-
+    
     # Guardar el XML antes de ser canonicalizado
     initial_xml_filename = f"{XML_FOLDER_PATH}/factura_{cuf}_antes_de_canonicalizar.xml"
     with open(initial_xml_filename, "w", encoding='utf-8') as initial_xml_file:
@@ -181,3 +182,4 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
     logging.info("XML de la factura generado correctamente.")
     logging.debug(f"XML Generado:\n{xml_string}")
     return xml_string
+

@@ -5,6 +5,8 @@ import hashlib
 import base64
 import requests
 from dotenv import load_dotenv
+import xml.etree.ElementTree as ET
+
 
 # Cargar variables de entorno desde el archivo .env
 load_dotenv()
@@ -85,4 +87,16 @@ def enviar_solicitud(xml_path, xsd_main_path, fecha_envio, cufd):
     print(f"Response status code: {response.status_code}")
     print(f"Response content: {response.content.decode('utf-8')}")
     print(f"Request headers: {fecha_envio}")
+    # Parsea el contenido de la respuesta
+   # root = ET.fromstring(response.content)
 
+    # Define el namespace para evitar problemas al buscar los elementos
+   # ns = {'ns2': 'https://siat.impuestos.gob.bo/'}
+
+    # Extrae los valores específicos
+    #codigoDescripcion = root.find('.//ns2:codigoDescripcion', ns).text
+    #codigoEstado = root.find('.//ns2:codigoEstado', ns).text
+    #codigoRecepcion = root.find('.//ns2:codigoRecepcion', ns).text
+
+    # Imprime los valores extraídos
+    #print(f"Response content: codigoDescripcion {codigoDescripcion}, codigoEstado {codigoEstado}, codigoRecepcion {codigoRecepcion}")

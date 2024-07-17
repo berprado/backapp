@@ -1,9 +1,12 @@
-
+import os
+import logging
+import traceback
 import streamlit as st
 import sincronizarActividades
 import sincronizarListaActividadesDocumentoSector
 import sincronizarListaLeyendasFactura
 import sincronizarListaMensajesServicios
+import sincronizarListaProductosServicios
 import sincronizarParametricaEventosSignificativos
 import sincronizarParametricaTipoDocumentoIdentidad
 import sincronizarParametricaTipoDocumentoSector
@@ -17,16 +20,28 @@ import sincronizarParametricaTipoEmision
 import sincronizarParametricaPaisOrigen
 import sincronizarParametricaMotivoAnulacion
 
+# Configurar el logging
+log_file_path = 'sincronizaciones.txt'
+if not os.path.exists(log_file_path):
+    open(log_file_path, 'a').close()
+
+logging.basicConfig(
+    filename=log_file_path,
+    filemode='a',  # Agregar a los logs existentes
+    level=logging.DEBUG,  # Nivel de detalle
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 # Directorio donde se encuentran los archivos de sincronización
 sync_dir = '.'
 
 # Lista de tuplas (nombre de archivo, función de sincronización)
 sync_functions = [
-    ('sincronizarActividades.py', sincronizarActividades.sincronizar, ),
+    ('sincronizarActividades.py', sincronizarActividades.sincronizar),
     ('sincronizarListaActividadesDocumentoSector.py', sincronizarListaActividadesDocumentoSector.sincronizar_documento_sector),
     ('sincronizarListaLeyendasFactura.py', sincronizarListaLeyendasFactura.sincronizar_lista_leyendas_factura),
     ('sincronizarListaMensajesServicios.py', sincronizarListaMensajesServicios.sincronizar_lista_mensajes_servicios),
+    ('sincronizarListaProductosServicios.py', sincronizarListaProductosServicios.sincronizar_lista_productos_servicios),    
     ('sincronizarParametricaEventosSignificativos.py', sincronizarParametricaEventosSignificativos.sincronizar_parametrica_eventos_significativos),
     ('sincronizarParametricaTipoDocumentoIdentidad.py', sincronizarParametricaTipoDocumentoIdentidad.sincronizar_parametrica_tipo_documento_identidad),
     ('sincronizarParametricaTipoDocumentoSector.py', sincronizarParametricaTipoDocumentoSector.sincronizar_parametrica_tipo_documento_sector),
@@ -45,34 +60,41 @@ sync_functions = [
 st.title('Sincronización de Datos')
 
 # Columna para los botones
-col1, col2, col3 = st.columns(3)
+col1, col2 = st.columns(2)
 
-# Botón para ejecutar todas las sincronizaciones con st.progress
-with col1:
-   st.header("A cat")
-   st.image("https://static.streamlit.io/examples/cat.jpg")
+# Función para ejecutar sincronización y registrar logs
+def ejecutar_sincronizacion(func, file_name):
+    try:
+        logging.info(f'Iniciando sincronización para {file_name}')
+        func()
+        logging.info(f'Sincronización completada para {file_name}')
+    except Exception as e:
+        logging.error(f'Error al sincronizar {file_name}: {e}')
+        logging.error(traceback.format_exc())
+        st.error(f'Error al sincronizar {file_name}: {e}')
 
 # Botón para ejecutar todas las sincronizaciones con st.spinner
-if col2.button('Sincronizar Todo (Spinner)'):
+if col1.button('Sincronizar Todo (Spinner)'):
     for file, sync_function in sync_functions:
         file_name = file.replace('sincronizar', '').replace('.py', '')
         with st.spinner(f"Actualizando {file_name}..."):
-            sync_function()
+            ejecutar_sincronizacion(sync_function, file_name)
         if file_name == 'Actividades':
             st.write(f" :heavy_check_mark: Las {file_name} se han sincronizado correctamente.")
         else:
-            st.write(f" :heavy_check_mark: Los valores de la :blue[ {file_name} ]se han sincronizado correctamente.")
+            st.write(f" :heavy_check_mark: Los valores de :blue[ {file_name} ] se han sincronizado correctamente.")
 
 # Botón para ejecutar todas las sincronizaciones con st.status
-if col3.button('Sincronizar Todo (Status)'):
+if col2.button('Sincronizar Todo (Status)'):
     for file, sync_function in sync_functions:
         with st.status(f":sunglasses: {file}..."):
-            sync_function()
+            ejecutar_sincronizacion(sync_function, file)
     st.status(f" :heavy_check_mark: {file} sincronizado correctamente.:sunglasses:")
+
 # Lista de sincronizaciones individuales
 st.markdown('---')
 st.header('Sincronizaciones Individuales')
-selected_files = st.multiselect('Selecciona los archivos de sincronización', [file for file, _ in sync_functions])
+selected_files = st.multiselect('Selecciona los Servicios a sincronizar', [file for file, _ in sync_functions])
 
 # Botón para ejecutar las sincronizaciones seleccionadas
 if st.button('Ejecutar Sincronizaciones Seleccionadas'):
@@ -80,9 +102,9 @@ if st.button('Ejecutar Sincronizaciones Seleccionadas'):
         for file, sync_function in sync_functions:
             if file == selected_file:
                 file_name = file.replace('sincronizar', '').replace('.py', '')
-        with st.spinner(f"Actualizando {file_name}..."):
-            sync_function()
+        with st.spinner(f"Sincronizando {file_name}..."):
+            ejecutar_sincronizacion(sync_function, file_name)
         if file_name == 'Actividades':
-            st.write(f" :heavy_check_mark: Las {file_name} se han sincronizado correctamente.")
+            st.write(f" :heavy_check_mark: {file_name} se ha sincronizado correctamente.")
         else:
-            st.write(f" :heavy_check_mark: Los valores de :blue[ {file_name} ] se han sincronizado correctamente.")
+            st.write(f" :heavy_check_mark: Los valores :blue[ {file_name} ] se han sincronizado correctamente.")
