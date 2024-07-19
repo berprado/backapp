@@ -116,7 +116,6 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
     
     ET.SubElement(cabecera, "montoTotal").text = "{:.2f}".format(total)  # montoTotal original antes de aplicar la gift card
     ET.SubElement(cabecera, "montoTotalSujetoIva").text = "{:.2f}".format(total - monto_giftcard if monto_giftcard else total)
-
     ET.SubElement(cabecera, "codigoMoneda").text = str(codigo_moneda)
     ET.SubElement(cabecera, "tipoCambio").text = "{:.2f}".format(tipo_cambio)
     ET.SubElement(cabecera, "montoTotalMoneda").text = "{:.2f}".format(total / tipo_cambio)  # montoTotalMoneda = montoTotal / tipoCambio
@@ -182,4 +181,3 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
     logging.info("XML de la factura generado correctamente.")
     logging.debug(f"XML Generado:\n{xml_string}")
     return xml_string
-

@@ -40,7 +40,14 @@ gift_card_codes = [
 ]
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s', filename='firma_log.txt', filemode='w')
+
+# Configurar logging
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+
+# Verificar si ya se han añadido handlers para evitar duplicados
+if not logger.handlers:
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s', filename='firma_log.txt', filemode='w')
 
 def es_email_valido(email):
     patron = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
@@ -409,7 +416,7 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
     # Paso 11: Devolver el XML firmado
     try:
         signed_xml_str = etree.tostring(xml_root, xml_declaration=True, encoding='UTF-8').decode()
-        logging.info(f"XML firmado:\n{signed_xml_str}")
+        #logging.info(f"XML firmado:\n{signed_xml_str}")
 
         # Calcular el hash del XML firmado (sin el nodo de firma)
         signed_xml_root = etree.fromstring(signed_xml_str.encode('utf-8'))
@@ -417,7 +424,7 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
         if (signature_element is not None):
             signed_xml_root.remove(signature_element)
         else:
-            logging.error("No se encontró el elemento Signature para remover.")
+            #logging.error("No se encontró el elemento Signature para remover.")
             return None
 
         signed_xml_canonical = etree.tostring(signed_xml_root, method="c14n").decode()
@@ -436,7 +443,7 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
         return None
 
 # Log the gift card codes at the start
-logging.info(f"Lista de códigos permitidos para gift cards: {gift_card_codes}")
+#logging.info(f"Lista de códigos permitidos para gift cards: {gift_card_codes}")
 
 def main():
     if 'processed_comandas' not in st.session_state:
@@ -522,8 +529,8 @@ def main():
     # Obtener las opciones de métodos de pago
     opciones_metodos_pago = [metodo["descripcion"] for metodo in metodos_pago]
 
-    # Buscar el índice del método de pago con codigoClasificador = 66
-    indice_metodo_pago_predeterminado = next((i for i, metodo in enumerate(metodos_pago) if metodo["codigoClasificador"] == 66), 0)
+    # Buscar el índice del método de pago con codigoClasificador = 1
+    indice_metodo_pago_predeterminado = next((i for i, metodo in enumerate(metodos_pago) if metodo["codigoClasificador"] == 1), 0)
 
     # Loggear las opciones de métodos de pago y el índice del método de pago predeterminado
     logging.debug(f"Opciones de métodos de pago: {opciones_metodos_pago}")

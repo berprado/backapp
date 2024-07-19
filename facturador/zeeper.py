@@ -6,58 +6,67 @@ import base64
 import requests
 from dotenv import load_dotenv
 import xml.etree.ElementTree as ET
+import logging
 
+# Configurar el logging
+log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+
+# Configuración de logger
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+
+# Crear un handler para la consola
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(log_formatter)
+logger.addHandler(console_handler)
+
+# Crear un handler para el archivo
+file_handler = logging.FileHandler('app.log')
+file_handler.setFormatter(log_formatter)
+logger.addHandler(file_handler)
 
 # Cargar variables de entorno desde el archivo .env
 load_dotenv()
 
 # Función para validar el XML contra el XSD principal
 def validar_xml(xml_path, xsd_main_path):
+    logger.debug(f"Validando XML: {xml_path} contra el esquema XSD: {xsd_main_path}")
     schema_main = xmlschema.XMLSchema(xsd_main_path)
     try:
         # Validar el XML contra el esquema principal
         schema_main.validate(xml_path)
-        print("El XML es válido contra el esquema principal..")
+        logger.info("El XML es válido contra el esquema principal.")
         return True
     except xmlschema.validators.exceptions.XMLSchemaValidationError as e:
-        print(f"Error de validación: {e}")
+        logger.error(f"Error de validación: {e}")
         return False
 
 # Función para comprimir el archivo XML en formato Gzip
 def comprimir_xml(xml_path):
+    logger.debug(f"Comprimiendo XML: {xml_path}")
     gzip_path = xml_path + '.gz'
     with open(xml_path, 'r', encoding='utf-8') as f_in, gzip.open(gzip_path, 'wb') as f_out:
         content = f_in.read()
         normalized_content = content.replace('\r\n', '\n')
         f_out.write(normalized_content.encode('utf-8'))
+    logger.info(f"Archivo comprimido: {gzip_path}")
     return gzip_path
 
 # Función para obtener el hash SHA-256 del archivo comprimido
 def obtener_hash(gzip_path):
+    logger.debug(f"Obteniendo hash SHA-256 del archivo: {gzip_path}")
     sha256_hash = hashlib.sha256()
     with open(gzip_path, 'rb') as f:
         for byte_block in iter(lambda: f.read(4096), b""):
             sha256_hash.update(byte_block)
-    return sha256_hash.hexdigest()
+    hash_result = sha256_hash.hexdigest()
+    logger.info(f"Hash SHA-256 obtenido: {hash_result}")
+    return hash_result
 
-# Función para enviar la solicitud SOAP
-def enviar_solicitud(xml_path, xsd_main_path, fecha_envio, cufd):
-    if not validar_xml(xml_path, xsd_main_path):
-        print("El XML no es válido. No se puede proceder con la solicitud.")
-        return
-
-    gzip_path = comprimir_xml(xml_path)
-    hash_archivo = obtener_hash(gzip_path)
-
-    with open(gzip_path, 'rb') as f:
-        archivo_base64 = base64.b64encode(f.read()).decode('utf-8')
-
-    url = "https://pilotosiatservicios.impuestos.gob.bo/v2/ServicioFacturacionCompraVenta"
-    headers = {
-        'Content-Type': 'text/xml;charset=UTF-8',
-        'apikey': os.getenv('API_KEY')
-    }
-    soap_body = f"""
+# Función para construir el cuerpo de la solicitud SOAP
+def construir_cuerpo_soap(archivo_base64, fecha_envio, hash_archivo, cufd):
+    logger.debug("Construyendo cuerpo de la solicitud SOAP")
+    return f"""
     <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:siat="https://siat.impuestos.gob.bo/">
        <soapenv:Header/>
        <soapenv:Body>
@@ -83,20 +92,56 @@ def enviar_solicitud(xml_path, xsd_main_path, fecha_envio, cufd):
     </soapenv:Envelope>
     """
 
-    response = requests.post(url, headers=headers, data=soap_body)
-    print(f"Response status code: {response.status_code}")
-    print(f"Response content: {response.content.decode('utf-8')}")
-    print(f"Request headers: {fecha_envio}")
-    # Parsea el contenido de la respuesta
-   # root = ET.fromstring(response.content)
+# Función para enviar la solicitud SOAP
+def enviar_solicitud(xml_path, xsd_main_path, fecha_envio, cufd):
+    logger.debug("Enviando solicitud SOAP")
+    if not validar_xml(xml_path, xsd_main_path):
+        logger.error("El XML no es válido. No se puede proceder con la solicitud.")
+        return {"error": "XML no válido"}
 
-    # Define el namespace para evitar problemas al buscar los elementos
-   # ns = {'ns2': 'https://siat.impuestos.gob.bo/'}
+    gzip_path = comprimir_xml(xml_path)
+    hash_archivo = obtener_hash(gzip_path)
 
-    # Extrae los valores específicos
-    #codigoDescripcion = root.find('.//ns2:codigoDescripcion', ns).text
-    #codigoEstado = root.find('.//ns2:codigoEstado', ns).text
-    #codigoRecepcion = root.find('.//ns2:codigoRecepcion', ns).text
+    with open(gzip_path, 'rb') as f:
+        archivo_base64 = base64.b64encode(f.read()).decode('utf-8')
 
-    # Imprime los valores extraídos
-    #print(f"Response content: codigoDescripcion {codigoDescripcion}, codigoEstado {codigoEstado}, codigoRecepcion {codigoRecepcion}")
+    url = "https://pilotosiatservicios.impuestos.gob.bo/v2/ServicioFacturacionCompraVenta"
+    headers = {
+        'Content-Type': 'text/xml;charset=UTF-8',
+        'apikey': os.getenv('API_KEY')
+    }
+    soap_body = construir_cuerpo_soap(archivo_base64, fecha_envio, hash_archivo, cufd)
+
+    try:
+        response = requests.post(url, headers=headers, data=soap_body)
+        response.raise_for_status()  # Esto lanzará una excepción para códigos de estado HTTP 4xx/5xx
+        logger.info(f"Response status code: {response.status_code}")
+        logger.debug(f"Response content: {response.content.decode('utf-8')}")
+
+        # Parsear la respuesta
+        root = ET.fromstring(response.content)
+        ns = {'soap': 'http://schemas.xmlsoap.org/soap/envelope/', 'ns2': 'https://siat.impuestos.gob.bo/'}
+
+        codigoDescripcion = root.find('.//ns2:codigoDescripcion', ns)
+        codigoEstado = root.find('.//ns2:codigoEstado', ns)
+        codigoRecepcion = root.find('.//ns2:codigoRecepcion', ns)
+        transaccion = root.find('.//ns2:transaccion', ns)
+
+        return {
+            "codigoDescripcion": codigoDescripcion.text if codigoDescripcion is not None else "No disponible",
+            "codigoEstado": codigoEstado.text if codigoEstado is not None else "No disponible",
+            "codigoRecepcion": codigoRecepcion.text if codigoRecepcion is not None else "No disponible",
+            "transaccion": transaccion.text.lower() == 'true' if transaccion is not None else False
+        }
+    except requests.exceptions.HTTPError as http_err:
+        logger.error(f"HTTP error occurred: {http_err}")  # Manejo de errores HTTP
+        return {"error": str(http_err)}
+    except requests.exceptions.ConnectionError as conn_err:
+        logger.error(f"Error connecting: {conn_err}")  # Manejo de errores de conexión
+        return {"error": str(conn_err)}
+    except requests.exceptions.Timeout as timeout_err:
+        logger.error(f"Timeout error: {timeout_err}")  # Manejo de errores de tiempo de espera
+        return {"error": str(timeout_err)}
+    except requests.exceptions.RequestException as req_err:
+        logger.error(f"An error occurred: {req_err}")  # Manejo de cualquier otro error
+        return {"error": str(req_err)}
