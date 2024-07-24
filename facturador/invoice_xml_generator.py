@@ -1,9 +1,9 @@
 import xml.etree.ElementTree as ET
 import os
 from datetime import datetime
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from dotenv import load_dotenv
-
+from data_access import guardar_factura_cabecera, guardar_factura_detalle, fetch_random_leyenda
 import logging
 
 # Configure logging level
@@ -52,13 +52,17 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
                          codigo_cliente: str, codigo_metodo_pago: int, ultimos_digitos_tarjeta: Optional[str], 
                          subtotal: float, total: float, codigo_moneda: int, tipo_cambio: float, 
                          monto_total_moneda: float, monto_giftcard: Optional[float], descuento_adicional: Optional[float], 
-                         leyenda: str, usuario: str, codigo_documento_sector: int, lineas_productos: List[Dict[str, str]]) -> str:
+                         usuario: str, codigo_documento_sector: int, lineas_productos: List[Dict[str, str]],
+                         actividad_economica: str, codigo_producto_sin: str) -> Tuple[str, Dict, List[Dict]]:
 
     logging.info("Iniciando la generación del XML de la factura.")
-    logging.debug("Valores recibidos: nit_emisor=%s, razon_social_emisor=%s, municipio=%s, telefono=%s, numero_factura=%s, cuf=%s, cufd=%s, codigo_sucursal=%s, direccion=%s, codigo_punto_venta=%s, fecha_emision=%s, nombre_razon_social=%s, codigo_tipo_documento_identidad=%s, numero_documento=%s, complemento=%s, codigo_cliente=%s, codigo_metodo_pago=%s, ultimos_digitos_tarjeta=%s, subtotal=%s, total=%s, codigo_moneda=%s, tipo_cambio=%s, monto_total_moneda=%s, monto_giftcard=%s, descuento_adicional=%s, leyenda=%s, usuario=%s, codigo_documento_sector=%s, lineas_productos=%s", nit_emisor, razon_social_emisor, municipio, telefono, numero_factura, cuf, cufd, codigo_sucursal, direccion, codigo_punto_venta, fecha_emision, nombre_razon_social, codigo_tipo_documento_identidad, numero_documento, complemento, codigo_cliente, codigo_metodo_pago, ultimos_digitos_tarjeta, subtotal, total, codigo_moneda, tipo_cambio, monto_total_moneda, monto_giftcard, descuento_adicional, leyenda, usuario, codigo_documento_sector, lineas_productos)
+    logging.debug("Valores recibidos: nit_emisor=%s, razon_social_emisor=%s, municipio=%s, telefono=%s, numero_factura=%s, cuf=%s, cufd=%s, codigo_sucursal=%s, direccion=%s, codigo_punto_venta=%s, fecha_emision=%s, nombre_razon_social=%s, codigo_tipo_documento_identidad=%s, numero_documento=%s, complemento=%s, codigo_cliente=%s, codigo_metodo_pago=%s, ultimos_digitos_tarjeta=%s, subtotal=%s, total=%s, codigo_moneda=%s, tipo_cambio=%s, monto_total_moneda=%s, monto_giftcard=%s, descuento_adicional=%s, usuario=%s, codigo_documento_sector=%s, lineas_productos=%s", nit_emisor, razon_social_emisor, municipio, telefono, numero_factura, cuf, cufd, codigo_sucursal, direccion, codigo_punto_venta, fecha_emision, nombre_razon_social, codigo_tipo_documento_identidad, numero_documento, complemento, codigo_cliente, codigo_metodo_pago, ultimos_digitos_tarjeta, subtotal, total, codigo_moneda, tipo_cambio, monto_total_moneda, monto_giftcard, descuento_adicional, usuario, codigo_documento_sector, lineas_productos)
 
     # Validar y formatear fechaEmision
     fecha_emision = validate_and_format_datetime(fecha_emision)
+
+    # Obtener leyenda aleatoria
+    leyenda = fetch_random_leyenda()
 
     factura = ET.Element("facturaElectronicaCompraVenta", attrib={
         "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
@@ -114,21 +118,21 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
     else:
         ET.SubElement(cabecera, "numeroTarjeta", attrib={"xsi:nil": "true"})
     
-    ET.SubElement(cabecera, "montoTotal").text = "{:.2f}".format(total)  # montoTotal original antes de aplicar la gift card
-    ET.SubElement(cabecera, "montoTotalSujetoIva").text = "{:.2f}".format(total - monto_giftcard if monto_giftcard else total)
+    ET.SubElement(cabecera, "montoTotal").text = "{:.2f}".format(float(total))  # montoTotal original antes de aplicar la gift card
+    ET.SubElement(cabecera, "montoTotalSujetoIva").text = "{:.2f}".format(float(total) - float(monto_giftcard) if monto_giftcard else float(total))
     ET.SubElement(cabecera, "codigoMoneda").text = str(codigo_moneda)
-    ET.SubElement(cabecera, "tipoCambio").text = "{:.2f}".format(tipo_cambio)
-    ET.SubElement(cabecera, "montoTotalMoneda").text = "{:.2f}".format(total / tipo_cambio)  # montoTotalMoneda = montoTotal / tipoCambio
+    ET.SubElement(cabecera, "tipoCambio").text = "{:.2f}".format(float(tipo_cambio))
+    ET.SubElement(cabecera, "montoTotalMoneda").text = "{:.2f}".format(float(total) / float(tipo_cambio))  # montoTotalMoneda = montoTotal / tipoCambio
     
     # Manejo de nillable para montoGiftCard
     if monto_giftcard is not None:
-        ET.SubElement(cabecera, "montoGiftCard").text = str(monto_giftcard)
+        ET.SubElement(cabecera, "montoGiftCard").text = "{:.2f}".format(float(monto_giftcard))
     else:
         ET.SubElement(cabecera, "montoGiftCard", attrib={"xsi:nil": "true"})
     
     # Manejo de nillable para descuentoAdicional
     if descuento_adicional is not None:
-        ET.SubElement(cabecera, "descuentoAdicional").text = str(descuento_adicional)
+        ET.SubElement(cabecera, "descuentoAdicional").text = "{:.2f}".format(float(descuento_adicional))
     else:
         ET.SubElement(cabecera, "descuentoAdicional", attrib={"xsi:nil": "true"})
     
@@ -138,25 +142,60 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
     ET.SubElement(cabecera, "usuario").text = usuario
     ET.SubElement(cabecera, "codigoDocumentoSector").text = str(codigo_documento_sector)
 
+    cabecera_data = {
+        'nitEmisor': nit_emisor,
+        'razonSocialEmisor': razon_social_emisor,
+        'municipio': municipio,
+        'telefono': telefono,
+        'numeroFactura': numero_factura,
+        'cuf': cuf,
+        'cufd': cufd,
+        'codigoSucursal': codigo_sucursal,
+        'direccion': direccion,
+        'codigoPuntoVenta': codigo_punto_venta,
+        'fechaEmision': fecha_emision,
+        'nombreRazonSocial': nombre_razon_social,
+        'codigoTipoDocumentoIdentidad': codigo_tipo_documento_identidad,
+        'numeroDocumento': numero_documento,
+        'complemento': complemento,
+        'codigoCliente': codigo_cliente,
+        'codigoMetodoPago': codigo_metodo_pago,
+        'numeroTarjeta': ultimos_digitos_tarjeta,
+        'montoTotal': total,
+        'montoTotalSujetoIva': total - monto_giftcard if monto_giftcard else total,
+        'codigoMoneda': codigo_moneda,
+        'tipoCambio': tipo_cambio,
+        'montoTotalMoneda': total / tipo_cambio,
+        'montoGiftCard': monto_giftcard,
+        'descuentoAdicional': descuento_adicional,
+        'codigoExcepcion': None,
+        'cafc': None,
+        'leyenda': leyenda,
+        'usuario': usuario,
+        'codigoDocumentoSector': codigo_documento_sector
+    }
+
+    detalles_data = []
+
     for linea in lineas_productos:
         logging.debug("Procesando la línea de producto: %s", linea)
         detalle = ET.SubElement(factura, "detalle")
-        ET.SubElement(detalle, "actividadEconomica").text = str(ACTIVIDAD_ECONOMICA)
-        ET.SubElement(detalle, "codigoProductoSin").text = str(CODIGO_PRODUCTO_SIN)
+        ET.SubElement(detalle, "actividadEconomica").text = str(actividad_economica)
+        ET.SubElement(detalle, "codigoProductoSin").text = str(codigo_producto_sin)
         ET.SubElement(detalle, "codigoProducto").text = str(linea["codigo"])
         ET.SubElement(detalle, "descripcion").text = str(linea["nombre"])
-        ET.SubElement(detalle, "cantidad").text = str(linea["cantidad"])
+        ET.SubElement(detalle, "cantidad").text = "{:.2f}".format(float(linea["cantidad"]))
         unidad_medida_codigo = UNIDAD_MEDIDA_MAP.get(linea["unidad"], 1)  # Usa 1 (Unid) como valor predeterminado
         ET.SubElement(detalle, "unidadMedida").text = str(unidad_medida_codigo)
-        ET.SubElement(detalle, "precioUnitario").text = str(linea["precio_venta"])
+        ET.SubElement(detalle, "precioUnitario").text = "{:.2f}".format(float(linea["precio_venta"]))
         
         # Manejo de nillable para montoDescuento
         if linea.get("montoDescuento") is not None:
-            ET.SubElement(detalle, "montoDescuento").text = str(linea["montoDescuento"])
+            ET.SubElement(detalle, "montoDescuento").text = "{:.2f}".format(float(linea["montoDescuento"]))
         else:
             ET.SubElement(detalle, "montoDescuento", attrib={"xsi:nil": "true"})
         
-        ET.SubElement(detalle, "subTotal").text = str(linea["sub_total"])
+        ET.SubElement(detalle, "subTotal").text = "{:.2f}".format(float(linea["sub_total"]))
         
         # Manejo de nillable para numeroSerie
         if linea.get("numeroSerie"):
@@ -170,14 +209,20 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
         else:
             ET.SubElement(detalle, "numeroImei", attrib={"xsi:nil": "true"})
 
-    xml_string = ET.tostring(factura, encoding='utf-8', method='xml').decode('utf-8')
-    
-    # Guardar el XML antes de ser canonicalizado
-    initial_xml_filename = f"{XML_FOLDER_PATH}/factura_{cuf}_antes_de_canonicalizar.xml"
-    with open(initial_xml_filename, "w", encoding='utf-8') as initial_xml_file:
-        initial_xml_file.write(xml_string)
-    logging.info(f"XML inicial guardado en {initial_xml_filename}")
+        detalles_data.append({
+            'numeroFactura': numero_factura,  # Asegurando el número de factura en el detalle
+            'actividadEconomica': actividad_economica,
+            'codigoProductoSin': codigo_producto_sin,
+            'codigoProducto': linea["codigo"],
+            'descripcion': linea["nombre"],
+            'cantidad': float(linea["cantidad"]),
+            'unidadMedida': unidad_medida_codigo,
+            'precioUnitario': float(linea["precio_venta"]),
+            'montoDescuento': float(linea.get("montoDescuento", 0.00)),
+            'subTotal': float(linea["sub_total"]),
+            'numeroSerie': linea.get("numeroSerie"),
+            'numeroImei': linea.get("numeroImei")
+        })
 
-    logging.info("XML de la factura generado correctamente.")
-    logging.debug(f"XML Generado:\n{xml_string}")
-    return xml_string
+    xml_string = ET.tostring(factura, encoding='utf-8', method='xml').decode('utf-8')
+    return xml_string, cabecera_data, detalles_data

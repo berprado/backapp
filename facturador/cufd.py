@@ -11,6 +11,7 @@ load_dotenv()
 wsdl_url_codigos = os.getenv("WSDL_URL_CODIGOS")
 api_key = os.getenv("API_KEY")
 codigo_ambiente = int(os.getenv("CODIGO_AMBIENTE"))
+codigo_modalidad = int(os.getenv("CODIGO_MODALIDAD"))
 codigo_punto_venta = int(os.getenv("CODIGO_PUNTO_VENTA"))
 codigo_sistema = os.getenv("CODIGO_SISTEMA")
 codigo_sucursal = int(os.getenv("CODIGO_SUCURSAL"))
@@ -75,7 +76,7 @@ def solicitar_cufd():
     # Crear el objeto SolicitudCufd con los datos
     solicitud = SolicitudCufd(
         codigoAmbiente=codigo_ambiente,
-        codigoModalidad=1,  # Asumir modalidad de facturación electrónica en línea
+        codigoModalidad=codigo_modalidad,  # Asumir modalidad de facturación electrónica en línea
         codigoPuntoVenta=codigo_punto_venta,
         codigoSistema=codigo_sistema,
         codigoSucursal=codigo_sucursal,

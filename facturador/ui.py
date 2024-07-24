@@ -1,6 +1,9 @@
 import streamlit as st
 import streamlit.components.v1 as components
-from data_access import fetch_comandas, fetch_metodos_pago, fetch_tipos_documento, fetch_cliente
+from data_access import (
+    fetch_comandas, fetch_metodos_pago, fetch_tipos_documento, fetch_cliente, 
+    fetch_random_leyenda, guardar_factura_cabecera, guardar_factura_detalle
+)
 from business_logic import calculate_totals, collect_product_lines
 from invoice_xml_generator import generate_xml_invoice
 from num2words import num2words
@@ -18,8 +21,7 @@ from datetime import datetime
 from generate_cuf import generate_cuf
 from cufd import solicitar_cufd
 from lxml import etree
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -29,6 +31,7 @@ from zeeper import validar_xml, comprimir_xml, obtener_hash, enviar_solicitud
 from decimal import Decimal
 import logging
 import traceback
+import xml.etree.ElementTree as ET
 
 # Lista de códigos permitidos para gift cards
 gift_card_codes = [
@@ -39,15 +42,17 @@ gift_card_codes = [
     304, 35, 40, 49, 53, 60, 64, 68, 72, 76, 77, 78, 86, 94
 ]
 
-# Configure logging
-
 # Configurar logging
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
-# Verificar si ya se han añadido handlers para evitar duplicados
 if not logger.handlers:
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s', filename='firma_log.txt', filemode='w')
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        filename='firma_log.txt',
+        filemode='w'
+    )
 
 def es_email_valido(email):
     patron = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
@@ -84,18 +89,40 @@ def verificar_nit(nit):
     except Exception as e:
         return False, f"Ocurrió un error: {str(e)}"
 
+def validar_factura_cabecera(factura_cabecera_data):
+    required_fields = [
+        'nitEmisor', 'razonSocialEmisor', 'municipio', 'numeroFactura', 'cuf', 'cufd', 
+        'codigoSucursal', 'direccion', 'fechaEmision', 'codigoTipoDocumentoIdentidad', 
+        'numeroDocumento', 'codigoCliente', 'codigoMetodoPago', 'montoTotal', 'montoTotalSujetoIva', 
+        'codigoMoneda', 'tipoCambio', 'montoTotalMoneda', 'leyenda', 'usuario', 'codigoDocumentoSector'
+    ]
+    
+    for field in required_fields:
+        if factura_cabecera_data.get(field) is None or factura_cabecera_data.get(field) == '':
+            return False, f"El campo {field} es requerido y no puede estar vacío."
+    
+    return True, ""
+
+def validar_factura_detalle(factura_detalle_data):
+    required_fields = [
+        'numeroFactura', 'actividadEconomica', 'codigoProductoSin', 'codigoProducto', 
+        'descripcion', 'cantidad', 'unidadMedida', 'precioUnitario', 'subTotal'
+    ]
+    
+    for field in required_fields:
+        if factura_detalle_data.get(field) is None or factura_detalle_data.get(field) == '':
+            return False, f"El campo {field} es requerido y no puede estar vacío."
+    
+    return True, ""
+
 def numero_a_palabras_con_decimales_como_fraccion(numero, lang='es'):
     if not numero:
         return ""
     
-    # Extraer la parte entera y la parte decimal
     parte_entera = int(numero)
     parte_decimal = int(round((numero - parte_entera) * 100))
-    
-    # Convertir la parte entera a palabras
     parte_entera_palabras = num2words(parte_entera, lang=lang).capitalize()
     
-    # Formatear la parte decimal como fracción si existe
     if parte_decimal > 0:
         return f"Son {parte_entera_palabras} {parte_decimal:02d}/100 bolivianos"
     else:
@@ -103,7 +130,7 @@ def numero_a_palabras_con_decimales_como_fraccion(numero, lang='es'):
 
 def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_productos, nombre_cliente, fecha_emision, numero_factura, metodo_pago=None, codigo_clasificador_metodo_pago=None, tipo_documento=None, codigo_clasificador_documento=None, numero_documento=None, complemento=None, email=None, telefono=None, ultimos_digitos_tarjeta=None):
     total = subtotal - descuento_adicional
-    total_final = total  # Inicialización de total_final
+    total_final = total
     
     if codigo_clasificador_metodo_pago in gift_card_codes:
         monto_total_sujeto_iva = total - monto_giftcard
@@ -111,6 +138,8 @@ def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_
         monto_total_sujeto_iva = total
 
     total_en_palabras = numero_a_palabras_con_decimales_como_fraccion(total, lang='es') if total else ""
+
+    leyenda = fetch_random_leyenda()
 
     html_content = f"""
     <html>
@@ -182,6 +211,7 @@ def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_
         <h3>Total Final: {total_final:.2f}</h3>
         <h3>Monto Total Sujeto a IVA: {monto_total_sujeto_iva:.2f}</h3>
         <h3>{total_en_palabras}</h3>
+        <h3>{leyenda}</h3>
     </body>
     </html>
     """
@@ -190,14 +220,25 @@ def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_
 def get_next_invoice_number():
     try:
         with open("invoice_number.txt", "r") as file:
-            numero_factura = int(file.read().strip()) + 1
+            numero_factura = int(file.read().strip())
     except FileNotFoundError:
+        logging.warning("Archivo 'invoice_number.txt' no encontrado. Se creará uno nuevo con el número de factura inicial 0.")
         numero_factura = 0
-    return numero_factura
+    except ValueError as e:
+        logging.error(f"Error de formato en 'invoice_number.txt': {e}")
+        raise ValueError("El archivo 'invoice_number.txt' contiene un valor no válido.")
+    except Exception as e:
+        logging.error(f"Error inesperado al leer 'invoice_number.txt': {e}")
+        raise e
+    return numero_factura + 1
 
 def increment_invoice_number(numero_factura):
-    with open("invoice_number.txt", "w") as file:
-        file.write(str(numero_factura))
+    try:
+        with open("invoice_number.txt", "w") as file:
+            file.write(str(numero_factura))
+    except Exception as e:
+        logging.error(f"Error al escribir en 'invoice_number.txt': {e}")
+        raise e
 
 def save_or_fetch_client_data(codigo_cliente, codigo_tipo_documento_identidad, complemento, email, nombre_razon_social, numero_documento, telefono):
     if not nombre_razon_social:
@@ -217,7 +258,7 @@ def save_or_fetch_client_data(codigo_cliente, codigo_tipo_documento_identidad, c
         session = SessionLocal()
         try:
             nuevo_cliente = models.Cliente(
-                codigo_cliente=codigo_cliente,
+                codigo_cliente=numero_documento,  # Set codigo_cliente to numero_documento
                 codigo_tipo_documento_identidad=codigo_tipo_documento_identidad,
                 complemento=complemento,
                 email=email if email else None,
@@ -286,11 +327,9 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
     logging.info("Iniciando proceso de firma del XML")
     xml_str = xml_str.replace('\r\n', '\n')
 
-    # Calcular el hash del XML original
     original_hash = calculate_hash(xml_str)
     logging.info(f"Hash del XML original: {original_hash}")
 
-    # Paso 1: Canonicalización del XML completo
     try:
         xml_root = etree.fromstring(xml_str.encode('utf-8'))
         canonical_xml = etree.tostring(xml_root, method="c14n").decode()
@@ -300,7 +339,6 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
         traceback.print_exc()
         return None
 
-    # Paso 2: Cálculo del Hash SHA256
     try:
         digest = hashes.Hash(hashes.SHA256())
         digest.update(canonical_xml.encode())
@@ -308,19 +346,17 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
         logging.info(f"Hash del XML: {hash_value.hex()}")
     except Exception as e:
         logging.error(f"Error al calcular el hash SHA256: {e}")
-        traceback.print.exc()
+        traceback.print_exc()
         return None
 
-    # Paso 3: Codificación en Base64
     try:
         digest_base64 = base64.b64encode(hash_value).decode()
         logging.info(f"Hash del XML en Base64: {digest_base64}")
     except Exception as e:
         logging.error(f"Error al codificar el hash en Base64: {e}")
-        traceback.print.exc()
+        traceback.print_exc()
         return None
 
-    # Paso 4: Adicionar las etiquetas de signature al XML
     try:
         ds_ns = "http://www.w3.org/2000/09/xmldsig#"
         signature = etree.Element("{http://www.w3.org/2000/09/xmldsig#}Signature", nsmap={None: ds_ns})
@@ -355,19 +391,14 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
         traceback.print_exc()
         return None
 
-    # Paso 5: Agregar a la etiqueta DigestValue el valor obtenido en el paso 3
-    # Ya realizado en el paso 4
-
-    # Paso 6: Canonicalización de SignedInfo
     try:
         signed_info_canonical = etree.tostring(signed_info, method="c14n").decode()
         logging.info("SignedInfo canonicalizado exitosamente.")
     except Exception as e:
         logging.error(f"Error al canonicalizar SignedInfo: {e}")
-        traceback.print.exc()
+        traceback.print_exc()
         return None
 
-    # Paso 7: Firmar SignedInfo
     try:
         private_key = load_private_key(private_key_path)
         signature_value = private_key.sign(
@@ -378,29 +409,26 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
         logging.info("SignedInfo firmado exitosamente.")
     except Exception as e:
         logging.error(f"Error al firmar SignedInfo: {e}")
-        traceback.print.exc()
+        traceback.print_exc()
         return None
 
-    # Paso 8: Codificación de la firma en Base64
     try:
         signature_value_base64 = base64.b64encode(signature_value).decode()
         logging.info(f"SignatureValue en Base64: {signature_value_base64}")
     except Exception as e:
         logging.error(f"Error al codificar SignatureValue en Base64: {e}")
-        traceback.print.exc()
+        traceback.print_exc()
         return None
 
-    # Paso 9: Adicionar a la etiqueta de SignatureValue la cadena anterior
     try:
         signature_value_element = etree.SubElement(signature, "SignatureValue")
         signature_value_element.text = signature_value_base64
         logging.info("SignatureValue añadido al XML.")
     except Exception as e:
         logging.error(f"Error al adicionar SignatureValue al XML: {e}")
-        traceback.print.exc()
+        traceback.print_exc()
         return None
 
-    # Paso 10: Colocar en la etiqueta X509Certificate la llave pública
     try:
         certificate = load_certificate(cert_path)
         key_info = etree.SubElement(signature, "KeyInfo")
@@ -410,21 +438,17 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
         logging.info("X509Certificate añadido al XML.")
     except Exception as e:
         logging.error(f"Error al adicionar X509Certificate al XML: {e}")
-        traceback.print.exc()
+        traceback.print_exc()
         return None
 
-    # Paso 11: Devolver el XML firmado
     try:
         signed_xml_str = etree.tostring(xml_root, xml_declaration=True, encoding='UTF-8').decode()
-        #logging.info(f"XML firmado:\n{signed_xml_str}")
 
-        # Calcular el hash del XML firmado (sin el nodo de firma)
         signed_xml_root = etree.fromstring(signed_xml_str.encode('utf-8'))
         signature_element = signed_xml_root.find(".//{http://www.w3.org/2000/09/xmldsig#}Signature")
-        if (signature_element is not None):
+        if signature_element is not None:
             signed_xml_root.remove(signature_element)
         else:
-            #logging.error("No se encontró el elemento Signature para remover.")
             return None
 
         signed_xml_canonical = etree.tostring(signed_xml_root, method="c14n").decode()
@@ -442,24 +466,22 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
         traceback.print_exc()
         return None
 
-# Log the gift card codes at the start
-#logging.info(f"Lista de códigos permitidos para gift cards: {gift_card_codes}")
-
 def main():
+    st.title("Facturador Electrónico")
+    
+    leyenda = fetch_random_leyenda()
+
     if 'processed_comandas' not in st.session_state:
         st.session_state.processed_comandas = []
 
-    # Obtener comandas
     comandas, mensaje_error = fetch_comandas()
     if mensaje_error:
         st.error(mensaje_error)
 
-    # Obtener métodos de pago
     metodos_pago, error_metodos = fetch_metodos_pago()
     if error_metodos:
         st.error(error_metodos)
 
-    # Obtener tipos de documento
     tipos_documento, error_documentos = fetch_tipos_documento()
     if error_documentos:
         st.error(error_documentos)
@@ -475,6 +497,7 @@ def main():
     codigo_clasificador_documento = None
     codigo_clasificador_metodo_pago = None
     ultimos_digitos_tarjeta = None
+    codigo_cliente = None   
 
     if numero_documento:
         cliente_data, error = fetch_cliente(numero_documento)
@@ -489,6 +512,7 @@ def main():
             nombre_cliente = st.sidebar.text_input("Razón Social:", value=cliente_data['nombre_razon_social'], disabled=True)
             email = st.sidebar.text_input("Email:", value=cliente_data['email'] if cliente_data['email'] else "", disabled=True)
             telefono = st.sidebar.text_input("Teléfono:", value=cliente_data['telefono'] if cliente_data['telefono'] else "", disabled=True)
+            codigo_cliente = cliente_data['codigo_cliente']  # Set the codigo_cliente from existing data
         else:
             opciones_tipos_documento = [doc["descripcion"] for doc in tipos_documento]
             seleccion_tipo_documento = st.sidebar.selectbox("Tipo de Documento:", opciones_tipos_documento, index=2)
@@ -516,6 +540,7 @@ def main():
                         cliente_data = save_or_fetch_client_data(numero_documento, tipo_documento_seleccionado['codigoClasificador'], complemento, email, nombre_cliente, numero_documento, telefono)
                         if cliente_data:
                             st.success("Datos del cliente guardados o obtenidos correctamente.")
+                            codigo_cliente = numero_documento  # Set codigo_cliente to numero_documento for new client
                     else:
                         st.error("Por favor selecciona un tipo de documento válido.")
     
@@ -526,62 +551,46 @@ def main():
 
     st.sidebar.divider()
 
-    # Obtener las opciones de métodos de pago
     opciones_metodos_pago = [metodo["descripcion"] for metodo in metodos_pago]
 
-    # Buscar el índice del método de pago con codigoClasificador = 1
     indice_metodo_pago_predeterminado = next((i for i, metodo in enumerate(metodos_pago) if metodo["codigoClasificador"] == 1), 0)
 
-    # Loggear las opciones de métodos de pago y el índice del método de pago predeterminado
     logging.debug(f"Opciones de métodos de pago: {opciones_metodos_pago}")
     logging.debug(f"Índice del método de pago predeterminado: {indice_metodo_pago_predeterminado}")
 
-    # Seleccionar el método de pago, por defecto el método con codigoClasificador = 66
     seleccion_metodo_pago = st.sidebar.selectbox("Tipo de Pago:", opciones_metodos_pago, index=66, key="metodo_pago")
 
-    # Loggear el método de pago seleccionado
     logging.debug(f"Método de pago seleccionado: {seleccion_metodo_pago}")
 
-    # Obtener el método de pago seleccionado
     metodo_pago_seleccionado = next((metodo for metodo in metodos_pago if metodo["descripcion"] == seleccion_metodo_pago), None)
 
-    # Inicializar el código clasificador del método de pago
     codigo_clasificador_metodo_pago = None
     if metodo_pago_seleccionado:
-        codigo_clasificador_metodo_pago = int(metodo_pago_seleccionado["codigoClasificador"])  # Asegurarse de que sea int
+        codigo_clasificador_metodo_pago = int(metodo_pago_seleccionado["codigoClasificador"])
         logging.info(f"Código clasificador del método de pago seleccionado: {codigo_clasificador_metodo_pago} ({type(codigo_clasificador_metodo_pago)})")
 
-    # Mostrar campo de texto para los últimos dígitos de la tarjeta si el método de pago es "TARJETA"
     if seleccion_metodo_pago == "TARJETA":
         ultimos_digitos_tarjeta = st.sidebar.text_input("Ingresa los últimos 4 dígitos de la tarjeta:", max_chars=4, key="ultimos_digitos_tarjeta")
 
-    # Checkbox para aplicar descuento o Gift Card
     on = st.sidebar.checkbox("Aplicar Descuento")
 
-    # Inicializar variables de descuento y Gift Card con valores predeterminados
     descuento_adicional = Decimal(0.00)
     monto_giftcard = Decimal(0.00)
 
-    # Loggear el estado del checkbox para aplicar descuento o Gift Card
     logging.debug(f"Aplicar Descuento: {on}")
 
-    # Lógica para aplicar descuento o Gift Card si se selecciona el checkbox
     if on:
         descuento_adicional = st.sidebar.number_input("Descuento Adicional:", min_value=0, step=5, key="descuento_adicional")
-        # Validar si el valor ingresado es None
         if descuento_adicional is None:
             descuento_adicional = Decimal(0.00)
         else:
             descuento_adicional = Decimal(descuento_adicional)
-        # Loggear el descuento adicional ingresado
         logging.debug(f"Descuento adicional ingresado: {descuento_adicional}")
 
-    # Verificar si el método de pago permite aplicar Gift Card
     if codigo_clasificador_metodo_pago is not None:
         logging.info(f"Verificando si el código clasificador {codigo_clasificador_metodo_pago} ({type(codigo_clasificador_metodo_pago)}) está en la lista de códigos de gift card: {gift_card_codes}")
         if codigo_clasificador_metodo_pago in gift_card_codes:
             monto_giftcard = st.sidebar.number_input("Gift Card:", min_value=0, step=5, key="monto_giftcard")
-            # Validar si el valor ingresado es None
             if monto_giftcard is None:
                 monto_giftcard = Decimal(0.00)
             else:
@@ -589,13 +598,9 @@ def main():
             logging.info(f"Monto de Gift Card ingresado: {monto_giftcard}")
         else:
             monto_giftcard = Decimal(0.00)
-            st.warning("El código del método de pago seleccionado no permite aplicar Gift Card.")
-            logging.warning(f"El código del método de pago seleccionado ({codigo_clasificador_metodo_pago}) no permite aplicar Gift Card.")
     else:
         monto_giftcard = Decimal(0.00)
-        logging.warning("El código clasificador del método de pago es None.")
 
-    # Loggear los valores finales de descuento adicional y Gift Card
     logging.debug(f"Descuento Adicional Final: {descuento_adicional}")
     logging.debug(f"Monto Gift Card Final: {monto_giftcard}")
     
@@ -606,7 +611,7 @@ def main():
             descuento_adicional, 
             monto_giftcard, 
             codigo_clasificador_metodo_pago,
-            tipo_cambio=1  # Se establece el tipo de cambio como 1
+            tipo_cambio=1
         )
         lineas_productos = collect_product_lines(comandas, selected_id_comanda)
     else:
@@ -617,6 +622,9 @@ def main():
     fecha_emision = datetime.now()
     fecha_emision_str = fecha_emision.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
     numero_factura = get_next_invoice_number()
+
+    ACTIVIDAD_ECONOMICA = os.getenv('ACTIVIDAD_ECONOMICA')
+    CODIGO_PRODUCTO_SIN = os.getenv('CODIGO_PRODUCTO_SIN')
 
     html_invoice = generate_html_invoice(
         subtotal, 
@@ -640,7 +648,7 @@ def main():
     components.html(html_invoice, height=600, scrolling=True)
 
     if st.button("Generar Factura en XML", key="generar_xml", disabled=not selected_id_comanda):
-        if metodo_pago_seleccionado and seleccion_tipo_documento and numero_documento:
+        if metodo_pago_seleccionado and seleccion_tipo_documento and numero_documento and selected_id_comanda:
             try:
                 tipo_documento_seleccionado = next((doc for doc in tipos_documento if doc["descripcion"] == seleccion_tipo_documento), None)
                 nit_emisor = int(os.getenv('NIT'))
@@ -665,9 +673,11 @@ def main():
                 )
                 fecha_emision_str = fecha_emision.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
 
-                xml_str = generate_xml_invoice(
+                lineas_productos = collect_product_lines(comandas, selected_id_comanda)
+                
+                xml_str, factura_cabecera_data, detalles_data = generate_xml_invoice(
                     nit_emisor, 
-                    razon_social_emisor, 
+                    razon_social_emisor,
                     municipio, 
                     telefono, 
                     numero_factura, 
@@ -684,17 +694,18 @@ def main():
                     numero_documento, 
                     metodo_pago_seleccionado['codigoClasificador'], 
                     ultimos_digitos_tarjeta,
-                    subtotal,  # subtotal
-                    total,  # montoTotal original antes de aplicar la gift card
-                    1,  # codigo_moneda
-                    1,  # tipo_cambio
-                    total / 1,  # montoTotalMoneda = montoTotal / tipoCambio
+                    subtotal,
+                    total,
+                    1,
+                    1,
+                    total / 1,
                     monto_giftcard, 
                     descuento_adicional,
-                    "Ley N° 453: Tienes derecho a recibir información sobre las características y contenidos de los servicios que utilices.",
                     "don_bercho", 
                     codigo_documento_sector, 
-                    lineas_productos
+                    lineas_productos,
+                    ACTIVIDAD_ECONOMICA, 
+                    CODIGO_PRODUCTO_SIN
                 )
 
                 private_key_path = "xmls/llaves/private_key_ok.pem"
@@ -706,20 +717,87 @@ def main():
                 with open(filename, "w", encoding='utf-8') as signed_xml_file:
                     signed_xml_file.write(signed_xml_str)
 
-                # Validar, comprimir, obtener hash y enviar el XML firmado
                 xsd_main_path = 'xmls/schemas/facturaElectronicaCompraVenta.xsd'
                 if validar_xml(filename, xsd_main_path):
                     gzip_path = comprimir_xml(filename)
                     hash_archivo = obtener_hash(gzip_path)
-                    enviar_solicitud(filename, xsd_main_path, fecha_emision_str, cufd)
-                else:
-                    st.error("El XML no es válido según el esquema XSD.")
+                    response = enviar_solicitud(filename, xsd_main_path, fecha_emision_str, cufd)
 
-                st.session_state.processed_comandas.extend(selected_id_comanda)
-                increment_invoice_number(numero_factura)
-                st.success("Factura generada, firmada y enviada exitosamente.")
+                    if isinstance(response, dict) and response.get("error"):
+                        st.error(f"Error al enviar la factura: {response['error']}")
+                    else:
+                        try:
+                            root = ET.fromstring(response.content)
+                            ns = {'soap': 'http://schemas.xmlsoap.org/soap/envelope/', 'ns2': 'https://siat.impuestos.gob.bo/'}
+
+                            respuesta_servicio = root.find('.//RespuestaServicioFacturacion')
+                            
+                            if respuesta_servicio is not None:
+                                codigo_descripcion = respuesta_servicio.find('codigoDescripcion')
+                                codigo_estado = respuesta_servicio.find('codigoEstado')
+                                codigo_recepcion = respuesta_servicio.find('codigoRecepcion')
+                                transaccion = respuesta_servicio.find('transaccion')
+                                
+                                if all([codigo_descripcion is not None, codigo_estado is not None, 
+                                        codigo_recepcion is not None, transaccion is not None]):
+                                    
+                                    codigo_descripcion = codigo_descripcion.text
+                                    codigo_estado = codigo_estado.text
+                                    codigo_recepcion = codigo_recepcion.text
+                                    transaccion = transaccion.text.lower() == 'true'
+                                    
+                                    if transaccion:
+                                        st.success(f"""FACTURA {codigo_descripcion} :heavy_check_mark:\n 
+                                        Código de recepción: {codigo_recepcion}\n Código de estado: {codigo_estado}\n
+                                        """)
+
+                                        is_valid, error_message = validar_factura_cabecera(factura_cabecera_data)
+                                        if is_valid:
+                                            guardar_factura_cabecera(factura_cabecera_data)
+                                            increment_invoice_number(numero_factura)
+                                        else:
+                                            st.error(error_message)
+                                            return
+
+                                        for detalle in detalles_data:
+                                            is_valid, error_message = validar_factura_detalle(detalle)
+                                            if is_valid:
+                                                guardar_factura_detalle(detalle)
+                                            else:
+                                                st.error(error_message)
+                                                return
+
+                                    else:
+                                        mensajes_list = respuesta_servicio.find('mensajesList')
+                                        error_message = "La factura no fue procesada correctamente."
+                                        if mensajes_list is not None:
+                                            for mensaje in mensajes_list:
+                                                codigo = mensaje.find('codigo')
+                                                descripcion = mensaje.find('descripcion')
+                                                if codigo is not None and descripcion is not None:
+                                                    error_message += f"\nCódigo: {codigo.text}, Descripción: {descripcion.text}"
+                                            
+                                            st.error(f"""{error_message}
+                                                Código de recepción: {codigo_recepcion}\n
+                                                Descripción: {codigo_descripcion}\n
+                                                Estado: {codigo_estado}\n
+                                            """)
+                                        else:
+                                            st.error("La respuesta del servicio no contiene todos los campos esperados.")
+                                            st.write("Contenido de la respuesta:", response.content)
+                                        
+                                else:
+                                    st.error("No se pudo encontrar RespuestaServicioFacturacion en la respuesta XML.")
+                                    st.write("Contenido de la respuesta:", response.content)
+                                    
+                        except ET.ParseError as e:
+                            st.error(f"Error al parsear la respuesta XML: {str(e)}")
+                            st.write("Contenido de la respuesta:", response.content)
+
             except Exception as e:
-                st.error(f"Error al generar la factura: {e}")
+                st.error(f"Error inesperado al procesar la respuesta: {str(e)}")
+                if 'response' in locals():
+                    st.write("Contenido de la respuesta:", response.content)
         else:
             st.error("Por favor, selecciona un método de pago, un tipo de documento y proporciona un número de documento válido para generar la factura en XML.")
 
