@@ -6,12 +6,14 @@ import models
 from config import ENDPOINT_URL
 import os
 from dotenv import load_dotenv
-from models import FacturaCabecera, FacturaDetalle, SincronizarListaLeyendasFactura
+from models import FacturaCabecera, FacturaDetalle, SincronizarListaLeyendasFactura, ProductoSiat
 from sqlalchemy import create_engine, Table, Column, Integer, String, DECIMAL, MetaData, TIMESTAMP, Text, BIGINT, ForeignKeyConstraint
 from sqlalchemy.dialects.mysql import VARCHAR
 from typing import List, Dict, Union
 from sqlalchemy.exc import SQLAlchemyError
 import logging
+from sqlalchemy.orm import Session
+
 logging.basicConfig(level=logging.DEBUG, 
                     format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
                     filename='invoice_log.txt')
@@ -196,3 +198,27 @@ def guardar_factura_detalle(detalle: Dict[str, Union[str, float, int]]) -> None:
     finally:
         session.close()
 
+
+
+
+
+
+def obtener_nombre_unidad_medida(codigo_producto: str, db: Session) -> str:
+    try:
+        producto = db.query(ProductoSiat).filter(ProductoSiat.codigo == codigo_producto).first()
+        if producto and producto.unidad_medida:
+            return producto.unidad_medida
+        return "Unid."  # Valor por defecto si la unidad no se encuentra
+    except SQLAlchemyError as e:
+        logging.error(f"Error al obtener el nombre de la unidad de medida: {e}")
+        return "Error"
+    
+def obtener_codigo_unidad_medida_sin(codigo_producto: str, db: Session) -> str:
+    try:
+        producto = db.query(ProductoSiat).filter(ProductoSiat.codigo == codigo_producto).first()
+        if producto and producto.codigo_unidad_medida_sin:
+            return producto.codigo_unidad_medida_sin
+        return "Unid."  # Valor predeterminado si no se encuentra el código
+    except SQLAlchemyError as e:
+        logging.error(f"Error al obtener el código de la unidad de medida SIN: {e}")
+        return "ERROR"

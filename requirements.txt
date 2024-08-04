@@ -75,3 +75,5 @@ xmlschema==3.3.1
 xmlsec==1.3.14
 xmlsig==1.0.1
 zeep==4.2.1
+et-xmlfil==1.1.0
+openpyxl==3.1.5

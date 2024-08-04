@@ -1,5 +1,6 @@
 import pandas as pd
 from decimal import Decimal
+from data_access import obtener_nombre_unidad_medida  # Asegúrate de importar la función
 
 def calculate_totals(comandas_seleccionadas, descuento_adicional=Decimal(0), monto_giftcard=Decimal(0), codigo_clasificador_metodo_pago=None, tipo_cambio=1):
     gift_card_codes = [
@@ -24,17 +25,20 @@ def calculate_totals(comandas_seleccionadas, descuento_adicional=Decimal(0), mon
 
     return subtotal, descuento_adicional, monto_giftcard, total, monto_total_sujeto_iva, monto_total_moneda
 
-def collect_product_lines(comandas, selected_id_comanda):
+def collect_product_lines(comandas, selected_id_comanda, db):
     lineas_productos = []
     for comanda in comandas:
         if comanda["id_comanda"] in selected_id_comanda:
+            codigo_producto = comanda["id_producto_combo"]
+            # Obtener el nombre de la unidad de medida usando el código de producto
+            unidad_medida = obtener_nombre_unidad_medida(codigo_producto, db)
             linea_producto = {
                 "nombre": comanda["nombre"],
                 "precio_venta": "{:.2f}".format(float(comanda["precio_venta"])),
                 "cantidad": int(comanda["cantidad"]),
                 "sub_total": (float(comanda["precio_venta"]) * int(comanda["cantidad"])),
-                "codigo": comanda["id_producto_combo"],  # Agregar el campo 'codigo'
-                "unidad": comanda.get("unidad", "Unid")  # Asegurarse de incluir 'unidad' si existe
+                "codigo": codigo_producto,
+                "unidad": unidad_medida  # Asignar el nombre de la unidad de medida
             }
             lineas_productos.append(linea_producto)
 

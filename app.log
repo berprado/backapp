@@ -1,0 +1,250 @@
+2024-07-26 03:11:27,556 - DEBUG - Init schema document for None
+2024-07-26 03:11:27,556 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}string', <zeep.xsd.types.builtins.String object at 0x000001CE795D2DB0>)
+2024-07-26 03:11:27,556 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}boolean', <zeep.xsd.types.builtins.Boolean object at 0x000001CE795FC2F0>)
+2024-07-26 03:11:27,556 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}decimal', <zeep.xsd.types.builtins.Decimal object at 0x000001CE795FC8C0>)
+2024-07-26 03:11:27,556 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}float', <zeep.xsd.types.builtins.Float object at 0x000001CE795FCBC0>)
+2024-07-26 03:11:27,556 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}double', <zeep.xsd.types.builtins.Double object at 0x000001CE795FCB00>)
+2024-07-26 03:11:27,556 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}duration', <zeep.xsd.types.builtins.Duration object at 0x000001CE795FCCB0>)
+2024-07-26 03:11:27,556 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}dateTime', <zeep.xsd.types.builtins.DateTime object at 0x000001CE795FCD40>)
+2024-07-26 03:11:27,556 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}time', <zeep.xsd.types.builtins.Time object at 0x000001CE795FCDA0>)
+2024-07-26 03:11:27,556 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}date', <zeep.xsd.types.builtins.Date object at 0x000001CE795FCE00>)
+2024-07-26 03:11:27,556 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}gYearMonth', <zeep.xsd.types.builtins.gYearMonth object at 0x000001CE795FCE90>)
+2024-07-26 03:11:27,556 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}gYear', <zeep.xsd.types.builtins.gYear object at 0x000001CE795FC980>)
+2024-07-26 03:11:27,556 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}gMonthDay', <zeep.xsd.types.builtins.gMonthDay object at 0x000001CE795FCF50>)
+2024-07-26 03:11:27,556 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}gDay', <zeep.xsd.types.builtins.gDay object at 0x000001CE795FCFE0>)
+2024-07-26 03:11:27,556 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}gMonth', <zeep.xsd.types.builtins.gMonth object at 0x000001CE795FD040>)
+2024-07-26 03:11:27,556 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}hexBinary', <zeep.xsd.types.builtins.HexBinary object at 0x000001CE795FD0D0>)
+2024-07-26 03:11:27,564 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}base64Binary', <zeep.xsd.types.builtins.Base64Binary object at 0x000001CE795FD160>)
+2024-07-26 03:11:27,564 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}anyURI', <zeep.xsd.types.builtins.AnyURI object at 0x000001CE795FD1C0>)
+2024-07-26 03:11:27,564 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}QName', <zeep.xsd.types.builtins.QName object at 0x000001CE795FD1F0>)
+2024-07-26 03:11:27,565 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}NOTATION', <zeep.xsd.types.builtins.Notation object at 0x000001CE795FD250>)
+2024-07-26 03:11:27,565 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}normalizedString', <zeep.xsd.types.builtins.NormalizedString object at 0x000001CE795FD2E0>)
+2024-07-26 03:11:27,565 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}token', <zeep.xsd.types.builtins.Token object at 0x000001CE795FC950>)
+2024-07-26 03:11:27,566 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}language', <zeep.xsd.types.builtins.Language object at 0x000001CE795FD370>)
+2024-07-26 03:11:27,566 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}NMTOKEN', <zeep.xsd.types.builtins.NmToken object at 0x000001CE795FC920>)
+2024-07-26 03:11:27,566 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}NMTOKENS', <zeep.xsd.types.builtins.NmTokens object at 0x000001CE795FD430>)
+2024-07-26 03:11:27,567 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}Name', <zeep.xsd.types.builtins.Name object at 0x000001CE795D2B10>)
+2024-07-26 03:11:27,567 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}NCName', <zeep.xsd.types.builtins.NCName object at 0x000001CE795FD4C0>)
+2024-07-26 03:11:27,567 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}ID', <zeep.xsd.types.builtins.ID object at 0x000001CE795FD550>)
+2024-07-26 03:11:27,567 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}IDREF', <zeep.xsd.types.builtins.IDREF object at 0x000001CE795FD5E0>)
+2024-07-26 03:11:27,568 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}IDREFS', <zeep.xsd.types.builtins.IDREFS object at 0x000001CE795FCA10>)
+2024-07-26 03:11:27,568 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}ENTITY', <zeep.xsd.types.builtins.Entity object at 0x000001CE795FD6D0>)
+2024-07-26 03:11:27,568 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}ENTITIES', <zeep.xsd.types.builtins.Entities object at 0x000001CE78F62480>)
+2024-07-26 03:11:27,569 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}integer', <zeep.xsd.types.builtins.Integer object at 0x000001CE795FD7C0>)
+2024-07-26 03:11:27,569 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}nonPositiveInteger', <zeep.xsd.types.builtins.NonPositiveInteger object at 0x000001CE795FD820>)
+2024-07-26 03:11:27,569 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}negativeInteger', <zeep.xsd.types.builtins.NegativeInteger object at 0x000001CE795FD8B0>)
+2024-07-26 03:11:27,570 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}long', <zeep.xsd.types.builtins.Long object at 0x000001CE795FD910>)
+2024-07-26 03:11:27,570 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}int', <zeep.xsd.types.builtins.Int object at 0x000001CE795FD970>)
+2024-07-26 03:11:27,571 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}short', <zeep.xsd.types.builtins.Short object at 0x000001CE795FDA00>)
+2024-07-26 03:11:27,571 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}byte', <zeep.xsd.types.builtins.Byte object at 0x000001CE795FDA90>)
+2024-07-26 03:11:27,571 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}nonNegativeInteger', <zeep.xsd.types.builtins.NonNegativeInteger object at 0x000001CE795FDAF0>)
+2024-07-26 03:11:27,572 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}unsignedByte', <zeep.xsd.types.builtins.UnsignedByte object at 0x000001CE795FDB80>)
+2024-07-26 03:11:27,572 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}unsignedInt', <zeep.xsd.types.builtins.UnsignedInt object at 0x000001CE795FC9B0>)
+2024-07-26 03:11:27,573 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}unsignedLong', <zeep.xsd.types.builtins.UnsignedLong object at 0x000001CE795FDC10>)
+2024-07-26 03:11:27,573 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}unsignedShort', <zeep.xsd.types.builtins.UnsignedShort object at 0x000001CE795FDC70>)
+2024-07-26 03:11:27,573 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}positiveInteger', <zeep.xsd.types.builtins.PositiveInteger object at 0x000001CE795FDCD0>)
+2024-07-26 03:11:27,574 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}anyType', <zeep.xsd.types.any.AnyType object at 0x000001CE795FC440>)
+2024-07-26 03:11:27,574 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}anySimpleType', <zeep.xsd.types.simple.AnySimpleType object at 0x000001CE795FC8F0>)
+2024-07-26 03:11:27,574 - DEBUG - register_element('{http://www.w3.org/2001/XMLSchema}schema', <zeep.xsd.elements.builtins.Schema object at 0x000001CE795FDD60>)
+2024-07-26 03:11:27,575 - DEBUG - Add document with tns http://www.w3.org/2001/XMLSchema to schema 1986311211104
+2024-07-26 03:11:27,575 - DEBUG - Loading remote data from: https://pilotosiatservicios.impuestos.gob.bo/v2/FacturacionCodigos?wsdl
+2024-07-26 03:11:27,580 - DEBUG - Starting new HTTPS connection (1): pilotosiatservicios.impuestos.gob.bo:443
+2024-07-26 03:11:28,125 - DEBUG - https://pilotosiatservicios.impuestos.gob.bo:443 "GET /v2/FacturacionCodigos?wsdl HTTP/1.1" 200 3385
+2024-07-26 03:11:28,135 - DEBUG - Creating definition for https://pilotosiatservicios.impuestos.gob.bo/v2/FacturacionCodigos?wsdl
+2024-07-26 03:11:28,139 - DEBUG - Loading remote data from: https://pilotosiatservicios.impuestos.gob.bo/v2/FacturacionCodigos?wsdl=ServicioFacturacionCodigos.wsdl
+2024-07-26 03:11:28,159 - DEBUG - https://pilotosiatservicios.impuestos.gob.bo:443 "GET /v2/FacturacionCodigos?wsdl=ServicioFacturacionCodigos.wsdl HTTP/1.1" 200 None
+2024-07-26 03:11:28,161 - DEBUG - Creating definition for https://pilotosiatservicios.impuestos.gob.bo/v2/FacturacionCodigos?wsdl=ServicioFacturacionCodigos.wsdl
+2024-07-26 03:11:28,161 - DEBUG - Init schema document for 'https://pilotosiatservicios.impuestos.gob.bo/v2/FacturacionCodigos?wsdl=ServicioFacturacionCodigos.wsdl'
+2024-07-26 03:11:28,161 - DEBUG - Add document with tns https://siat.impuestos.gob.bo/ to schema 1986311211104
+2024-07-26 03:11:28,162 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}cufd', <Element(name='cufd', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}cufd')>)>)
+2024-07-26 03:11:28,163 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}cufdMasivo', <Element(name='cufdMasivo', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}cufdMasivo')>)>)
+2024-07-26 03:11:28,164 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}cufdMasivoResponse', <Element(name='cufdMasivoResponse', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}cufdMasivoResponse')>)>)
+2024-07-26 03:11:28,164 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}cufdResponse', <Element(name='cufdResponse', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}cufdResponse')>)>)
+2024-07-26 03:11:28,165 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}cuis', <Element(name='cuis', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}cuis')>)>)
+2024-07-26 03:11:28,165 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}cuisMasivo', <Element(name='cuisMasivo', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}cuisMasivo')>)>)
+2024-07-26 03:11:28,166 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}cuisMasivoResponse', <Element(name='cuisMasivoResponse', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}cuisMasivoResponse')>)>)
+2024-07-26 03:11:28,166 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}cuisResponse', <Element(name='cuisResponse', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}cuisResponse')>)>)
+2024-07-26 03:11:28,167 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}notificaCertificadoRevocado', <Element(name='notificaCertificadoRevocado', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}notificaCertificadoRevocado')>)>)
+2024-07-26 03:11:28,167 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}notificaCertificadoRevocadoResponse', <Element(name='notificaCertificadoRevocadoResponse', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}notificaCertificadoRevocadoResponse')>)>)
+2024-07-26 03:11:28,168 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}verificarComunicacion', <Element(name='verificarComunicacion', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}verificarComunicacion')>)>)
+2024-07-26 03:11:28,169 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}verificarComunicacionResponse', <Element(name='verificarComunicacionResponse', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}verificarComunicacionResponse')>)>)
+2024-07-26 03:11:28,169 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}verificarNit', <Element(name='verificarNit', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}verificarNit')>)>)
+2024-07-26 03:11:28,170 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}verificarNitResponse', <Element(name='verificarNitResponse', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}verificarNitResponse')>)>)
+2024-07-26 03:11:28,170 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}verificarComunicacion', <zeep.xsd.dynamic_types.verificarComunicacion object at 0x000001CE7944F9B0>)
+2024-07-26 03:11:28,172 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}verificarComunicacionResponse', <zeep.xsd.dynamic_types.verificarComunicacionResponse object at 0x000001CE795FED50>)
+2024-07-26 03:11:28,172 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}respuestaComunicacion', <zeep.xsd.dynamic_types.respuestaComunicacion object at 0x000001CE795FEB40>)
+2024-07-26 03:11:28,173 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}modelDto', <zeep.xsd.dynamic_types.modelDto object at 0x000001CE795FF170>)
+2024-07-26 03:11:28,174 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}model', <zeep.xsd.dynamic_types.model object at 0x000001CE795FECC0>)
+2024-07-26 03:11:28,174 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}mensajeServicio', <zeep.xsd.dynamic_types.mensajeServicio object at 0x000001CE795FF350>)
+2024-07-26 03:11:28,175 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}verificarNit', <zeep.xsd.dynamic_types.verificarNit object at 0x000001CE795FF440>)
+2024-07-26 03:11:28,176 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}solicitudVerificarNit', <zeep.xsd.dynamic_types.solicitudVerificarNit object at 0x000001CE795FF590>)
+2024-07-26 03:11:28,176 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}verificarNitResponse', <zeep.xsd.dynamic_types.verificarNitResponse object at 0x000001CE795FFD40>)
+2024-07-26 03:11:28,177 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}respuestaVerificarNit', <zeep.xsd.dynamic_types.respuestaVerificarNit object at 0x000001CE795FFE90>)
+2024-07-26 03:11:28,177 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}respuestaConfiguracion', <zeep.xsd.dynamic_types.respuestaConfiguracion object at 0x000001CE7962C1D0>)
+2024-07-26 03:11:28,178 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}cuisMasivo', <zeep.xsd.dynamic_types.cuisMasivo object at 0x000001CE7962C050>)
+2024-07-26 03:11:28,178 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}solicitudCuisMasivoSistemas', <zeep.xsd.dynamic_types.solicitudCuisMasivoSistemas object at 0x000001CE7962C4A0>)
+2024-07-26 03:11:28,179 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}solicitudListaCuisDto', <zeep.xsd.dynamic_types.solicitudListaCuisDto object at 0x000001CE7962CB30>)
+2024-07-26 03:11:28,180 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}cuisMasivoResponse', <zeep.xsd.dynamic_types.cuisMasivoResponse object at 0x000001CE7962C440>)
+2024-07-26 03:11:28,181 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}respuestaCuisMasivo', <zeep.xsd.dynamic_types.respuestaCuisMasivo object at 0x000001CE7962CE60>)
+2024-07-26 03:11:28,181 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}respuestaListaRegistroCuisSoapDto', <zeep.xsd.dynamic_types.respuestaListaRegistroCuisSoapDto object at 0x000001CE7962D1C0>)
+2024-07-26 03:11:28,182 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}cufd', <zeep.xsd.dynamic_types.cufd object at 0x000001CE7962D190>)
+2024-07-26 03:11:28,182 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}solicitudCufd', <zeep.xsd.dynamic_types.solicitudCufd object at 0x000001CE7962D790>)
+2024-07-26 03:11:28,183 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}cufdResponse', <zeep.xsd.dynamic_types.cufdResponse object at 0x000001CE7962DFD0>)
+2024-07-26 03:11:28,183 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}respuestaCufd', <zeep.xsd.dynamic_types.respuestaCufd object at 0x000001CE7962E0F0>)
+2024-07-26 03:11:28,184 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}notificaCertificadoRevocado', <zeep.xsd.dynamic_types.notificaCertificadoRevocado object at 0x000001CE7962E870>)
+2024-07-26 03:11:28,185 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}solicitudNotifcaRevocado', <zeep.xsd.dynamic_types.solicitudNotifcaRevocado object at 0x000001CE7962E690>)
+2024-07-26 03:11:28,185 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}notificaCertificadoRevocadoResponse', <zeep.xsd.dynamic_types.notificaCertificadoRevocadoResponse object at 0x000001CE7962EFC0>)
+2024-07-26 03:11:28,186 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}respuestaNotificaRevocado', <zeep.xsd.dynamic_types.respuestaNotificaRevocado object at 0x000001CE7962F2F0>)
+2024-07-26 03:11:28,186 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}cuis', <zeep.xsd.dynamic_types.cuis object at 0x000001CE7962F380>)
+2024-07-26 03:11:28,187 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}solicitudCuis', <zeep.xsd.dynamic_types.solicitudCuis object at 0x000001CE7962F470>)
+2024-07-26 03:11:28,187 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}cuisResponse', <zeep.xsd.dynamic_types.cuisResponse object at 0x000001CE7962FC50>)
+2024-07-26 03:11:28,188 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}respuestaCuis', <zeep.xsd.dynamic_types.respuestaCuis object at 0x000001CE7962FD10>)
+2024-07-26 03:11:28,188 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}cufdMasivo', <zeep.xsd.dynamic_types.cufdMasivo object at 0x000001CE7963C050>)
+2024-07-26 03:11:28,189 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}solicitudCufdMasivo', <zeep.xsd.dynamic_types.solicitudCufdMasivo object at 0x000001CE7963C200>)
+2024-07-26 03:11:28,190 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}solicitudListaCufdDto', <zeep.xsd.dynamic_types.solicitudListaCufdDto object at 0x000001CE7963C8C0>)
+2024-07-26 03:11:28,190 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}cufdMasivoResponse', <zeep.xsd.dynamic_types.cufdMasivoResponse object at 0x000001CE7963C320>)
+2024-07-26 03:11:28,191 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}respuestaCufdMasivo', <zeep.xsd.dynamic_types.respuestaCufdMasivo object at 0x000001CE7963CD10>)
+2024-07-26 03:11:28,192 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}respuestaListaRegistroCufdSoapDto', <zeep.xsd.dynamic_types.respuestaListaRegistroCufdSoapDto object at 0x000001CE7963CDD0>)
+2024-07-26 03:11:28,192 - DEBUG - Resolving in schema <SchemaDocument(location='https://pilotosiatservicios.impuestos.gob.bo/v2/FacturacionCodigos?wsdl=ServicioFacturacionCodigos.wsdl', tns='https://siat.impuestos.gob.bo/', is_empty=False)>
+2024-07-26 03:11:28,194 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}verificarNit
+2024-07-26 03:11:28,194 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}verificarComunicacion
+2024-07-26 03:11:28,194 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}verificarComunicacionResponse
+2024-07-26 03:11:28,195 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}cuisResponse
+2024-07-26 03:11:28,195 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}cufdMasivoResponse
+2024-07-26 03:11:28,196 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}cufdResponse
+2024-07-26 03:11:28,196 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}cuisMasivo
+2024-07-26 03:11:28,196 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}cuisMasivoResponse
+2024-07-26 03:11:28,197 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}cufd
+2024-07-26 03:11:28,197 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}notificaCertificadoRevocadoResponse
+2024-07-26 03:11:28,198 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}notificaCertificadoRevocado
+2024-07-26 03:11:28,198 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}cuis
+2024-07-26 03:11:28,198 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}verificarNitResponse
+2024-07-26 03:11:28,199 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}cufdMasivo
+2024-07-26 03:11:28,199 - DEBUG - Adding port: {https://siat.impuestos.gob.bo/}ServicioFacturacionCodigos
+2024-07-26 03:11:28,303 - DEBUG - Adding binding: {https://siat.impuestos.gob.bo/FacturacionCodigos}ServicioFacturacionCodigosSoapBinding
+2024-07-26 03:11:28,304 - DEBUG - Adding service: ServicioFacturacionCodigos
+2024-07-26 03:37:37,109 - DEBUG - Init schema document for None
+2024-07-26 03:37:37,109 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}string', <zeep.xsd.types.builtins.String object at 0x000001D63847ADB0>)
+2024-07-26 03:37:37,109 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}boolean', <zeep.xsd.types.builtins.Boolean object at 0x000001D6384AD1F0>)
+2024-07-26 03:37:37,109 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}decimal', <zeep.xsd.types.builtins.Decimal object at 0x000001D6384AC8F0>)
+2024-07-26 03:37:37,109 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}float', <zeep.xsd.types.builtins.Float object at 0x000001D6384AD280>)
+2024-07-26 03:37:37,109 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}double', <zeep.xsd.types.builtins.Double object at 0x000001D6384ACB00>)
+2024-07-26 03:37:37,109 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}duration', <zeep.xsd.types.builtins.Duration object at 0x000001D6384AD370>)
+2024-07-26 03:37:37,109 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}dateTime', <zeep.xsd.types.builtins.DateTime object at 0x000001D6384AD400>)
+2024-07-26 03:37:37,109 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}time', <zeep.xsd.types.builtins.Time object at 0x000001D6384AD460>)
+2024-07-26 03:37:37,109 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}date', <zeep.xsd.types.builtins.Date object at 0x000001D6384AD4C0>)
+2024-07-26 03:37:37,109 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}gYearMonth', <zeep.xsd.types.builtins.gYearMonth object at 0x000001D6384AD550>)
+2024-07-26 03:37:37,109 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}gYear', <zeep.xsd.types.builtins.gYear object at 0x000001D6384AD5E0>)
+2024-07-26 03:37:37,117 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}gMonthDay', <zeep.xsd.types.builtins.gMonthDay object at 0x000001D6384AD640>)
+2024-07-26 03:37:37,117 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}gDay', <zeep.xsd.types.builtins.gDay object at 0x000001D6384AD6D0>)
+2024-07-26 03:37:37,117 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}gMonth', <zeep.xsd.types.builtins.gMonth object at 0x000001D6384AD730>)
+2024-07-26 03:37:37,117 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}hexBinary', <zeep.xsd.types.builtins.HexBinary object at 0x000001D6384ACB30>)
+2024-07-26 03:37:37,117 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}base64Binary', <zeep.xsd.types.builtins.Base64Binary object at 0x000001D6384AD820>)
+2024-07-26 03:37:37,118 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}anyURI', <zeep.xsd.types.builtins.AnyURI object at 0x000001D638401430>)
+2024-07-26 03:37:37,119 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}QName', <zeep.xsd.types.builtins.QName object at 0x000001D6384AD8B0>)
+2024-07-26 03:37:37,119 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}NOTATION', <zeep.xsd.types.builtins.Notation object at 0x000001D6384ACB90>)
+2024-07-26 03:37:37,119 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}normalizedString', <zeep.xsd.types.builtins.NormalizedString object at 0x000001D6384AD9A0>)
+2024-07-26 03:37:37,120 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}token', <zeep.xsd.types.builtins.Token object at 0x000001D638401490>)
+2024-07-26 03:37:37,120 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}language', <zeep.xsd.types.builtins.Language object at 0x000001D6384ADA30>)
+2024-07-26 03:37:37,120 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}NMTOKEN', <zeep.xsd.types.builtins.NmToken object at 0x000001D6384ADAC0>)
+2024-07-26 03:37:37,121 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}NMTOKENS', <zeep.xsd.types.builtins.NmTokens object at 0x000001D6384ADB20>)
+2024-07-26 03:37:37,121 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}Name', <zeep.xsd.types.builtins.Name object at 0x000001D6384ACB60>)
+2024-07-26 03:37:37,121 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}NCName', <zeep.xsd.types.builtins.NCName object at 0x000001D6384ADBE0>)
+2024-07-26 03:37:37,122 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}ID', <zeep.xsd.types.builtins.ID object at 0x000001D6384ADC70>)
+2024-07-26 03:37:37,122 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}IDREF', <zeep.xsd.types.builtins.IDREF object at 0x000001D6384ADCD0>)
+2024-07-26 03:37:37,123 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}IDREFS', <zeep.xsd.types.builtins.IDREFS object at 0x000001D6384ACBC0>)
+2024-07-26 03:37:37,123 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}ENTITY', <zeep.xsd.types.builtins.Entity object at 0x000001D637EBB7A0>)
+2024-07-26 03:37:37,124 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}ENTITIES', <zeep.xsd.types.builtins.Entities object at 0x000001D6384ADE20>)
+2024-07-26 03:37:37,124 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}integer', <zeep.xsd.types.builtins.Integer object at 0x000001D6384ADEB0>)
+2024-07-26 03:37:37,124 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}nonPositiveInteger', <zeep.xsd.types.builtins.NonPositiveInteger object at 0x000001D6384ADF10>)
+2024-07-26 03:37:37,125 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}negativeInteger', <zeep.xsd.types.builtins.NegativeInteger object at 0x000001D6384ADFA0>)
+2024-07-26 03:37:37,125 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}long', <zeep.xsd.types.builtins.Long object at 0x000001D6384AE000>)
+2024-07-26 03:37:37,126 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}int', <zeep.xsd.types.builtins.Int object at 0x000001D6384AE060>)
+2024-07-26 03:37:37,126 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}short', <zeep.xsd.types.builtins.Short object at 0x000001D638113B60>)
+2024-07-26 03:37:37,126 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}byte', <zeep.xsd.types.builtins.Byte object at 0x000001D63802B350>)
+2024-07-26 03:37:37,127 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}nonNegativeInteger', <zeep.xsd.types.builtins.NonNegativeInteger object at 0x000001D6384ACBF0>)
+2024-07-26 03:37:37,127 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}unsignedByte', <zeep.xsd.types.builtins.UnsignedByte object at 0x000001D6384AE210>)
+2024-07-26 03:37:37,128 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}unsignedInt', <zeep.xsd.types.builtins.UnsignedInt object at 0x000001D6384AE270>)
+2024-07-26 03:37:37,128 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}unsignedLong', <zeep.xsd.types.builtins.UnsignedLong object at 0x000001D6384AE2D0>)
+2024-07-26 03:37:37,129 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}unsignedShort', <zeep.xsd.types.builtins.UnsignedShort object at 0x000001D6384AE330>)
+2024-07-26 03:37:37,129 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}positiveInteger', <zeep.xsd.types.builtins.PositiveInteger object at 0x000001D6384AE390>)
+2024-07-26 03:37:37,130 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}anyType', <zeep.xsd.types.any.AnyType object at 0x000001D637F2E4E0>)
+2024-07-26 03:37:37,130 - DEBUG - register_type('{http://www.w3.org/2001/XMLSchema}anySimpleType', <zeep.xsd.types.simple.AnySimpleType object at 0x000001D6384ACAA0>)
+2024-07-26 03:37:37,130 - DEBUG - register_element('{http://www.w3.org/2001/XMLSchema}schema', <zeep.xsd.elements.builtins.Schema object at 0x000001D6384AE420>)
+2024-07-26 03:37:37,131 - DEBUG - Add document with tns http://www.w3.org/2001/XMLSchema to schema 2019575442624
+2024-07-26 03:37:37,131 - DEBUG - Loading remote data from: https://pilotosiatservicios.impuestos.gob.bo/v2/FacturacionCodigos?wsdl
+2024-07-26 03:37:37,134 - DEBUG - Starting new HTTPS connection (1): pilotosiatservicios.impuestos.gob.bo:443
+2024-07-26 03:37:37,645 - DEBUG - https://pilotosiatservicios.impuestos.gob.bo:443 "GET /v2/FacturacionCodigos?wsdl HTTP/1.1" 200 3385
+2024-07-26 03:37:37,645 - DEBUG - Creating definition for https://pilotosiatservicios.impuestos.gob.bo/v2/FacturacionCodigos?wsdl
+2024-07-26 03:37:37,645 - DEBUG - Loading remote data from: https://pilotosiatservicios.impuestos.gob.bo/v2/FacturacionCodigos?wsdl=ServicioFacturacionCodigos.wsdl
+2024-07-26 03:37:37,677 - DEBUG - https://pilotosiatservicios.impuestos.gob.bo:443 "GET /v2/FacturacionCodigos?wsdl=ServicioFacturacionCodigos.wsdl HTTP/1.1" 200 None
+2024-07-26 03:37:37,678 - DEBUG - Creating definition for https://pilotosiatservicios.impuestos.gob.bo/v2/FacturacionCodigos?wsdl=ServicioFacturacionCodigos.wsdl
+2024-07-26 03:37:37,679 - DEBUG - Init schema document for 'https://pilotosiatservicios.impuestos.gob.bo/v2/FacturacionCodigos?wsdl=ServicioFacturacionCodigos.wsdl'
+2024-07-26 03:37:37,679 - DEBUG - Add document with tns https://siat.impuestos.gob.bo/ to schema 2019575442624
+2024-07-26 03:37:37,680 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}cufd', <Element(name='cufd', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}cufd')>)>)
+2024-07-26 03:37:37,680 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}cufdMasivo', <Element(name='cufdMasivo', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}cufdMasivo')>)>)
+2024-07-26 03:37:37,681 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}cufdMasivoResponse', <Element(name='cufdMasivoResponse', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}cufdMasivoResponse')>)>)
+2024-07-26 03:37:37,681 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}cufdResponse', <Element(name='cufdResponse', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}cufdResponse')>)>)
+2024-07-26 03:37:37,682 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}cuis', <Element(name='cuis', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}cuis')>)>)
+2024-07-26 03:37:37,682 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}cuisMasivo', <Element(name='cuisMasivo', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}cuisMasivo')>)>)
+2024-07-26 03:37:37,683 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}cuisMasivoResponse', <Element(name='cuisMasivoResponse', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}cuisMasivoResponse')>)>)
+2024-07-26 03:37:37,684 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}cuisResponse', <Element(name='cuisResponse', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}cuisResponse')>)>)
+2024-07-26 03:37:37,684 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}notificaCertificadoRevocado', <Element(name='notificaCertificadoRevocado', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}notificaCertificadoRevocado')>)>)
+2024-07-26 03:37:37,685 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}notificaCertificadoRevocadoResponse', <Element(name='notificaCertificadoRevocadoResponse', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}notificaCertificadoRevocadoResponse')>)>)
+2024-07-26 03:37:37,685 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}verificarComunicacion', <Element(name='verificarComunicacion', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}verificarComunicacion')>)>)
+2024-07-26 03:37:37,685 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}verificarComunicacionResponse', <Element(name='verificarComunicacionResponse', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}verificarComunicacionResponse')>)>)
+2024-07-26 03:37:37,686 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}verificarNit', <Element(name='verificarNit', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}verificarNit')>)>)
+2024-07-26 03:37:37,686 - DEBUG - register_element('{https://siat.impuestos.gob.bo/}verificarNitResponse', <Element(name='verificarNitResponse', type=<UnresolvedType(qname='{https://siat.impuestos.gob.bo/}verificarNitResponse')>)>)
+2024-07-26 03:37:37,687 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}verificarComunicacion', <zeep.xsd.dynamic_types.verificarComunicacion object at 0x000001D6384AF5C0>)
+2024-07-26 03:37:37,687 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}verificarComunicacionResponse', <zeep.xsd.dynamic_types.verificarComunicacionResponse object at 0x000001D6384AF620>)
+2024-07-26 03:37:37,688 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}respuestaComunicacion', <zeep.xsd.dynamic_types.respuestaComunicacion object at 0x000001D63821FA40>)
+2024-07-26 03:37:37,689 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}modelDto', <zeep.xsd.dynamic_types.modelDto object at 0x000001D6384AF950>)
+2024-07-26 03:37:37,689 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}model', <zeep.xsd.dynamic_types.model object at 0x000001D6384AF740>)
+2024-07-26 03:37:37,689 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}mensajeServicio', <zeep.xsd.dynamic_types.mensajeServicio object at 0x000001D6384AFB60>)
+2024-07-26 03:37:37,690 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}verificarNit', <zeep.xsd.dynamic_types.verificarNit object at 0x000001D6384AFE60>)
+2024-07-26 03:37:37,691 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}solicitudVerificarNit', <zeep.xsd.dynamic_types.solicitudVerificarNit object at 0x000001D6384AFDA0>)
+2024-07-26 03:37:37,692 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}verificarNitResponse', <zeep.xsd.dynamic_types.verificarNitResponse object at 0x000001D6384AFE30>)
+2024-07-26 03:37:37,692 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}respuestaVerificarNit', <zeep.xsd.dynamic_types.respuestaVerificarNit object at 0x000001D6384D88C0>)
+2024-07-26 03:37:37,693 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}respuestaConfiguracion', <zeep.xsd.dynamic_types.respuestaConfiguracion object at 0x000001D6384D8980>)
+2024-07-26 03:37:37,693 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}cuisMasivo', <zeep.xsd.dynamic_types.cuisMasivo object at 0x000001D6384D86E0>)
+2024-07-26 03:37:37,694 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}solicitudCuisMasivoSistemas', <zeep.xsd.dynamic_types.solicitudCuisMasivoSistemas object at 0x000001D6384D8C50>)
+2024-07-26 03:37:37,694 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}solicitudListaCuisDto', <zeep.xsd.dynamic_types.solicitudListaCuisDto object at 0x000001D6384D92E0>)
+2024-07-26 03:37:37,695 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}cuisMasivoResponse', <zeep.xsd.dynamic_types.cuisMasivoResponse object at 0x000001D6384D8BF0>)
+2024-07-26 03:37:37,696 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}respuestaCuisMasivo', <zeep.xsd.dynamic_types.respuestaCuisMasivo object at 0x000001D6384D95E0>)
+2024-07-26 03:37:37,696 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}respuestaListaRegistroCuisSoapDto', <zeep.xsd.dynamic_types.respuestaListaRegistroCuisSoapDto object at 0x000001D6384D9940>)
+2024-07-26 03:37:37,697 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}cufd', <zeep.xsd.dynamic_types.cufd object at 0x000001D6384D9970>)
+2024-07-26 03:37:37,697 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}solicitudCufd', <zeep.xsd.dynamic_types.solicitudCufd object at 0x000001D6384D9F40>)
+2024-07-26 03:37:37,698 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}cufdResponse', <zeep.xsd.dynamic_types.cufdResponse object at 0x000001D6384DA780>)
+2024-07-26 03:37:37,698 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}respuestaCufd', <zeep.xsd.dynamic_types.respuestaCufd object at 0x000001D6384DA8A0>)
+2024-07-26 03:37:37,699 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}notificaCertificadoRevocado', <zeep.xsd.dynamic_types.notificaCertificadoRevocado object at 0x000001D6384DB050>)
+2024-07-26 03:37:37,699 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}solicitudNotifcaRevocado', <zeep.xsd.dynamic_types.solicitudNotifcaRevocado object at 0x000001D6384DAE70>)
+2024-07-26 03:37:37,700 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}notificaCertificadoRevocadoResponse', <zeep.xsd.dynamic_types.notificaCertificadoRevocadoResponse object at 0x000001D6384DB7A0>)
+2024-07-26 03:37:37,701 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}respuestaNotificaRevocado', <zeep.xsd.dynamic_types.respuestaNotificaRevocado object at 0x000001D6384DBAD0>)
+2024-07-26 03:37:37,702 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}cuis', <zeep.xsd.dynamic_types.cuis object at 0x000001D6384DBB30>)
+2024-07-26 03:37:37,703 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}solicitudCuis', <zeep.xsd.dynamic_types.solicitudCuis object at 0x000001D6384DBC20>)
+2024-07-26 03:37:37,703 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}cuisResponse', <zeep.xsd.dynamic_types.cuisResponse object at 0x000001D6384DBBC0>)
+2024-07-26 03:37:37,704 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}respuestaCuis', <zeep.xsd.dynamic_types.respuestaCuis object at 0x000001D6384EC500>)
+2024-07-26 03:37:37,704 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}cufdMasivo', <zeep.xsd.dynamic_types.cufdMasivo object at 0x000001D6384EC110>)
+2024-07-26 03:37:37,705 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}solicitudCufdMasivo', <zeep.xsd.dynamic_types.solicitudCufdMasivo object at 0x000001D6384EC950>)
+2024-07-26 03:37:37,706 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}solicitudListaCufdDto', <zeep.xsd.dynamic_types.solicitudListaCufdDto object at 0x000001D6384ED040>)
+2024-07-26 03:37:37,706 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}cufdMasivoResponse', <zeep.xsd.dynamic_types.cufdMasivoResponse object at 0x000001D6384ED010>)
+2024-07-26 03:37:37,707 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}respuestaCufdMasivo', <zeep.xsd.dynamic_types.respuestaCufdMasivo object at 0x000001D6384ED490>)
+2024-07-26 03:37:37,708 - DEBUG - register_type('{https://siat.impuestos.gob.bo/}respuestaListaRegistroCufdSoapDto', <zeep.xsd.dynamic_types.respuestaListaRegistroCufdSoapDto object at 0x000001D6384ED550>)
+2024-07-26 03:37:37,708 - DEBUG - Resolving in schema <SchemaDocument(location='https://pilotosiatservicios.impuestos.gob.bo/v2/FacturacionCodigos?wsdl=ServicioFacturacionCodigos.wsdl', tns='https://siat.impuestos.gob.bo/', is_empty=False)>
+2024-07-26 03:37:37,710 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}verificarNit
+2024-07-26 03:37:37,710 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}verificarComunicacion
+2024-07-26 03:37:37,711 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}verificarComunicacionResponse
+2024-07-26 03:37:37,711 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}cuisResponse
+2024-07-26 03:37:37,711 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}cufdMasivoResponse
+2024-07-26 03:37:37,712 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}cufdResponse
+2024-07-26 03:37:37,712 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}cuisMasivo
+2024-07-26 03:37:37,712 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}cuisMasivoResponse
+2024-07-26 03:37:37,713 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}cufd
+2024-07-26 03:37:37,713 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}notificaCertificadoRevocadoResponse
+2024-07-26 03:37:37,714 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}notificaCertificadoRevocado
+2024-07-26 03:37:37,714 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}cuis
+2024-07-26 03:37:37,714 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}verificarNitResponse
+2024-07-26 03:37:37,715 - DEBUG - Adding message: {https://siat.impuestos.gob.bo/}cufdMasivo
+2024-07-26 03:37:37,715 - DEBUG - Adding port: {https://siat.impuestos.gob.bo/}ServicioFacturacionCodigos
+2024-07-26 03:37:37,744 - DEBUG - Adding binding: {https://siat.impuestos.gob.bo/FacturacionCodigos}ServicioFacturacionCodigosSoapBinding
+2024-07-26 03:37:37,744 - DEBUG - Adding service: ServicioFacturacionCodigos

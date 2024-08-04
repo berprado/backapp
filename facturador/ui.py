@@ -2,7 +2,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 from data_access import (
     fetch_comandas, fetch_metodos_pago, fetch_tipos_documento, fetch_cliente, 
-    fetch_random_leyenda, guardar_factura_cabecera, guardar_factura_detalle
+    fetch_random_leyenda, guardar_factura_cabecera, guardar_factura_detalle, obtener_nombre_unidad_medida
 )
 from business_logic import calculate_totals, collect_product_lines
 from invoice_xml_generator import generate_xml_invoice
@@ -32,6 +32,8 @@ from decimal import Decimal
 import logging
 import traceback
 import xml.etree.ElementTree as ET
+
+
 
 # Lista de códigos permitidos para gift cards
 gift_card_codes = [
@@ -127,6 +129,9 @@ def numero_a_palabras_con_decimales_como_fraccion(numero, lang='es'):
         return f"Son {parte_entera_palabras} {parte_decimal:02d}/100 bolivianos"
     else:
         return f"Son {parte_entera_palabras} 00/100 bolivianos"
+
+
+
 
 def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_productos, nombre_cliente, fecha_emision, numero_factura, metodo_pago=None, codigo_clasificador_metodo_pago=None, tipo_documento=None, codigo_clasificador_documento=None, numero_documento=None, complemento=None, email=None, telefono=None, ultimos_digitos_tarjeta=None):
     total = subtotal - descuento_adicional
@@ -469,7 +474,6 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
 def main():
     st.title("Facturador Electrónico")
     
-    leyenda = fetch_random_leyenda()
 
     if 'processed_comandas' not in st.session_state:
         st.session_state.processed_comandas = []
@@ -555,7 +559,7 @@ def main():
 
     indice_metodo_pago_predeterminado = next((i for i, metodo in enumerate(metodos_pago) if metodo["codigoClasificador"] == 1), 0)
 
-    logging.debug(f"Opciones de métodos de pago: {opciones_metodos_pago}")
+    #logging.debug(f"Opciones de métodos de pago: {opciones_metodos_pago}")
     logging.debug(f"Índice del método de pago predeterminado: {indice_metodo_pago_predeterminado}")
 
     seleccion_metodo_pago = st.sidebar.selectbox("Tipo de Pago:", opciones_metodos_pago, index=66, key="metodo_pago")
@@ -603,7 +607,7 @@ def main():
 
     logging.debug(f"Descuento Adicional Final: {descuento_adicional}")
     logging.debug(f"Monto Gift Card Final: {monto_giftcard}")
-    
+    numero_factura = get_next_invoice_number()
     if selected_id_comanda:
         comandas_seleccionadas = [comanda for comanda in comandas if comanda["id_comanda"] in selected_id_comanda]
         subtotal, descuento_aplicado, monto_giftcard, total, monto_total_sujeto_iva, monto_total_moneda = calculate_totals(
@@ -613,7 +617,11 @@ def main():
             codigo_clasificador_metodo_pago,
             tipo_cambio=1
         )
-        lineas_productos = collect_product_lines(comandas, selected_id_comanda)
+        db = SessionLocal()
+        try:
+            lineas_productos = collect_product_lines(comandas, selected_id_comanda, db)
+        finally:
+            db.close()
     else:
         comandas_seleccionadas = []
         subtotal, descuento_aplicado, monto_giftcard, total, monto_total_sujeto_iva, monto_total_moneda = 0, 0, 0, 0, 0, 0
@@ -673,7 +681,7 @@ def main():
                 )
                 fecha_emision_str = fecha_emision.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
 
-                lineas_productos = collect_product_lines(comandas, selected_id_comanda)
+                lineas_productos = collect_product_lines(comandas, selected_id_comanda, db) 
                 
                 xml_str, factura_cabecera_data, detalles_data = generate_xml_invoice(
                     nit_emisor, 
@@ -800,6 +808,7 @@ def main():
                     st.write("Contenido de la respuesta:", response.content)
         else:
             st.error("Por favor, selecciona un método de pago, un tipo de documento y proporciona un número de documento válido para generar la factura en XML.")
+
 
 if __name__ == "__main__":
     main()

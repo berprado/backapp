@@ -19,6 +19,13 @@ def init_db():
     from models import FacturaCabecera, FacturaDetalle
     Base.metadata.create_all(bind=engine)
 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 # Call init_db to create tables if they do not exist
 if __name__ == "__main__":
     init_db()

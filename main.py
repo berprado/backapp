@@ -75,9 +75,9 @@ class Comanda2(BaseModel):
     id: int
     cantidad: Annotated[int, "Cantidad de productos"]
     id_comanda: int
-    id_producto: Optional[int] = None
+    id_producto: Optional[str] = None  # Cambiado a Optional[str] para reflejar los códigos
     id_salida_combo_coctel: Optional[int] = None
-    id_bar_combo_coctel: Optional[int] = None
+    id_bar_combo_coctel: Optional[str] = None  # Cambiado a Optional[str] para reflejar los códigos
     precio_venta: Annotated[Decimal, "Subtotal"]
     sub_total: Annotated[Decimal, "Subtotal"]
     producto_coctel: Optional[str] = None
@@ -86,10 +86,13 @@ class Comanda2(BaseModel):
     estado: str
     id_operacion: int
     nombre: str
-    id_producto_combo: int
+    id_producto_combo: Optional[str] = None  # Cambiado a Optional[str] para reflejar los códigos
     tipo_salida: int
     estado_comanda: int
     estado_impresion: Optional[int] = None
+
+    class Config:
+        from_attributes = True
 
 
 class SincronizarParametricaTipoMetodoPago(BaseModel):

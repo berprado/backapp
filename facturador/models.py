@@ -313,3 +313,38 @@ class FacturaDetalle(Base):
             'numeroSerie': self.numeroSerie,
             'numeroImei': self.numeroImei
         }
+    
+Base = declarative_base()
+
+class ProductoSiat(Base):
+    __tablename__ = 'productos_siat'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    categoria = Column(String(255), nullable=True)
+    codigo = Column(String(191), nullable=False, unique=True)  # Ajustar la longitud del VARCHAR y agregar unique
+    codigo_sin = Column(Integer, nullable=True)
+    nombre = Column(String(255), nullable=True)
+    precio_venta = Column(DECIMAL(10, 2), nullable=True)
+    codigo_unidad_medida = Column(Integer, nullable=True)
+    unidad_medida = Column(String(255), nullable=True)  # Añadir la columna unidad_medida
+    unidad_medida_sin = Column(Integer, nullable=True)
+    codigoActividad = Column(String(255), nullable=True)
+    fecha_creacion = Column(TIMESTAMP, server_default=func.current_timestamp(), nullable=False)
+    fecha_actualizacion = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp(), nullable=False)
+    estado_sincronizacion = Column(String(255), nullable=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "categoria": self.categoria,
+            "codigo": self.codigo,
+            "codigo_sin": self.codigo_sin,
+            "nombre": self.nombre,
+            "precio_venta": float(self.precio_venta),
+            "codigo_unidad_medida": self.codigo_unidad_medida,
+            "unidad_medida": self.unidad_medida,  # Incluir unidad_medida
+            "unidad_medida_sin": self.unidad_medida_sin,
+            "codigoActividad": self.codigoActividad,
+            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
+            "fecha_actualizacion": self.fecha_actualizacion.isoformat() if self.fecha_actualizacion else None,
+            "estado_sincronizacion": self.estado_sincronizacion
+        }
