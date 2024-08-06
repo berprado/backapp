@@ -7,7 +7,7 @@ from mysql.connector import pooling, Error
 from dotenv import load_dotenv
 import os
 import logging
-import streamlit as st
+
 
 # Cargar las variables de entorno desde el archivo .env
 load_dotenv()

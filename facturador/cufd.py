@@ -133,7 +133,8 @@ def solicitar_cufd():
 
     # Devolver el nuevo CUFD
     return codigo_cufd
-
+print(codigo_punto_venta)
+print(cuis)
 if __name__ == "__main__":
     crear_tabla_cufd()
     solicitar_cufd()

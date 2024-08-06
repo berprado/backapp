@@ -26,14 +26,13 @@ st.sidebar.title("Menú de Opciones")
 # Selección de la acción en la barra lateral
 action = st.sidebar.radio("Selecciona una acción", ["Consultar", "Abrir", "Cerrar", "Sincronizar"])
 
-# Función para consultar puntos de venta habilitados
 @st.cache_data(ttl=600)
 def obtener_tipos_punto_venta():
     return get_tipo_punto_venta(pool)
 
 def consultar():
     st.title("Consulta de Puntos de Venta Habilitados")
-    if st.button("Consultar Puntos de Venta"):
+    with st.spinner("Consultando puntos de venta..."):
         try:
             response = consultar_puntos_venta(CODIGO_AMBIENTE, CODIGO_SISTEMA, CODIGO_SUCURSAL, CUIS, NIT)
             if response['transaccion']:
@@ -49,7 +48,6 @@ def consultar():
         except Exception as e:
             st.error(f"Error al consultar los puntos de venta: {e}")
 
-# Función para abrir un nuevo punto de venta
 def abrir():
     st.title("Registro de Punto de Venta")
     with st.form("registro_punto_venta"):
@@ -80,22 +78,19 @@ def abrir():
                     response = registrar_punto_venta(nombre_punto_venta, descripcion, codigo_tipo_punto_venta, codigo_ambiente, codigo_modalidad, codigo_sistema, codigo_sucursal, cuis, nit, pool)
                     if response['transaccion']:
                         st.success(f"Punto de venta registrado exitosamente con código {response['codigoPuntoVenta']}.")
+                        st.rerun()  # Recargar la página después del registro
                     else:
                         st.error("La transacción no se pudo completar.")
                 except Exception as e:
                     st.error(f"Error al registrar el punto de venta: {e}")
 
-# Función para cerrar puntos de venta
 def cerrar():
     st.title("Cierre de Puntos de Venta")
     try:
-        # Conectar a la base de datos y obtener puntos de venta habilitados excluyendo el punto de venta 0
-        connection = get_connection(pool)
-        cursor = connection.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM punto_venta WHERE estado = 'Habilitado' AND codigo_punto_venta != 0")
-        puntos_venta_db = cursor.fetchall()
-        cursor.close()
-        connection.close()
+        with get_connection(pool) as connection:
+            cursor = connection.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM punto_venta WHERE estado = 'Habilitado' AND codigo_punto_venta != 0")
+            puntos_venta_db = cursor.fetchall()
 
         puntos_seleccionados = st.multiselect(
             "Seleccione los Puntos de Venta a cerrar",
@@ -107,27 +102,30 @@ def cerrar():
         codigos_seleccionados = [int(pv.split(",")[0].split(": ")[1]) for pv in puntos_seleccionados]
 
         if st.button("Cerrar Puntos de Venta Seleccionados"):
-            for codigo_punto_venta in codigos_seleccionados:
-                try:
-                    response = cerrar_punto_venta(codigo_punto_venta, CODIGO_AMBIENTE, CODIGO_SISTEMA, CODIGO_SUCURSAL, CUIS, NIT, pool)
-                    if response['transaccion']:
-                        st.success(f"Punto de venta con código {codigo_punto_venta} cerrado exitosamente.")
-                    else:
-                        st.error(f"La transacción no se pudo completar para el código {codigo_punto_venta}.")
-                except Exception as e:
-                    st.error(f"Error al cerrar el punto de venta con código {codigo_punto_venta}: {e}")
+            with st.spinner("Cerrando puntos de venta..."):
+                for codigo_punto_venta in codigos_seleccionados:
+                    try:
+                        response = cerrar_punto_venta(codigo_punto_venta, CODIGO_AMBIENTE, CODIGO_SISTEMA, CODIGO_SUCURSAL, CUIS, NIT, pool)
+                        if response['transaccion']:
+                            st.success(f"Punto de venta con código {codigo_punto_venta} cerrado exitosamente.")
+                        else:
+                            st.error(f"La transacción no se pudo completar para el código {codigo_punto_venta}.")
+                    except Exception as e:
+                        st.error(f"Error al cerrar el punto de venta con código {codigo_punto_venta}: {e}")
+                st.rerun()  # Recargar la página después de cerrar puntos de venta
     except Exception as e:
         st.error(f"Error al obtener puntos de venta habilitados: {e}")
 
-# Función para sincronizar puntos de venta
 def sincronizar():
     st.title("Sincronización de Puntos de Venta")
     if st.button("Sincronizar con el servidor remoto"):
-        try:
-            resultado = sincronizar_puntos_venta(pool)
-            st.success(resultado)
-        except Exception as e:
-            st.error(f"Error durante la sincronización: {e}")
+        with st.spinner("Sincronizando puntos de venta..."):
+            try:
+                resultado = sincronizar_puntos_venta(pool)
+                st.success(resultado)
+                st.rerun()  # Recargar la página después de sincronizar
+            except Exception as e:
+                st.error(f"Error durante la sincronización: {e}")
 
 # Mostrar la interfaz correspondiente según la acción seleccionada
 if action == "Consultar":

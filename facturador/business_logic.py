@@ -1,6 +1,9 @@
 import pandas as pd
 from decimal import Decimal
 from data_access import obtener_nombre_unidad_medida  # Asegúrate de importar la función
+import qrcode
+import base64
+from io import BytesIO
 
 def calculate_totals(comandas_seleccionadas, descuento_adicional=Decimal(0), monto_giftcard=Decimal(0), codigo_clasificador_metodo_pago=None, tipo_cambio=1):
     gift_card_codes = [
@@ -49,3 +52,28 @@ def collect_product_lines(comandas, selected_id_comanda, db):
         'sub_total': 'sum'
     }).reset_index()
     return df_grouped.to_dict(orient='records')
+
+def generate_invoice_link(nit, cuf, numero_factura):
+    """
+    Genera el enlace de consulta de la factura basado en el NIT, CUF y número de factura.
+    """
+    enlace = f"https://pilotosiat.impuestos.gob.bo/consulta/QR?nit={nit}&cuf={cuf}&numero={numero_factura}"
+    return enlace
+
+
+def generate_qr(nit, cuf, numero_factura, tamano=1):
+    """Genera un código QR para la factura."""
+    url_qr = f'https://pilotosiat.impuestos.gob.bo/consulta/QR?nit={nit}&cuf={cuf}&numero={numero_factura}&t={tamano}'
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(url_qr)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffered = BytesIO()
+    img.save(buffered, format="PNG")
+    img_base64 = base64.b64encode(buffered.getvalue()).decode()
+    return img_base64

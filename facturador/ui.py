@@ -4,7 +4,7 @@ from data_access import (
     fetch_comandas, fetch_metodos_pago, fetch_tipos_documento, fetch_cliente, 
     fetch_random_leyenda, guardar_factura_cabecera, guardar_factura_detalle, obtener_nombre_unidad_medida
 )
-from business_logic import calculate_totals, collect_product_lines
+from business_logic import calculate_totals, collect_product_lines, generate_invoice_link, generate_qr
 from invoice_xml_generator import generate_xml_invoice
 from num2words import num2words
 from database import SessionLocal
@@ -32,6 +32,7 @@ from decimal import Decimal
 import logging
 import traceback
 import xml.etree.ElementTree as ET
+
 
 
 
@@ -133,9 +134,9 @@ def numero_a_palabras_con_decimales_como_fraccion(numero, lang='es'):
 
 
 
-def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_productos, nombre_cliente, fecha_emision, numero_factura, metodo_pago=None, codigo_clasificador_metodo_pago=None, tipo_documento=None, codigo_clasificador_documento=None, numero_documento=None, complemento=None, email=None, telefono=None, ultimos_digitos_tarjeta=None):
+def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_productos, nombre_cliente, fecha_emision, numero_factura, metodo_de_pago=None, codigo_clasificador_metodo_pago=None, tipo_documento=None, codigo_clasificador_documento=None, numero_documento=None, complemento=None, email=None, telefono=None, ultimos_digitos_tarjeta=None):
     total = subtotal - descuento_adicional
-    total_final = total
+    total_final = total - monto_giftcard
     
     if codigo_clasificador_metodo_pago in gift_card_codes:
         monto_total_sujeto_iva = total - monto_giftcard
@@ -146,77 +147,228 @@ def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_
 
     leyenda = fetch_random_leyenda()
 
+    nit = os.getenv('NIT') # NIT del emisor
+    razon_social = os.getenv('RAZON_SOCIAL') # Razón social del emisor
+    nombre_sucursal = os.getenv('NOMBRE_SUCURSAL')  # Nombre de la sucursal
+    codigo_punto_venta = os.getenv('CODIGO_PUNTO_VENTA')  # Código del punto de venta
+    direccion = os.getenv('DIRECCION')  # Dirección de la empresa
+    municipio = os.getenv('MUNICIPIO')  # Municipio de la empresa
+    telefono_empresa = os.getenv('TELEFONO')  # Teléfono de la empresa
+    
+    # Generar el código QR si el CUF está disponible
+    
     html_content = f"""
-    <html>
+    <!DOCTYPE html>
+    <html lang="es">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Factura</title>
-        <style>
-            body {{
-                background-color: #000;
-                color: white;
-                font-family: Monospace, sans-serif;
-            }}
-            table {{
-                width: 100%;
-                border-collapse: collapse;
-            }}
-            th, td {{
-                padding: 8px;
-                text-align: left;
-            }}
-            th {{
-                background-color: #444;
-            }}
+        <style type="text/css">
+        .tg {{
+          border-collapse: collapse;
+          border-spacing: 0;
+          margin: 0px auto;
+        }}
+        .tg td, .tg th {{
+          border-color: white;
+          border-style: solid;
+          border-width: 1px;
+          font-family: "Lucida Console", Monaco, monospace !important;
+          font-size: 14px;
+          overflow: hidden;
+          padding: 7px 2px;
+          word-break: normal;
+        }}
+        .tg .tg-common {{
+          border-color: white;
+          font-family: "Lucida Console", Monaco, monospace !important;
+        }}
+        .tg .tg-white {{
+          background-color: #ffffff;
+          text-align: center;
+          vertical-align: top;
+        }}
+        .tg .tg-light-grey {{
+          background-color: #c0c0c0;
+          text-align: right;
+          vertical-align: top;
+        }}
+        .tg .tg-dark-grey {{
+          background-color: #9b9b9b;
+          text-align: center;
+          vertical-align: top;
+          font-weight: bold;
+        }}
+        .tg .tg-light {{
+          background-color: #efefef;
+          text-align: center;
+          vertical-align: top;
+        }}
+        .tg .tg-bold {{
+          font-weight: bold;
+        }}
+        .tg .tg-bold-center {{
+          font-weight: bold;
+          text-align: center;
+        }}
+        .tg .tg-middle {{
+          vertical-align: middle;
+        }}
+        .tg .tg-small-font {{
+          background-color: #efefef;
+          font-size: 11px;
+          text-align: center;
+        }}
+        .tg .tg-medium-font {{
+          font-size: 12px;
+          font-weight: bold;
+        }}
         </style>
     </head>
     <body>
-        <h2>Factura</h2>
-        <h3>Fecha de Emisión: {fecha_emision}</h3>
-        <h3>Número de Factura: {numero_factura}</h3>
+    <table class="tg">
+      <tbody>
+        <tr>
+          <td class="tg-white tg-common tg-bold" colspan="3">&lt;logo&gt;</td>
+          <td class="tg-white tg-common"></td>
+          <td class="tg-white tg-common tg-bold">NIT:</td>
+          <td class="tg-white tg-common" colspan="2">{nit}</td>
+        </tr>
+        <tr>
+          <td class="tg-white tg-common tg-bold" colspan="3">{razon_social}</td>
+          <td class="tg-white tg-common"></td>
+          <td class="tg-white tg-common tg-bold">FACTURA N°:</td>
+          <td class="tg-white tg-common" colspan="2">{numero_factura}</td>
+        </tr>
+        <tr>
+          <td class="tg-white tg-common" colspan="3">{nombre_sucursal}</td>
+          <td class="tg-white tg-common"></td>
+          <td class="tg-white tg-common tg-bold-center tg-middle" rowspan="3">CÓDIGO DE<br>AUTORIZACIÓN</td>
+          <td class="tg-white tg-common tg-middle" colspan="2" rowspan="3">CUF</td>
+        </tr>
+        <tr>
+          <td class="tg-white tg-common" colspan="3"><span class="tg-bold">PUNTO DE VENTA:</span>{codigo_punto_venta}</td>
+          <td class="tg-white tg-common"></td>
+        </tr>
+        <tr>
+          <td class="tg-white tg-common" colspan="3">{direccion}</td>
+          <td class="tg-white tg-common"></td>
+        </tr>
+        <tr>
+          <td class="tg-white tg-common" colspan="3">{municipio}</td>
+          <td class="tg-white tg-common"></td>
+          <td class="tg-white tg-common"></td>
+          <td class="tg-white tg-common"></td>
+          <td class="tg-white tg-common"></td>
+        </tr>
+        <tr>
+          <td class="tg-white tg-common" colspan="3"><span class="tg-bold">TELÉFONO:</span>{telefono_empresa}</td>
+          <td class="tg-white tg-common"></td>
+          <td class="tg-white tg-common"></td>
+          <td class="tg-white tg-common"></td>
+          <td class="tg-white tg-common"></td>
+        </tr>
+        <tr>
+          <td class="tg-white tg-common" colspan="7"></td>
+        </tr>
+        <tr>
+          <td class="tg-white tg-common tg-bold">FECHA/HORA</td>
+          <td class="tg-white tg-common" colspan="2">{fecha_emision}</td>
+          <td class="tg-white tg-common"></td>
+          <td class="tg-white tg-common tg-bold-center">NIT/CI/CEX</td>
+          <td class="tg-white tg-common" colspan="2">{numero_documento}</td>
+        </tr>
+        <tr>
+          <td class="tg-white tg-common tg-bold">NOMBRE/RAZON SOCIAL</td>
+          <td class="tg-white tg-common tg-middle" colspan="2">{nombre_cliente}</td>
+          <td class="tg-white tg-common"></td>
+          <td class="tg-white tg-common tg-bold-center">COD. CLIENTE</td>
+          <td class="tg-white tg-common tg-middle" colspan="2">{numero_documento}</td>
+        </tr>
+        <tr>
+          <td class="tg-white tg-common" colspan="7"></td>
+        </tr>
+        <tr>
+          <td class="tg-dark-grey tg-common">CODIGO</td>
+          <td class="tg-dark-grey tg-common">CANTIDAD</td>
+          <td class="tg-dark-grey tg-common">UNIDAD</td>
+          <td class="tg-dark-grey tg-common">DESCRIPCIÓN</td>
+          <td class="tg-dark-grey tg-common">PRECIO UNIT.</td>
+          <td class="tg-dark-grey tg-common">DESCUENTO</td>
+          <td class="tg-dark-grey tg-common">SUBTOTAL</td>
+        </tr>
     """
-    if nombre_cliente:
-        html_content += f"<h3>Razón Social: {nombre_cliente}</h3>"
-    if email:
-        html_content += f"<h3>Email: {email}</h3>"
-    if telefono:
-        html_content += f"<h3>Teléfono: {telefono}</h3>"
-
-    html_content += """
-        <table>
-            <tr>
-                <th>Codigo</th>
-                <th>Cantidad</th>
-                <th>Unidad</th>
-                <th>Descripcion</th>
-                <th>Precio Unitario</th>
-                <th>Descuento</th>
-                <th>Sub Total</th>
-            </tr>
-    """
-
     for linea in lineas_productos:
         html_content += f"""
-            <tr>
-                <td>{linea["codigo"]}</td>
-                <td>{linea["cantidad"]}</td>
-                <td>{linea["unidad"]}</td>
-                <td>{linea["nombre"]}</td>
-                <td>{linea["precio_venta"]}</td>
-                <td>{linea.get("montoDescuento", 0)}</td>
-                <td>{linea["sub_total"]}</td>
-            </tr>
+        <tr>
+          <td class="tg-light tg-common">{linea["codigo"]}</td>
+          <td class="tg-light tg-common">{linea["cantidad"]}</td>
+          <td class="tg-light tg-common">{linea["unidad"]}</td>
+          <td class="tg-light tg-common">{linea["nombre"]}</td>
+          <td class="tg-light tg-common">{linea["precio_venta"]}</td>
+          <td class="tg-light tg-common">{linea.get("montoDescuento", 0)}</td>
+          <td class="tg-light tg-common">{linea["sub_total"]}</td>
+        </tr>
         """
 
     html_content += f"""
-        </table>
-        <h3>Subtotal: {subtotal:.2f}</h3>
-        <h3>Descuento Adicional: {descuento_adicional:.2f}</h3>
-        <h3>Gift Card: {monto_giftcard:.2f}</h3>
-        <h3>Total Final: {total_final:.2f}</h3>
-        <h3>Monto Total Sujeto a IVA: {monto_total_sujeto_iva:.2f}</h3>
-        <h3>{total_en_palabras}</h3>
-        <h3>{leyenda}</h3>
+        <tr>
+          <td class="tg-white tg-common" colspan="5"><span class="tg-bold">Son: {total_en_palabras} 00/100 Bolivianos.</span></td>
+          <td class="tg-light-grey tg-common tg-bold">SUBTOTAL Bs.</td>
+          <td class="tg-light tg-common">{subtotal:.2f}</td>
+        </tr>
+        <tr>
+          <td class="tg-small-font tg-common" colspan="5">ESTA FACTURA CONTRIBUYE AL DESARROLLO DEL PAÍS, EL USO ILÍCITO SERÁ SANCIONADO PENALMENTE DE ACUERDO A LEY</td>
+          <td class="tg-light-grey tg-common tg-bold">DESCUENTO Bs.</td>
+          <td class="tg-light tg-common">{descuento_adicional:.2f}</td>
+        </tr>
+        <tr>
+          <td class="tg-white tg-common" colspan="5"></td>
+          <td class="tg-light-grey tg-common tg-bold">TOTAL Bs.</td>
+          <td class="tg-light tg-common">{total:.2f}</td>
+        </tr>
+        <tr>
+          <td class="tg-small-font tg-common" colspan="5"></td>
+          <td class="tg-light-grey tg-common tg-bold">GIFT CARD Bs.</td>
+          <td class="tg-light tg-common">{monto_giftcard:.2f}</td>
+        </tr>
+        <tr>
+          <td class="tg-white tg-common" colspan="5"><span class="tg-bold">{leyenda}</span></td>
+          <td class="tg-light-grey tg-common tg-bold">MONTO A PAGAR Bs.</td>
+          <td class="tg-light tg-common">{total_final:.2f}</td>
+        </tr>
+        <tr>
+          <td class="tg-white tg-common" colspan="5"></td>
+          <td class="tg-medium-font tg-light-grey tg-common">IMP. BASE CRED. FISCAL Bs.</td>
+          <td class="tg-light tg-common">{monto_total_sujeto_iva:.2f}</td>
+        </tr>
+        <tr>
+          <td class="tg-white tg-common"></td>
+          <td class="tg-white tg-common"></td>
+          <td class="tg-white tg-common"></td>
+          <td class="tg-white tg-common"></td>
+          <td class="tg-white tg-common"></td>
+           <td class="tg-light tg-common" colspan="2" rowspan="3">
+            QR
+        </td
+        </tr>
+        <tr>
+          <td class="tg-white tg-common"></td>
+          <td class="tg-white tg-common"></td>
+          <td class="tg-white tg-common"></td>
+          <td class="tg-white tg-common"></td>
+          <td class="tg-white tg-common"></td>
+        </tr>
+        <tr>
+          <td class="tg-white tg-common"></td>
+          <td class="tg-white tg-common"></td>
+          <td class="tg-white tg-common"></td>
+          <td class="tg-white tg-common"></td>
+          <td class="tg-white tg-common"></td>
+        </tr>
+      </tbody>
+    </table>
     </body>
     </html>
     """
@@ -514,9 +666,17 @@ def main():
             if cliente_data["codigo_tipo_documento_identidad"] == '2':
                 complemento = st.sidebar.text_input("Complemento:", value=cliente_data['complemento'], disabled=True)
             nombre_cliente = st.sidebar.text_input("Razón Social:", value=cliente_data['nombre_razon_social'], disabled=True)
-            email = st.sidebar.text_input("Email:", value=cliente_data['email'] if cliente_data['email'] else "", disabled=True)
-            telefono = st.sidebar.text_input("Teléfono:", value=cliente_data['telefono'] if cliente_data['telefono'] else "", disabled=True)
-            codigo_cliente = cliente_data['codigo_cliente']  # Set the codigo_cliente from existing data
+
+            # Mostrar el campo email solo si no es None o está vacío
+            if cliente_data['email']:
+                email = st.sidebar.text_input("Email:", value=cliente_data['email'], disabled=True)
+
+            # Mostrar el campo teléfono solo si no es None o está vacío
+            if cliente_data['telefono']:
+                telefono = st.sidebar.text_input("Teléfono:", value=cliente_data['telefono'], disabled=True)
+            
+            codigo_cliente = cliente_data['codigo_cliente']
+
         else:
             opciones_tipos_documento = [doc["descripcion"] for doc in tipos_documento]
             seleccion_tipo_documento = st.sidebar.selectbox("Tipo de Documento:", opciones_tipos_documento, index=2)
@@ -653,7 +813,7 @@ def main():
         ultimos_digitos_tarjeta
     )
 
-    components.html(html_invoice, height=600, scrolling=True)
+    components.html(html_invoice, height=700, scrolling=True)
 
     if st.button("Generar Factura en XML", key="generar_xml", disabled=not selected_id_comanda):
         if metodo_pago_seleccionado and seleccion_tipo_documento and numero_documento and selected_id_comanda:
@@ -774,6 +934,15 @@ def main():
                                             else:
                                                 st.error(error_message)
                                                 return
+
+                                        # Generar y mostrar el enlace de consulta de factura
+                                        enlace = generate_invoice_link(factura_cabecera_data['nitEmisor'], factura_cabecera_data['cuf'], factura_cabecera_data['numeroFactura'])
+                                        st.markdown(f"[Consultar factura](<{enlace}>)", unsafe_allow_html=True)
+
+                                        # Generar y mostrar el código QR del enlace
+                                        qr_base64 = generate_qr(os.getenv('NIT'), cuf, numero_factura) if cuf else ""
+                                        qr_code = f"data:image/png;base64,{qr_base64}"
+                                        st.image(qr_code, width=113)
 
                                     else:
                                         mensajes_list = respuesta_servicio.find('mensajesList')
