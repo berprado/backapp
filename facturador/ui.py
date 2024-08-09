@@ -32,8 +32,7 @@ from decimal import Decimal
 import logging
 import traceback
 import xml.etree.ElementTree as ET
-
-
+from export import guardar_recibo_como_pdf
 
 
 # Lista de códigos permitidos para gift cards
@@ -56,6 +55,7 @@ if not logger.handlers:
         filename='firma_log.txt',
         filemode='w'
     )
+
 
 def es_email_valido(email):
     patron = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
@@ -127,9 +127,9 @@ def numero_a_palabras_con_decimales_como_fraccion(numero, lang='es'):
     parte_entera_palabras = num2words(parte_entera, lang=lang).capitalize()
     
     if parte_decimal > 0:
-        return f"Son {parte_entera_palabras} {parte_decimal:02d}/100 bolivianos"
+        return f" {parte_entera_palabras} {parte_decimal:02d}/100 bolivianos"
     else:
-        return f"Son {parte_entera_palabras} 00/100 bolivianos"
+        return f" {parte_entera_palabras} 00/100 bolivianos"
 
 
 
@@ -154,6 +154,7 @@ def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_
     direccion = os.getenv('DIRECCION')  # Dirección de la empresa
     municipio = os.getenv('MUNICIPIO')  # Municipio de la empresa
     telefono_empresa = os.getenv('TELEFONO')  # Teléfono de la empresa
+    tipo_factura = os.getenv('DESCRIPCION_TIPO_FACTURA')  # Tipo de factura (original, copia, etc.)
     
     # Generar el código QR si el CUF está disponible
     
@@ -171,39 +172,39 @@ def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_
           margin: 0px auto;
         }}
         .tg td, .tg th {{
-          border-color: white;
+          border-color: black;
           border-style: solid;
           border-width: 1px;
           font-family: "Lucida Console", Monaco, monospace !important;
-          font-size: 14px;
+          font-size: 11px;
           overflow: hidden;
           padding: 7px 2px;
           word-break: normal;
         }}
         .tg .tg-common {{
-          border-color: white;
+          border-color: black;
           font-family: "Lucida Console", Monaco, monospace !important;
         }}
         .tg .tg-white {{
           background-color: #ffffff;
           text-align: center;
-          vertical-align: top;
+          vertical-align: middle;
         }}
         .tg .tg-light-grey {{
           background-color: #c0c0c0;
           text-align: right;
-          vertical-align: top;
+          vertical-align: middle;
         }}
         .tg .tg-dark-grey {{
           background-color: #9b9b9b;
           text-align: center;
-          vertical-align: top;
+          vertical-align: middle;
           font-weight: bold;
         }}
         .tg .tg-light {{
           background-color: #efefef;
           text-align: center;
-          vertical-align: top;
+          vertical-align: middle;
         }}
         .tg .tg-bold {{
           font-weight: bold;
@@ -229,48 +230,28 @@ def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_
     <body>
     <table class="tg">
       <tbody>
-        <tr>
-          <td class="tg-white tg-common tg-bold" colspan="3">&lt;logo&gt;</td>
+         <tr>
+          <td class="tg-white tg-common tg-bold" colspan="3">{razon_social} <br> <span class="tg-bold">{nombre_sucursal}</span> <br> <span class="tg-bold">PUNTO DE VENTA:</span>{codigo_punto_venta}</td>
           <td class="tg-white tg-common"></td>
-          <td class="tg-white tg-common tg-bold">NIT:</td>
-          <td class="tg-white tg-common" colspan="2">{nit}</td>
+          <td class="tg-white tg-common tg-bold"><span class="tg-bold" >.</td>
+          <td class="tg-white tg-common" colspan="2"><span class="tg-bold">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp&nbsp;&nbsp;&nbsp;&nbsp;NIT:</span> {nit} <br> <span class="tg-bold">FACTURA N°:</span> {numero_factura}</td>
         </tr>
         <tr>
-          <td class="tg-white tg-common tg-bold" colspan="3">{razon_social}</td>
-          <td class="tg-white tg-common"></td>
-          <td class="tg-white tg-common tg-bold">FACTURA N°:</td>
-          <td class="tg-white tg-common" colspan="2">{numero_factura}</td>
-        </tr>
-        <tr>
-          <td class="tg-white tg-common" colspan="3">{nombre_sucursal}</td>
+          <td class="tg-white tg-common" colspan="3">{direccion} <br> {municipio} <br> <span class="tg-bold">TELÉFONO:</span>{telefono_empresa}</td>
           <td class="tg-white tg-common"></td>
           <td class="tg-white tg-common tg-bold-center tg-middle" rowspan="3">CÓDIGO DE<br>AUTORIZACIÓN</td>
           <td class="tg-white tg-common tg-middle" colspan="2" rowspan="3">CUF</td>
         </tr>
         <tr>
-          <td class="tg-white tg-common" colspan="3"><span class="tg-bold">PUNTO DE VENTA:</span>{codigo_punto_venta}</td>
+          <td class="tg-white tg-common" colspan="3">...</td>
           <td class="tg-white tg-common"></td>
         </tr>
         <tr>
-          <td class="tg-white tg-common" colspan="3">{direccion}</td>
+          <td class="tg-white tg-common" colspan="3">....</td>
           <td class="tg-white tg-common"></td>
         </tr>
-        <tr>
-          <td class="tg-white tg-common" colspan="3">{municipio}</td>
-          <td class="tg-white tg-common"></td>
-          <td class="tg-white tg-common"></td>
-          <td class="tg-white tg-common"></td>
-          <td class="tg-white tg-common"></td>
-        </tr>
-        <tr>
-          <td class="tg-white tg-common" colspan="3"><span class="tg-bold">TELÉFONO:</span>{telefono_empresa}</td>
-          <td class="tg-white tg-common"></td>
-          <td class="tg-white tg-common"></td>
-          <td class="tg-white tg-common"></td>
-          <td class="tg-white tg-common"></td>
-        </tr>
-        <tr>
-          <td class="tg-white tg-common" colspan="7"></td>
+                <tr>
+          <td class="tg-white tg-common tg-bold-center" colspan="7">{tipo_factura}</td>
         </tr>
         <tr>
           <td class="tg-white tg-common tg-bold">FECHA/HORA</td>
@@ -286,21 +267,20 @@ def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_
           <td class="tg-white tg-common tg-bold-center">COD. CLIENTE</td>
           <td class="tg-white tg-common tg-middle" colspan="2">{numero_documento}</td>
         </tr>
+
         <tr>
-          <td class="tg-white tg-common" colspan="7"></td>
-        </tr>
-        <tr>
-          <td class="tg-dark-grey tg-common">CODIGO</td>
-          <td class="tg-dark-grey tg-common">CANTIDAD</td>
-          <td class="tg-dark-grey tg-common">UNIDAD</td>
-          <td class="tg-dark-grey tg-common">DESCRIPCIÓN</td>
-          <td class="tg-dark-grey tg-common">PRECIO UNIT.</td>
-          <td class="tg-dark-grey tg-common">DESCUENTO</td>
-          <td class="tg-dark-grey tg-common">SUBTOTAL</td>
+          <td class="tg-dark-grey tg-common" width="10%">CODIGO</td>
+          <td class="tg-dark-grey tg-common" width="5%">CANTIDAD</td>
+          <td class="tg-dark-grey tg-common" width="10%">UNIDAD</td>
+          <td class="tg-dark-grey tg-common" width="30%">DESCRIPCIÓN</td>
+          <td class="tg-dark-grey tg-common" width="10%">PRECIO UNIT.</td>
+          <td class="tg-dark-grey tg-common" width="20%">DESCUENTO</td>
+          <td class="tg-dark-grey tg-common" width="15%">SUBTOTAL</td>
         </tr>
     """
     for linea in lineas_productos:
         html_content += f"""
+
         <tr>
           <td class="tg-light tg-common">{linea["codigo"]}</td>
           <td class="tg-light tg-common">{linea["cantidad"]}</td>
@@ -324,23 +304,23 @@ def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_
           <td class="tg-light tg-common">{descuento_adicional:.2f}</td>
         </tr>
         <tr>
-          <td class="tg-white tg-common" colspan="5"></td>
+          <td class="tg-white tg-common" colspan="5"><span class="tg-bold">{leyenda}</span></td>
           <td class="tg-light-grey tg-common tg-bold">TOTAL Bs.</td>
           <td class="tg-light tg-common">{total:.2f}</td>
         </tr>
         <tr>
-          <td class="tg-small-font tg-common" colspan="5"></td>
+          <td class="tg-small-font tg-common" colspan="5">“Este documento es la Representación Gráfica de un Documento Fiscal Digital emitido en una modalidad de facturación en línea”</td>
           <td class="tg-light-grey tg-common tg-bold">GIFT CARD Bs.</td>
           <td class="tg-light tg-common">{monto_giftcard:.2f}</td>
         </tr>
         <tr>
-          <td class="tg-white tg-common" colspan="5"><span class="tg-bold">{leyenda}</span></td>
+          <td class="tg-white tg-common" colspan="5"><span class="tg-bold">.</span></td>
           <td class="tg-light-grey tg-common tg-bold">MONTO A PAGAR Bs.</td>
           <td class="tg-light tg-common">{total_final:.2f}</td>
         </tr>
         <tr>
           <td class="tg-white tg-common" colspan="5"></td>
-          <td class="tg-medium-font tg-light-grey tg-common">IMP. BASE CRED. FISCAL Bs.</td>
+          <td class="tg-light-grey tg-common tg-bold">IMP. BASE CRED. FISCAL Bs.</td>
           <td class="tg-light tg-common">{monto_total_sujeto_iva:.2f}</td>
         </tr>
         <tr>
@@ -349,9 +329,9 @@ def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_
           <td class="tg-white tg-common"></td>
           <td class="tg-white tg-common"></td>
           <td class="tg-white tg-common"></td>
-           <td class="tg-light tg-common" colspan="2" rowspan="3">
-            QR
-        </td
+          <td class="tg-light tg-common" colspan="2" rowspan="3">
+           {{codigo_qr}}
+          </td>
         </tr>
         <tr>
           <td class="tg-white tg-common"></td>
@@ -373,7 +353,6 @@ def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_
     </html>
     """
     return html_content
-
 def get_next_invoice_number():
     try:
         with open("invoice_number.txt", "r") as file:
@@ -624,7 +603,7 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
         return None
 
 def main():
-    st.title("Facturador Electrónico")
+    #st.title("Facturador Electrónico")
     
 
     if 'processed_comandas' not in st.session_state:
@@ -713,7 +692,6 @@ def main():
 
     selected_id_comanda = st.sidebar.multiselect("Selecciona las comandas", available_comandas, key="selected_comandas", placeholder="Selecciona la(s) comandas", help="Selecciona las comandas que deseas facturar.")
 
-    st.sidebar.divider()
 
     opciones_metodos_pago = [metodo["descripcion"] for metodo in metodos_pago]
 
@@ -812,9 +790,7 @@ def main():
         telefono, 
         ultimos_digitos_tarjeta
     )
-
-    components.html(html_invoice, height=700, scrolling=True)
-
+    components.html(html_invoice, height=800, scrolling=True)
     if st.button("Generar Factura en XML", key="generar_xml", disabled=not selected_id_comanda):
         if metodo_pago_seleccionado and seleccion_tipo_documento and numero_documento and selected_id_comanda:
             try:
@@ -934,7 +910,21 @@ def main():
                                             else:
                                                 st.error(error_message)
                                                 return
+                                        # Generar y guardar el PDF del recibo
+                                        file_path = f"pdfs/factura_{cuf}.pdf"
+                                        guardar_recibo_como_pdf(html_invoice, file_path)
 
+                                        # Leer el archivo PDF para permitir la descarga
+                                        with open(file_path, "rb") as pdf_file:
+                                            PDFbyte = pdf_file.read()
+
+                                        # Botón para descargar el PDF
+                                        st.download_button(
+                                            label="Imprimir Factura",
+                                            data=PDFbyte,
+                                            file_name=f"factura_{cuf}.pdf",
+                                            mime='application/pdf'
+                                            )
                                         # Generar y mostrar el enlace de consulta de factura
                                         enlace = generate_invoice_link(factura_cabecera_data['nitEmisor'], factura_cabecera_data['cuf'], factura_cabecera_data['numeroFactura'])
                                         st.markdown(f"[Consultar factura](<{enlace}>)", unsafe_allow_html=True)
