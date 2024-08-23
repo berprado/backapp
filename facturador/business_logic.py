@@ -77,3 +77,28 @@ def generate_qr(nit, cuf, numero_factura, tamano=1):
     img.save(buffered, format="PNG")
     img_base64 = base64.b64encode(buffered.getvalue()).decode()
     return img_base64
+
+
+# business_logic.py
+
+def registrar_punto_de_venta(client, connection, solicitud):
+    try:
+        response = client.service.registroPuntoVenta(SolicitudRegistroPuntoVenta=solicitud)
+        if response:
+            codigo_punto_venta = response['codigoPuntoVenta']
+            transaccion = response['transaccion']
+
+            if transaccion:
+                cursor = connection.cursor()
+                cursor.execute('''
+                INSERT INTO punto_venta (codigoPuntoVenta, nombrePuntoVenta, descripcion, codigoAmbiente, codigoModalidad, codigoSistema, codigoSucursal, codigoTipoPuntoVenta, cuis, nit)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (codigo_punto_venta, solicitud['nombrePuntoVenta'], solicitud['descripcion'], solicitud['codigoAmbiente'], 
+                      solicitud['codigoModalidad'], solicitud['codigoSistema'], solicitud['codigoSucursal'], solicitud['codigoTipoPuntoVenta'], 
+                      solicitud['cuis'], solicitud['nit']))
+                connection.commit()
+                return {"success": True, "message": f"Punto de venta registrado exitosamente con código {codigo_punto_venta}."}
+            else:
+                return {"success": False, "message": "La transacción no se pudo completar."}
+    except Exception as e:
+        return {"success": False, "message": f"Error al registrar el punto de venta: {e}"}
