@@ -35,7 +35,6 @@ from export import imprimir_recibo
 
 import verifica_stream
 
-
 # Lista de códigos permitidos para gift cards
 gift_card_codes = [
     102, 109, 115, 120, 124, 128, 129, 130, 138, 146, 153, 159, 164, 168,
@@ -58,7 +57,7 @@ if not logger.handlers:
     )
 
 
-def es_email_valido(email):
+def es_email_valido(email, message_placeholder):
     patron = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
     return re.match(patron, email) is not None
 
@@ -90,7 +89,7 @@ def verificar_nit(nit):
         if response.transaccion:
             return True, response.mensajesList[0].descripcion
         else:
-            return False, "❗ Verifica el NIT o elige otro Tipo de Documento."
+            return False, "Verifica el NIT o elige otro Tipo de Documento."
     except Exception as e:
         return False, f"Ocurrió un error: {str(e)}"
 
@@ -129,9 +128,9 @@ def numero_a_palabras_con_decimales_como_fraccion(numero, lang='es'):
     parte_entera_palabras = num2words(parte_entera, lang=lang).capitalize()
     
     if parte_decimal > 0:
-        return f" {parte_entera_palabras} {parte_decimal:02d}/100 bolivianos"
+        return f" {parte_entera_palabras} {parte_decimal:02d}/100 bolivianos."
     else:
-        return f" {parte_entera_palabras} 00/100 bolivianos"
+        return f" {parte_entera_palabras} 00/100 bolivianos."
 
 
 
@@ -310,17 +309,17 @@ def increment_invoice_number(numero_factura):
         logging.error(f"Error al escribir en 'invoice_number.txt': {e}")
         raise e
 
-def save_or_fetch_client_data(codigo_cliente, codigo_tipo_documento_identidad, complemento, email, nombre_razon_social, numero_documento, telefono):
+def save_or_fetch_client_data(codigo_cliente, codigo_tipo_documento_identidad, complemento, email, nombre_razon_social, numero_documento, telefono, message_placeholder):
     if not nombre_razon_social:
-        st.error("El campo 'Razón Social' es obligatorio.")
+        message_placeholder.error("❌El campo 'Razón Social' es obligatorio.")
         return None
 
-    if email and not es_email_valido(email):
-        st.error("Por favor, ingrese un email válido.")
+    if email and not es_email_valido(email, message_placeholder):
+        message_placeholder.error("❌Por favor, ingrese un email válido.")
         return None
 
     if telefono and not es_telefono_valido(telefono):
-        st.error("Por favor, ingrese un número de teléfono válido.")
+        message_placeholder.error("❌Por favor, ingrese un número de teléfono válido.")
         return None
 
     cliente_data, error = fetch_cliente(codigo_cliente)
@@ -341,11 +340,11 @@ def save_or_fetch_client_data(codigo_cliente, codigo_tipo_documento_identidad, c
             cliente_data = nuevo_cliente.to_dict()
         except IntegrityError:
             session.rollback()
-            st.error("El cliente ya existe en la base de datos.")
+            message_placeholder.error("❌El cliente ya existe en la base de datos.")
             return None
         except Exception as e:
             session.rollback()
-            st.error(f"Error al guardar los datos del cliente: {e}")
+            message_placeholder.error(f"❌Error al guardar los datos del cliente: {e}")
             return None
         finally:
             session.close()
@@ -358,13 +357,13 @@ def get_cufd():
         if cufd_record:
             return cufd_record.codigo
         else:
-            raise ValueError("CUFD no encontrado en la base de datos.")
+            raise ValueError("❌CUFD no encontrado en la base de datos.")
     except Exception as e:
-        raise ValueError(f"Error al obtener el CUFD: {e}")
+        raise ValueError(f"❌Error al obtener el CUFD: {e}")
     finally:
         session.close()
 
-def verificar_y_obtener_cufd():
+def verificar_y_obtener_cufd(message_placeholder):
     session = SessionLocal()
     try:
         cufd_record = session.query(models.Cufd).filter(models.Cufd.vigente == 1).first()
@@ -372,10 +371,10 @@ def verificar_y_obtener_cufd():
             return cufd_record.codigo
         else:
             nuevo_cufd = solicitar_cufd()
-            st.info("Se ha renovado el CUFD.")
+            message_placeholder.info(":heavy_check_mark: Se ha renovado el CUFD.")
             return nuevo_cufd
     except Exception as e:
-        st.error(f"Error al verificar o solicitar CUFD: {e}")
+        message_placeholder.error(f"❌Error al verificar o solicitar CUFD: {e}")
         raise ValueError(f"Error al verificar o solicitar CUFD: {e}")
     finally:
         session.close()
@@ -542,7 +541,7 @@ with open('verifica_stream.py', 'r') as file:
 
 def render_sidebar():
     # Toda la lógica relacionada con st.sidebar aquí
-    numero_documento = st.sidebar.text_input("Número de Documento:", key="numero_documento")
+    numero_documento = st.sidebar.text_input("Número de Documento:", key="numero_documento", help="Ingresa el número de documento del cliente.")
     nit_valido = False
     nombre_cliente = ""
     complemento = None
@@ -559,12 +558,19 @@ def render_sidebar():
     return numero_documento, nit_valido, nombre_cliente, complemento, email, telefono, seleccion_tipo_documento, codigo_clasificador_documento, codigo_clasificador_metodo_pago, ultimos_digitos_tarjeta, codigo_cliente
 
 def main():
-    tab1, tab2 = st.tabs(["Facturar", "Validar NIT"])
-
-    
+    message_placeholder = st.empty()
+    tab1, tab2, tab3, tab4 = st.tabs(["🧾Facturar", "🔍Ver Facturas", "✅Validar NIT", "😏Clientes"])
     with tab2:
+        st.header("Facturas Generadas")
+        st.write("Aquí se mostrarán las facturas generadas.")   
+    
+    with tab3:
         st.header("Validar NIT")
-        verifica_stream.main()
+        st.write("Aquí se validan los NITs.")
+        
+    with tab4:
+        st.header("Lista de Clientes")
+        st.write("Aquí se mostrarán los clientes.")  
 
     if 'processed_comandas' not in st.session_state:
         st.session_state.processed_comandas = []
@@ -584,7 +590,7 @@ def main():
 
 
     
-    numero_documento = st.sidebar.text_input("Número de Documento:", key="numero_documento")
+    numero_documento = st.sidebar.text_input("Número de Documento:", key="numero_documento", help="Ingresa el número de documento del cliente.")
     nit_valido = False
 
     nombre_cliente = ""
@@ -627,33 +633,33 @@ def main():
                 codigo_clasificador_documento = tipo_documento_seleccionado["codigoClasificador"]
                 if tipo_documento_seleccionado['codigoClasificador'] == '2':
                     complemento = st.sidebar.text_input("Complemento:", key="complemento")
-                nombre_cliente = st.sidebar.text_input("Razón Social:", key="nombre_cliente")
+                nombre_cliente = st.sidebar.text_input("Razón Social:", placeholder="Sin Nombre", key="nombre_cliente")
                 email = st.sidebar.text_input("Email:", key="email")
                 telefono = st.sidebar.text_input("Teléfono:", key="telefono")
 
                 if seleccion_tipo_documento == "NIT - NÚMERO DE IDENTIFICACIÓN TRIBUTARIA":
                     valido, mensaje = verificar_nit(numero_documento)
                     if valido:
-                        st.success(f"NIT válido: {mensaje}")
+                        message_placeholder.success(f"✔️ NIT válido: {mensaje}")
                         nit_valido = True
                     else:
-                        st.error(mensaje)
+                        message_placeholder.error(mensaje, icon="❌")
                         nit_valido = False
 
                 guardar_cliente_button = st.sidebar.button("Guardar Cliente", key="guardar_cliente", disabled=(not nit_valido and seleccion_tipo_documento == "NIT - NÚMERO DE IDENTIFICACIÓN TRIBUTARIA"))
                 if guardar_cliente_button:
                     if tipo_documento_seleccionado:
-                        cliente_data = save_or_fetch_client_data(numero_documento, tipo_documento_seleccionado['codigoClasificador'], complemento, email, nombre_cliente, numero_documento, telefono)
+                        cliente_data = save_or_fetch_client_data(numero_documento, tipo_documento_seleccionado['codigoClasificador'], complemento, email, nombre_cliente, numero_documento, telefono, message_placeholder)
                         if cliente_data:
-                            message_placeholder.success("Datos del cliente guardados o obtenidos correctamente.")
+                            message_placeholder.success("✔️ Datos del cliente guardados correctamente.")
                             codigo_cliente = numero_documento  # Set codigo_cliente to numero_documento for new client
                     else:
-                        message_placeholder.error("Por favor selecciona un tipo de documento válido.")
+                             message_placeholder.error("Por favor selecciona un tipo de documento válido")
     
     id_comanda_set = set(comanda["id_comanda"] for comanda in comandas)
     available_comandas = [comanda for comanda in id_comanda_set if comanda not in st.session_state.processed_comandas]
 
-    selected_id_comanda = st.sidebar.multiselect("Selecciona las comandas", available_comandas, key="selected_comandas", placeholder="Selecciona la(s) comandas", help="Selecciona las comandas que deseas facturar.")
+    selected_id_comanda = st.sidebar.multiselect("Selecciona las comandas", available_comandas, key="selected_comandas", placeholder="Comandas Generadas", help="Selecciona las comandas que componen la factura.")
 
 
     opciones_metodos_pago = [metodo["descripcion"] for metodo in metodos_pago]
@@ -709,6 +715,7 @@ def main():
     logging.debug(f"Descuento Adicional Final: {descuento_adicional}")
     logging.debug(f"Monto Gift Card Final: {monto_giftcard}")
     numero_factura = get_next_invoice_number()
+    logging.debug(f"Factura #: {numero_factura - 1}")
     if selected_id_comanda:
         comandas_seleccionadas = [comanda for comanda in comandas if comanda["id_comanda"] in selected_id_comanda]
         subtotal, descuento_aplicado, monto_giftcard, total, monto_total_sujeto_iva, monto_total_moneda = calculate_totals(
@@ -738,8 +745,8 @@ def main():
     
 
     with tab1:
-     with st.container():  # Contenedor dentro de la pestaña "Facturar"
-        message_placeholder = st.empty() 
+     
+           
         
         html_invoice = generate_html_invoice(
             subtotal, 
@@ -764,7 +771,7 @@ def main():
         
         col1, col2, col3 = st.columns(3)
         with col1:
-         if st.button("Generar Factura en XML", key="generar_xml", disabled=not selected_id_comanda):
+         if st.button("Facturar", key="generar_xml", help="Generar la factura", disabled=not selected_id_comanda):
             if metodo_pago_seleccionado and seleccion_tipo_documento and numero_documento and selected_id_comanda:
                 try:
                     tipo_documento_seleccionado = next((doc for doc in tipos_documento if doc["descripcion"] == seleccion_tipo_documento), None)
@@ -772,7 +779,7 @@ def main():
                     razon_social_emisor = os.getenv('RAZON_SOCIAL')
                     municipio = os.getenv('MUNICIPIO')
                     telefono = os.getenv('TELEFONO')
-                    cufd = verificar_y_obtener_cufd()
+                    cufd = verificar_y_obtener_cufd(message_placeholder)
                     codigo_sucursal = int(os.getenv('CODIGO_SUCURSAL'))
                     codigo_punto_venta = int(os.getenv('CODIGO_PUNTO_VENTA'))
                     codigo_documento_sector = int(os.getenv('CODIGO_DOCUMENTO_SECTOR')) 
@@ -841,7 +848,7 @@ def main():
                         response = enviar_solicitud(filename, xsd_main_path, fecha_emision_str, cufd)
 
                         if isinstance(response, dict) and response.get("error"):
-                            st.error(f"Error al enviar la factura: {response['error']}")
+                            message_placeholder.error(f"❌Error al enviar la factura: {response['error']}")
                         else:
                             try:
                                 root = ET.fromstring(response.content)
@@ -864,16 +871,14 @@ def main():
                                         transaccion = transaccion.text.lower() == 'true'
                                         
                                         if transaccion:
-                                            message_placeholder.success(f"""FACTURA {codigo_descripcion} :heavy_check_mark:\n 
-                                            
-                                            """)
+                                            message_placeholder.success(f""":heavy_check_mark: FACTURA {codigo_descripcion}""")
 
                                             is_valid, error_message = validar_factura_cabecera(factura_cabecera_data)
                                             if is_valid:
                                                 guardar_factura_cabecera(factura_cabecera_data)
                                                 increment_invoice_number(numero_factura)
                                             else:
-                                                st.error(error_message)
+                                                message_placeholder.error(error_message)
                                                 return
 
                                             for detalle in detalles_data:
@@ -881,7 +886,7 @@ def main():
                                                 if is_valid:
                                                     guardar_factura_detalle(detalle)
                                                 else:
-                                                    st.error(error_message)
+                                                    message_placeholder.error(error_message)
                                                     return
 
                                             # Generación directa del PDF utilizando imprimir_recibo
@@ -923,12 +928,22 @@ def main():
 
                                             with col3:
                                                 enlace = generate_invoice_link(factura_cabecera_data['nitEmisor'], factura_cabecera_data['cuf'], factura_cabecera_data['numeroFactura'])
-                                                st.markdown(f"[Consultar factura](<{enlace}>)", unsafe_allow_html=True)
+                                                if st.button('Consultar factura'):
+                                                     st.write(f"[Visitar enlace]({enlace})")
+                                                
+                                                #st.markdown(f"[Consultar factura](<{enlace}>)", unsafe_allow_html=True)
                                                 #st.image(f"data:image/png;base64,{qr_base64}", width=150)
+                                                # Crear el botón
+                                                # Crear el botón
+                                                #if st.button("Consultar factura"):
+                                                    # Redirigir al usuario al enlace de la factura usando JavaScript
+                                                    #js = f"window.open('{enlace}');"
+                                                    #html = f'<img src onerror="{js}">'
+                                                   # st.write(html, unsafe_allow_html=True)
 
                                         else:
                                             mensajes_list = respuesta_servicio.find('mensajesList')
-                                            error_message = "La factura no fue procesada correctamente."
+                                            error_message = "❌La factura no fue procesada correctamente."
                                             if mensajes_list is not None:
                                                 for mensaje in mensajes_list:
                                                     codigo = mensaje.find('codigo')
@@ -936,29 +951,29 @@ def main():
                                                     if codigo is not None and descripcion is not None:
                                                         error_message += f"\nCódigo: {codigo.text}, Descripción: {descripcion.text}"
                                                 
-                                                st.error(f"""{error_message}
+                                                message_placeholder.error(f"""{error_message}
                                                     Código de recepción: {codigo_recepcion}\n
                                                     Descripción: {codigo_descripcion}\n
                                                     Estado: {codigo_estado}\n
                                                 """)
                                             else:
-                                                st.error("La respuesta del servicio no contiene todos los campos esperados.")
+                                                message_placeholder.error("❌La respuesta del servicio no contiene todos los campos esperados.")
                                                 st.write("Contenido de la respuesta:", response.content)
                                             
                                     else:
-                                        st.error("No se pudo encontrar RespuestaServicioFacturacion en la respuesta XML.")
+                                        message_placeholder.error("❌No se pudo encontrar RespuestaServicioFacturacion en la respuesta XML.")
                                         st.write("Contenido de la respuesta:", response.content)
                                         
                             except ET.ParseError as e:
-                                st.error(f"Error al parsear la respuesta XML: {str(e)}")
+                                message_placeholder.error(f"❌Error al parsear la respuesta XML: {str(e)}")
                                 st.write("Contenido de la respuesta:", response.content)
 
                 except Exception as e:
-                    st.error(f"Error inesperado al procesar la respuesta: {str(e)}")
+                    message_placeholder.error(f"❌Error inesperado al procesar la respuesta: {str(e)}")
                     if 'response' in locals():
                         st.write("Contenido de la respuesta:", response.content)
             else:
-                st.error("Por favor, selecciona un método de pago, un tipo de documento y proporciona un número de documento válido para generar la factura en XML.")
+                message_placeholder.error("❌Por favor, selecciona un método de pago, un tipo de documento y un número de documento válido para generar la factura.")
 
 
 if __name__ == "__main__":
