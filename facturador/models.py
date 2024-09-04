@@ -1,10 +1,10 @@
 from sqlalchemy.schema import UniqueConstraint
 from database import Base
-from sqlalchemy import Column, Integer, String, TIMESTAMP, Numeric, Date, DateTime, ForeignKey, text, Text, BigInteger, DECIMAL, ForeignKey
+from sqlalchemy import Enum, Boolean, Column, Integer, String, TIMESTAMP, Numeric, Date, DateTime, ForeignKey, text, Text, BigInteger, DECIMAL, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-
+from datetime import datetime
 
 
 
@@ -179,7 +179,6 @@ class SincronizarListaLeyendasFactura(Base):
             "estado_sincronizacion": self.estado_sincronizacion
         }
     
-
 class FacturaCabecera(Base):
     __tablename__ = 'factura_cabecera'
     nitEmisor = Column(BigInteger, nullable=False)
@@ -187,7 +186,7 @@ class FacturaCabecera(Base):
     municipio = Column(String(25), nullable=False)
     telefono = Column(String(25))
     numeroFactura = Column(Integer, primary_key=True, nullable=False)
-    cuf = Column(String(100), nullable=False)
+    cuf = Column(String(100), nullable=False, unique=True)
     cufd = Column(String(100), nullable=False)
     codigoSucursal = Column(Integer, nullable=False)
     direccion = Column(String(500), nullable=False)
@@ -213,9 +212,9 @@ class FacturaCabecera(Base):
     usuario = Column(String(100), nullable=False)
     codigoDocumentoSector = Column(Integer, nullable=False, default=1)
     estadoValidacion = Column(String(50), nullable=False, default='VALIDADA')
-    fechaCreacion = Column(TIMESTAMP, nullable=False, default='CURRENT_TIMESTAMP')
+    fechaCreacion = Column(TIMESTAMP, nullable=False, server_default=text('CURRENT_TIMESTAMP'))
     creadoPor = Column(String(100), nullable=False, default='ADMIN')
-    fechaActualizacion = Column(TIMESTAMP, nullable=False, default='CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
+    fechaActualizacion = Column(TIMESTAMP, nullable=False, server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))
     actualizadoPor = Column(String(100), nullable=False, default='ADMIN')
     detallesFirmaDigital = Column(Text)
     mensajeError = Column(Text)
@@ -229,6 +228,8 @@ class FacturaCabecera(Base):
     fechaAnulacion = Column(DateTime)
     anuladaPor = Column(String(100))
     motivoAnulacion = Column(Text)
+    enlaceSiat = Column(String(255))
+    codigoRecepcion = Column(String(255))
 
     def to_dict(self):
         return {
@@ -278,8 +279,11 @@ class FacturaCabecera(Base):
             'estado': self.estado,
             'fechaAnulacion': self.fechaAnulacion.isoformat() if self.fechaAnulacion else None,
             'anuladaPor': self.anuladaPor,
-            'motivoAnulacion': self.motivoAnulacion
+            'motivoAnulacion': self.motivoAnulacion,
+            'enlaceSiat': self.enlaceSiat,
+            'codigoRecepcion': self.codigoRecepcion
         }
+
 
 class FacturaDetalle(Base):
     __tablename__ = 'factura_detalle'
@@ -347,4 +351,76 @@ class ProductoSiat(Base):
             "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
             "fecha_actualizacion": self.fecha_actualizacion.isoformat() if self.fecha_actualizacion else None,
             "estado_sincronizacion": self.estado_sincronizacion
+        }
+    
+class PuntoVenta(Base):
+    __tablename__ = 'punto_venta'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    codigo_punto_venta = Column(Integer, nullable=False)
+    nombre_punto_venta = Column(String(255), nullable=True)
+    descripcion = Column(String(255), nullable=True)
+    tipo = Column(String(255), nullable=True)
+    estado = Column(Enum('Habilitado', 'Deshabilitado'), nullable=False, default='Habilitado')
+    cod_sucursal = Column(Integer, nullable=False)
+    fecha_creacion = Column(DateTime, nullable=False, default=datetime.utcnow)
+    fecha_modificacion = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relación con CUIS
+    cuis = relationship("Cuis", back_populates="punto_venta")
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'codigo_punto_venta': self.codigo_punto_venta,
+            'nombre_punto_venta': self.nombre_punto_venta,
+            'descripcion': self.descripcion,
+            'tipo': self.tipo,
+            'estado': self.estado,
+            'cod_sucursal': self.cod_sucursal,
+            'fecha_creacion': self.fecha_creacion,
+            'fecha_modificacion': self.fecha_modificacion
+        }
+
+class Cuis(Base):
+    __tablename__ = 'cuis'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    codigo = Column(String(10), nullable=False)
+    fecha_vigencia = Column(DateTime, nullable=True)
+    vigente = Column(Boolean, default=True)
+    codigo_punto_venta = Column(Integer, ForeignKey('punto_venta.codigo_punto_venta'), nullable=False)
+
+    # Relación con PuntoVenta
+    punto_venta = relationship("PuntoVenta", back_populates="cuis")
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'codigo': self.codigo,
+            'fecha_vigencia': self.fecha_vigencia,
+            'vigente': self.vigente,
+            'codigo_punto_venta': self.codigo_punto_venta,
+            'punto_venta': self.punto_venta.to_dict() if self.punto_venta else None
+        }
+
+class SincronizarParametricaMotivoAnulacion(Base):
+    __tablename__ = 'sincronizarparametricamotivoanulacion'
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    codigoClasificador = Column(String(5), nullable=False, unique=True)  # Código del clasificador
+    descripcion = Column(String(255), nullable=True)  # Descripción del motivo de anulación
+    fecha_creacion = Column(TIMESTAMP, server_default=func.now())  # Fecha de creación
+    fecha_sincronizacion = Column(TIMESTAMP, nullable=True)  # Fecha de sincronización
+    estado_sincronizacion = Column(String(10), nullable=True)  # Estado de sincronización
+
+    # Método to_dict para convertir la instancia en un diccionario
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'codigoClasificador': self.codigoClasificador,
+            'descripcion': self.descripcion,
+            'fecha_creacion': self.fecha_creacion,
+            'fecha_sincronizacion': self.fecha_sincronizacion,
+            'estado_sincronizacion': self.estado_sincronizacion
         }

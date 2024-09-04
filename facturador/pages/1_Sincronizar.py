@@ -1,12 +1,9 @@
 import os
 import sys
-
-
-# Agregar el directorio actual al PYTHONPATH
-sys.path.append(os.path.dirname(__file__))
 import logging
 import traceback
 import streamlit as st
+sys.path.append(os.path.dirname(__file__))
 from sync import sincronizarActividades
 from sync import sincronizarListaActividadesDocumentoSector
 from sync import sincronizarListaLeyendasFactura
@@ -24,6 +21,7 @@ from sync import sincronizarParametricaUnidadMedida
 from sync import sincronizarParametricaTipoEmision
 from sync import sincronizarParametricaPaisOrigen
 from sync import sincronizarParametricaMotivoAnulacion
+# Agregar el directorio actual al PYTHONPATH
 
 # Configurar el logging
 log_file_path = 'sincronizaciones.txt'
@@ -41,7 +39,7 @@ logging.basicConfig(
 sync_dir = 'sync'
 
 
-st.set_page_config(page_title="Sincronizar", page_icon="📈")
+st.set_page_config(page_title="Sincronizar", page_icon=":arrows_counterclockwise:", layout="wide")
 
 st.markdown("# Sincronizar Datos")
 st.sidebar.header("Sincronizar")
@@ -90,9 +88,9 @@ if col1.button('Sincronizar Todo (Spinner)'):
         with st.spinner(f"Sincronizando {file_name}..."):
             ejecutar_sincronizacion(sync_function, file_name)
         if file_name == 'Actividades':
-            st.write(f" :heavy_check_mark: Las {file_name} se han sincronizado correctamente.")
+            st.success(f" :heavy_check_mark: Las {file_name} se han sincronizado correctamente.")
         else:
-            st.write(f" :heavy_check_mark: Los valores de :blue[ {file_name} ] se han sincronizado correctamente.")
+            st.success(f" :heavy_check_mark: Los valores de :blue[ {file_name} ] se han sincronizado correctamente.")
 
 # Botón para ejecutar todas las sincronizaciones con st.status
 if col2.button('Sincronizar Todo (Status)'):
@@ -115,6 +113,6 @@ if st.button('Ejecutar Sincronizaciones Seleccionadas'):
         with st.spinner(f"Sincronizando {file_name}..."):
             ejecutar_sincronizacion(sync_function, file_name)
         if file_name == 'Actividades':
-            st.write(f" :heavy_check_mark: Los valores de :blue{file_name} se han sincronizado correctamente.")
+            st.success(f" :heavy_check_mark: Los valores de las {file_name} se han sincronizado correctamente.")
         else:
-            st.write(f" :heavy_check_mark: Los valores de :blue[ {file_name} ] se han sincronizado correctamente.")
+            st.success(f" :heavy_check_mark: Los valores de :blue[ {file_name} ] se han sincronizado correctamente.")

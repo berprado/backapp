@@ -68,10 +68,10 @@ def main():
     client = Client(wsdl=WSDL_URL_CODIGOS, transport=transport, settings=settings)
 
     # Interfaz de usuario en Streamlit
-    st.title("Verificación de NIT con SIAT")
+    st.title("Verificación del NIT")
 
     # Input para NIT a verificar
-    nit_para_verificacion = st.number_input("Ingrese el NIT para verificación", min_value=0, value=0)
+    nit_para_verificacion = st.number_input("Ingrese el NIT para su verificación", min_value=0, value=0)
 
     if st.button("Verificar NIT"):
         verificar_comunicacion(client)

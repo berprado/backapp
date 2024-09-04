@@ -2,7 +2,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 from data_access import (
     fetch_comandas, fetch_metodos_pago, fetch_tipos_documento, fetch_cliente, 
-    fetch_random_leyenda, guardar_factura_cabecera, guardar_factura_detalle, obtener_nombre_unidad_medida
+    fetch_random_leyenda, guardar_factura_cabecera, guardar_factura_detalle, obtener_nombre_unidad_medida, obtener_motivos_anulacion
 )
 from business_logic import calculate_totals, collect_product_lines, generate_invoice_link, generate_qr
 from invoice_xml_generator import generate_xml_invoice
@@ -32,8 +32,10 @@ import logging
 import traceback
 import xml.etree.ElementTree as ET
 from export import imprimir_recibo
-
 import verifica_stream
+from estado_factura import verificar_estado_factura
+import cuis
+from anulacion import anular_factura
 
 # Lista de códigos permitidos para gift cards
 gift_card_codes = [
@@ -134,7 +136,7 @@ def numero_a_palabras_con_decimales_como_fraccion(numero, lang='es'):
 
 
 
-
+@st.cache_data
 def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_productos, nombre_cliente, fecha_emision, numero_factura, metodo_de_pago=None, codigo_clasificador_metodo_pago=None, tipo_documento=None, codigo_clasificador_documento=None, numero_documento=None, complemento=None, email=None, telefono=None, ultimos_digitos_tarjeta=None):
     total = subtotal - descuento_adicional
     total_final = total - monto_giftcard
@@ -538,7 +540,9 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
 
 with open('verifica_stream.py', 'r') as file:
     file_content = file.read()
-
+with open('cuis.py', 'r') as file:
+    file_content += file.read()
+@st.cache_data
 def render_sidebar():
     # Toda la lógica relacionada con st.sidebar aquí
     numero_documento = st.sidebar.text_input("Número de Documento:", key="numero_documento", help="Ingresa el número de documento del cliente.")
@@ -559,19 +563,84 @@ def render_sidebar():
 
 def main():
     message_placeholder = st.empty()
-    tab1, tab2, tab3, tab4 = st.tabs(["🧾Facturar", "🔍Ver Facturas", "✅Validar NIT", "😏Clientes"])
+    # Definición de las pestañas
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+        "🧾Facturar", "🔍Ver Facturas", "✅Validar NIT", "😏Clientes", 
+        "🔍Verificar Factura", "🔍Gestionar CUIS", "❌Anular Factura"
+    ])
+
+    # Pestaña 2: Ver Facturas Generadas
     with tab2:
         st.header("Facturas Generadas")
         st.write("Aquí se mostrarán las facturas generadas.")   
     
+    # Pestaña 3: Validar NIT
     with tab3:
         st.header("Validar NIT")
-        st.write("Aquí se validan los NITs.")
+        verifica_stream.main()
         
+    # Pestaña 4: Lista de Clientes
     with tab4:
         st.header("Lista de Clientes")
-        st.write("Aquí se mostrarán los clientes.")  
+        st.write("Aquí se mostrarán los clientes.")
 
+    # Pestaña 5: Verificar Factura
+    with tab5:
+        st.header("Verificar Factura")
+        numero_factura = st.text_input("Ingrese el número de la factura:")
+
+        if st.button("Verificar Factura"):
+            # Limpiar cualquier mensaje previo
+            message_placeholder.empty()
+
+            if not numero_factura:
+                message_placeholder.warning("Por favor, ingrese un número de factura.")
+            else:
+                exito, mensaje = verificar_estado_factura(numero_factura)
+                if exito:
+                    message_placeholder.success(mensaje)
+                else:
+                    message_placeholder.error(mensaje)
+
+    # Pestaña 6: Gestionar CUIS
+    with tab6:
+        st.header("Gestionar CUIS")
+        st.write("Aquí puedes gestionar los códigos CUIS.")
+        # Aquí podrías agregar la funcionalidad para gestionar CUIS
+
+    # Pestaña 7: Anular Factura
+    with tab7:
+        st.header("Anular Factura")
+        
+        # Entrada para el número de factura
+        numero_factura_anular = st.text_input("Ingrese el número de la factura a anular:")
+        
+        # Obtener las opciones de motivos desde la base de datos
+        opciones_motivos = obtener_motivos_anulacion()
+        
+        # Verificar si hay motivos de anulación disponibles
+        if opciones_motivos:
+            descripcion_motivo = st.selectbox("Seleccione el motivo de la anulación", opciones_motivos)
+        else:
+            st.error("No se encontraron motivos de anulación disponibles.")
+
+        # Botón para iniciar la anulación de la factura
+        if st.button("Anular Factura"):
+            # Limpiar cualquier mensaje previo
+            message_placeholder.empty()
+
+            if not numero_factura_anular or not descripcion_motivo:
+                message_placeholder.warning("Por favor, ingrese todos los datos requeridos.")
+            else:
+                # Llamar a la función anular_factura
+                exito, mensaje = anular_factura(numero_factura_anular, descripcion_motivo)
+                
+                if exito:
+                    message_placeholder.success(mensaje)
+                else:
+                    message_placeholder.error(mensaje)
+
+    
     if 'processed_comandas' not in st.session_state:
         st.session_state.processed_comandas = []
 

@@ -21,6 +21,7 @@ CODIGO_SUCURSAL = int(os.getenv('CODIGO_SUCURSAL', '0'))
 CUIS = os.getenv('CUIS')
 
 # Configuración de la conexión a la base de datos MySQL
+st.cache_resource
 def create_connection():
     try:
         connection = mysql.connector.connect(
@@ -53,6 +54,7 @@ st.sidebar.title("Menú de Opciones")
 action = st.sidebar.radio("Selecciona una acción", ["Consultar", "Abrir", "Cerrar"])
 
 # Función para obtener tipos de punto de venta desde la base de datos
+st.cache_data()
 def get_tipo_punto_venta(connection):
     cursor = connection.cursor(dictionary=True)
     cursor.execute("SELECT descripcion, codigoClasificador FROM sincronizarparametricatipopuntoventa")
@@ -60,6 +62,8 @@ def get_tipo_punto_venta(connection):
     return result
 
 # Función para consultar puntos de venta habilitados
+
+st.cache_data()
 def consultar_puntos_venta():
     st.title("Consulta de Puntos de Venta Habilitados")
     if st.button("Consultar Puntos de Venta"):
@@ -100,6 +104,7 @@ def consultar_puntos_venta():
             st.error(f"Error al consultar los puntos de venta: {e}")
 
 # Función para abrir un nuevo punto de venta
+st.cache_data()
 def abrir_punto_venta():
     st.title("Registro de Punto de Venta")
     nombre_punto_venta = st.text_input("Nombre del Punto de Venta")
@@ -165,6 +170,7 @@ def abrir_punto_venta():
                 st.error(f"Error al registrar el punto de venta: {e}")
 
 # Función para cerrar puntos de venta
+st.cache_data()
 def cerrar_punto_venta():
     st.title("Cierre de Puntos de Venta")
     cursor = connection.cursor(dictionary=True)

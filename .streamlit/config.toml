@@ -1,6 +1,11 @@
 [theme]
 base="dark"
-primaryColor="#332298"
+primaryColor="#ff0000"
 backgroundColor="#000000"
-secondaryBackgroundColor="#4a4d60"
+secondaryBackgroundColor="#222222"
 font="monospace"
+[client]
+toolbarMode = “minimal”
+
+[ui]
+hideTopBar = true

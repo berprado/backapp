@@ -1,9 +1,15 @@
+
 import pandas as pd
 from decimal import Decimal
 from data_access import obtener_nombre_unidad_medida  # Asegúrate de importar la función
 import qrcode
 import base64
 from io import BytesIO
+from datetime import datetime
+from zeep.exceptions import Fault
+
+# Desactivar advertencias de seguridad SSL en desarrollo
+
 
 def calculate_totals(comandas_seleccionadas, descuento_adicional=Decimal(0), monto_giftcard=Decimal(0), codigo_clasificador_metodo_pago=None, tipo_cambio=1):
     gift_card_codes = [
@@ -102,3 +108,8 @@ def registrar_punto_de_venta(client, connection, solicitud):
                 return {"success": False, "message": "La transacción no se pudo completar."}
     except Exception as e:
         return {"success": False, "message": f"Error al registrar el punto de venta: {e}"}
+
+
+
+
+

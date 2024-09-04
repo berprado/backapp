@@ -37,3 +37,32 @@
 2024-08-04 06:53:13,059 - INFO - Consulta de puntos de venta exitosa.
 2024-08-04 06:53:13,059 - INFO - Conexión obtenida exitosamente del pool.
 2024-08-04 06:53:13,061 - INFO - Conexión obtenida exitosamente del pool.
+2024-08-24 05:45:29,700 - INFO - Pool de conexiones creado exitosamente.
+2024-08-24 05:45:29,974 - INFO - Consulta de puntos de venta exitosa.
+2024-08-24 05:46:20,261 - INFO - Pool de conexiones creado exitosamente.
+2024-08-24 05:46:20,265 - INFO - Conexión obtenida exitosamente del pool.
+2024-08-24 05:46:50,325 - INFO - Pool de conexiones creado exitosamente.
+2024-08-24 05:47:56,672 - INFO - Pool de conexiones creado exitosamente.
+2024-08-24 05:47:57,266 - INFO - Consulta de puntos de venta exitosa.
+2024-08-24 05:47:57,266 - INFO - Conexión obtenida exitosamente del pool.
+2024-08-24 05:47:57,267 - INFO - Conexión obtenida exitosamente del pool.
+2024-08-24 05:47:57,269 - ERROR - Error durante la sincronización de puntos de venta: 'codigoTipoPuntoVenta'
+2024-08-24 05:48:48,121 - INFO - Pool de conexiones creado exitosamente.
+2024-08-24 05:48:48,213 - INFO - Consulta de puntos de venta exitosa.
+2024-08-24 05:49:39,346 - INFO - Pool de conexiones creado exitosamente.
+2024-08-24 05:49:39,348 - INFO - Conexión obtenida exitosamente del pool.
+2024-08-27 16:17:20,933 - INFO - Pool de conexiones creado exitosamente.
+2024-08-27 16:17:21,281 - INFO - Consulta de puntos de venta exitosa.
+2024-08-27 16:17:51,591 - INFO - Pool de conexiones creado exitosamente.
+2024-08-27 16:17:51,595 - INFO - Conexión obtenida exitosamente del pool.
+2024-08-27 16:18:40,242 - INFO - Pool de conexiones creado exitosamente.
+2024-08-27 16:19:09,078 - INFO - Pool de conexiones creado exitosamente.
+2024-08-27 16:19:09,750 - INFO - Consulta de puntos de venta exitosa.
+2024-08-27 16:19:31,692 - INFO - Pool de conexiones creado exitosamente.
+2024-08-27 16:19:55,726 - INFO - Pool de conexiones creado exitosamente.
+2024-08-27 16:19:55,804 - INFO - Consulta de puntos de venta exitosa.
+2024-08-27 16:19:55,805 - INFO - Conexión obtenida exitosamente del pool.
+2024-08-27 16:19:55,807 - INFO - Conexión obtenida exitosamente del pool.
+2024-08-27 16:19:55,808 - ERROR - Error durante la sincronización de puntos de venta: 'codigoTipoPuntoVenta'
+2024-08-27 16:20:27,159 - INFO - Pool de conexiones creado exitosamente.
+2024-08-27 16:20:27,234 - INFO - Consulta de puntos de venta exitosa.

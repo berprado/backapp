@@ -6,13 +6,17 @@ import models
 from config import ENDPOINT_URL
 import os
 from dotenv import load_dotenv
-from models import FacturaCabecera, FacturaDetalle, SincronizarListaLeyendasFactura, ProductoSiat
+from models import FacturaCabecera, FacturaDetalle, SincronizarListaLeyendasFactura, ProductoSiat, Cuis, PuntoVenta, SincronizarParametricaMotivoAnulacion
 from sqlalchemy import create_engine, Table, Column, Integer, String, DECIMAL, MetaData, TIMESTAMP, Text, BIGINT, ForeignKeyConstraint
 from sqlalchemy.dialects.mysql import VARCHAR
 from typing import List, Dict, Union
 from sqlalchemy.exc import SQLAlchemyError
 import logging
 from sqlalchemy.orm import Session
+from datetime import datetime
+from zeep import Client
+
+
 
 logging.basicConfig(level=logging.DEBUG, 
                     format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
@@ -200,9 +204,6 @@ def guardar_factura_detalle(detalle: Dict[str, Union[str, float, int]]) -> None:
 
 
 
-
-
-
 def obtener_nombre_unidad_medida(codigo_producto: str, db: Session) -> str:
     try:
         producto = db.query(ProductoSiat).filter(ProductoSiat.codigo == codigo_producto).first()
@@ -222,3 +223,121 @@ def obtener_codigo_unidad_medida_sin(codigo_producto: str, db: Session) -> str:
     except SQLAlchemyError as e:
         logging.error(f"Error al obtener el código de la unidad de medida SIN: {e}")
         return "ERROR"
+
+wsdl_url_codigos = os.getenv("WSDL_URL_CODIGOS")
+api_key = os.getenv("API_KEY")
+codigo_ambiente = int(os.getenv("CODIGO_AMBIENTE"))
+codigo_modalidad = int(os.getenv("CODIGO_MODALIDAD"))
+codigo_punto_venta = int(os.getenv("CODIGO_PUNTO_VENTA"))
+codigo_sistema = os.getenv("CODIGO_SISTEMA")
+codigo_sucursal = int(os.getenv("CODIGO_SUCURSAL"))
+nit = int(os.getenv("NIT"))
+
+def solicitar_cuis(db: Session):
+    """Solicita un nuevo CUIS y lo guarda en la base de datos si es necesario."""
+    # Crear el cliente SOAP para códigos
+    client = Client(wsdl_url_codigos)
+
+    # Configurar la sesión con la API Key
+    session = requests.Session()
+    session.headers.update({"apikey": api_key})
+    client.transport.session = session
+
+    # Definir la estructura SolicitudCuis
+    SolicitudCuis = client.get_type('ns0:solicitudCuis')
+
+    # Crear el objeto SolicitudCuis con los datos necesarios
+    solicitud = SolicitudCuis(
+        codigoAmbiente=codigo_ambiente,
+        codigoModalidad=codigo_modalidad,
+        codigoPuntoVenta=codigo_punto_venta,
+        codigoSistema=codigo_sistema,
+        codigoSucursal=codigo_sucursal,
+        nit=nit
+    )
+
+    try:
+        # Llamar al método cuis para obtener un nuevo CUIS
+        response = client.service.cuis(solicitud)
+        print("Respuesta completa del servicio SOAP:", response)
+
+        # Verificar si la transacción fue exitosa
+        if not response.transaccion:
+            mensaje_error = response.mensajesList[0]['descripcion']
+            if response.mensajesList[0]['codigo'] == 980:
+                # Extraer el CUIS y la fecha de vigencia incluso cuando la transacción no es exitosa
+                return {
+                    "success": False,
+                    "message": mensaje_error,
+                    "codigo": response.codigo,  # Extraer el código CUIS
+                    "fecha_vigencia": response.fechaVigencia  # Extraer la fecha de vigencia
+                }
+            else:
+                print(f"Error en la transacción SOAP: {response.mensajesList}")
+                return {"success": False, "message": mensaje_error}
+
+        # Extraer datos de la respuesta
+        nuevo_cuis = response.codigo
+        fecha_vigencia = response.fechaVigencia
+
+        # Obtener el punto de venta asociado
+        punto_venta = db.query(PuntoVenta).filter(PuntoVenta.codigo_punto_venta == codigo_punto_venta).first()
+
+        if punto_venta:
+            # Actualizar vigencia de CUIS existentes a 0
+            db.query(Cuis).filter(Cuis.vigente == 1, Cuis.codigo_punto_venta == punto_venta.codigo_punto_venta).update({"vigente": 0})
+
+            # Insertar el nuevo CUIS
+            cuis_entry = Cuis(
+                codigo=nuevo_cuis,
+                fecha_vigencia=fecha_vigencia,
+                vigente=1,
+                codigo_punto_venta=punto_venta.codigo_punto_venta
+            )
+            db.add(cuis_entry)
+            db.commit()  # Confirmar la transacción
+            print("CUIS solicitado y almacenado correctamente.")
+            return {"success": True, "message": "CUIS solicitado y almacenado correctamente."}
+        else:
+            print("Error: No se encontró el punto de venta en la tabla 'punto_venta'")
+            return {"success": False, "message": "No se encontró el punto de venta en la tabla 'punto_venta'"}
+
+    except Exception as e:
+        db.rollback()  # Revertir la transacción en caso de error
+        print(f"Error durante la solicitud del CUIS: {e}")
+        return {"success": False, "message": f"Error durante la solicitud del CUIS: {e}"}
+
+def insertar_cuis_manual(db: Session, codigo: str, fecha_vigencia: datetime, codigo_punto_venta: int):
+    """Inserta un CUIS manualmente en la base de datos."""
+    try:
+        # Actualizar vigencia de CUIS existentes a 0
+        db.query(Cuis).filter(Cuis.vigente == 1, Cuis.codigo_punto_venta == codigo_punto_venta).update({"vigente": 0})
+
+        # Insertar el nuevo CUIS
+        cuis_entry = Cuis(
+            codigo=codigo,
+            fecha_vigencia=fecha_vigencia,
+            vigente=1,
+            codigo_punto_venta=codigo_punto_venta
+        )
+        db.add(cuis_entry)
+        db.commit()  # Confirmar la transacción
+        print("CUIS introducido manualmente y almacenado correctamente.")
+        return {"success": True, "message": "CUIS introducido manualmente y almacenado correctamente."}
+    except Exception as e:
+        db.rollback()  # Revertir la transacción en caso de error
+        print(f"Error durante la inserción manual del CUIS: {e}")
+        return {"success": False, "message": f"Error durante la inserción manual del CUIS: {e}"}
+
+def obtener_motivos_anulacion():
+    session = SessionLocal()
+    try:
+        motivos = session.query(SincronizarParametricaMotivoAnulacion).all()
+        if motivos:
+            return [motivo.descripcion for motivo in motivos]  # Retorna las descripciones
+        return []
+    except Exception as e:
+        logging.error(f"Error al obtener los motivos de anulación: {e}")
+        return []
+    finally:
+        session.close()
