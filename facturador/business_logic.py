@@ -7,6 +7,10 @@ import base64
 from io import BytesIO
 from datetime import datetime
 from zeep.exceptions import Fault
+import os
+import requests
+from dotenv import load_dotenv
+
 
 # Desactivar advertencias de seguridad SSL en desarrollo
 
@@ -17,7 +21,7 @@ def calculate_totals(comandas_seleccionadas, descuento_adicional=Decimal(0), mon
         172, 173, 174, 182, 189, 195, 200, 204, 208, 209, 210, 217, 221, 222,
         223, 224, 225, 226, 228, 232, 241, 246, 250, 254, 255, 256, 261, 265,
         269, 270, 271, 275, 279, 280, 281, 285, 286, 287, 291, 292, 293, 30,
-        304, 35, 40, 49, 53, 60, 64, 68, 72, 76, 77, 78, 86, 94
+        304, 35, 40, 49, 53, 60, 64, 68, 72, 76, 77, 78, 86, 94, 27
     ]
     
     subtotal = sum(Decimal(comanda["sub_total"]) for comanda in comandas_seleccionadas)
@@ -108,6 +112,67 @@ def registrar_punto_de_venta(client, connection, solicitud):
                 return {"success": False, "message": "La transacción no se pudo completar."}
     except Exception as e:
         return {"success": False, "message": f"Error al registrar el punto de venta: {e}"}
+    
+
+#verifica las comunicaciones con los servicios de facturación
+    
+# Cargar las variables desde el archivo .env
+load_dotenv()
+
+# Extraer los endpoints y el API_KEY del .env
+ENDPOINTS = {
+    "Facturación Códigos": os.getenv("WSDL_URL_CODIGOS"),
+    "Facturación Operaciones": os.getenv("WSDL_URL_OPERACIONES"),
+    "Facturación Sincronización": os.getenv("WSDL_URL_SYNC"),
+    "Documentos de Ajuste": os.getenv("WSDL_URL_AJUSTE"),
+    "Facturación Compra-Venta": os.getenv("WSDL_URL_FACTURACION")
+}
+
+API_KEY = os.getenv("API_KEY")
+
+# Plantilla de solicitud SOAP
+SOAP_REQUEST_TEMPLATE = """<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:siat="https://siat.impuestos.gob.bo/">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <siat:verificarComunicacion/>
+   </soapenv:Body>
+</soapenv:Envelope>"""
+
+# Función para verificar la comunicación con un servicio
+def verificar_comunicacion(servicio):
+    url = ENDPOINTS[servicio]
+    headers = {
+        "Content-Type": "text/xml;charset=UTF-8",
+        "SOAPAction": "",
+        "apikey": API_KEY
+    }
+
+    try:
+        response = requests.post(url, data=SOAP_REQUEST_TEMPLATE, headers=headers)
+        response.raise_for_status()  # Verifica si la respuesta es exitosa (código 200)
+
+        if servicio in ["Documentos de Ajuste", "Facturación Compra-Venta"]:
+            # Estructura para Facturación Compra-Venta y Documentos de Ajuste
+            if "<transaccion>true</transaccion>" in response.text:
+                return True, "Comunicación exitosa"
+            else:
+                return False, "Fallo en la comunicación"
+        else:
+            # Estructura para otros servicios
+            if "<codigo>926</codigo>" in response.text:
+                return True, "Comunicación exitosa con código 926"
+            else:
+                return False, "Fallo en la comunicación"
+    except requests.exceptions.RequestException as e:
+        return False, f"Error de comunicación: {e}"
+
+# Función para verificar todos los servicios
+def verificar_todos_los_servicios():
+    resultados = {}
+    for servicio in ENDPOINTS:
+        exito, mensaje = verificar_comunicacion(servicio)
+        resultados[servicio] = mensaje if exito else f"Error: {mensaje}"
+    return resultados
 
 
 

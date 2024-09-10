@@ -16,9 +16,10 @@ Base = declarative_base()
 
 def init_db():
     # Import all models here so that Base can recognize them before creating tables
-    from models import FacturaCabecera, FacturaDetalle
+   
     Base.metadata.create_all(bind=engine)
-
+    
+   
 def get_db():
     db = SessionLocal()
     try:

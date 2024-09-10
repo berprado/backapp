@@ -23,7 +23,7 @@ CODIGO_SUCURSAL = os.getenv('CODIGO_SUCURSAL')  # Sucursal por defecto
 
 # Mapeo de unidad de medida a códigos enteros
 UNIDAD_MEDIDA_MAP = {
-    "Unid": 1,
+    "Unid": 57,
     "Litro": 2,
     "Kilogramo": 3,
     # Añade otros valores necesarios según el esquema XSD
@@ -185,7 +185,7 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
         ET.SubElement(detalle, "codigoProducto").text = str(linea["codigo"])
         ET.SubElement(detalle, "descripcion").text = str(linea["nombre"])
         ET.SubElement(detalle, "cantidad").text = "{:.2f}".format(float(linea["cantidad"]))
-        unidad_medida_codigo = UNIDAD_MEDIDA_MAP.get(linea["unidad"], 1)  # Usa 1 (Unid) como valor predeterminado
+        unidad_medida_codigo = UNIDAD_MEDIDA_MAP.get(linea["unidad"], 57)  # Usa 1 (Unid) como valor predeterminado
         ET.SubElement(detalle, "unidadMedida").text = str(unidad_medida_codigo)
         ET.SubElement(detalle, "precioUnitario").text = "{:.2f}".format(float(linea["precio_venta"]))
         

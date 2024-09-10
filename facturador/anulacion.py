@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from database import SessionLocal
 from models import FacturaCabecera, SincronizarParametricaMotivoAnulacion, Cufd
 from datetime import datetime
+from data_access import obtener_mensaje_por_codigo
 
 load_dotenv()
 
@@ -88,16 +89,18 @@ def enviar_solicitud_anulacion(cuf, cufd, codigo_motivo):
     except Exception as e:
         return False, f"An error occurred: {e}"
 
-def procesar_respuesta_anulacion(respuesta_xml, factura):
+def procesar_respuesta_anulacion(respuesta_xml, factura, descripcion_motivo):
     # Procesar el XML de respuesta para extraer la información relevante
     tree = ET.fromstring(respuesta_xml)
     codigo_estado = tree.find('.//codigoEstado').text
     codigo_descripcion = tree.find('.//codigoDescripcion').text
 
+    # Manejar diferentes códigos de estado basados en la respuesta
     if codigo_estado == "905":  # Anulación confirmada
         factura.estado = "Anulada"
         factura.fechaAnulacion = datetime.now()
-        factura.motivoAnulacion = codigo_descripcion
+        factura.motivoAnulacion = descripcion_motivo  # Guardar el motivo seleccionado
+
         session = SessionLocal()
         try:
             session.add(factura)
@@ -107,19 +110,45 @@ def procesar_respuesta_anulacion(respuesta_xml, factura):
             return False, f"Error al actualizar la factura: {e}"
         finally:
             session.close()
+
         return True, "Factura anulada correctamente."
 
     elif codigo_estado == "906":  # Anulación rechazada
         mensaje_error = tree.find('.//mensajesList/descripcion').text
-        return False, f"Error en la anulación: {mensaje_error}"
+
+        if "YA SE ENCUENTRA ANULADA" in mensaje_error:
+            return False, "La factura ya fue anulada previamente."
+        elif "NO EXISTE EN LA BASE DE DATOS DEL SIN" in mensaje_error:
+            return False, "La factura no existe en la base de datos del SIN."
+        else:
+            return False, f"Error en la anulación: {mensaje_error}"
+
+    elif codigo_estado == "924":  # Factura no existe
+        return False, "La factura no existe en la base de datos del SIN."
+
+    elif codigo_estado == "936":  # Factura ya anulada
+        return False, "La factura ya ha sido anulada previamente."
+
+    elif codigo_estado == "970":  # Factura fuera de plazo
+        return False, "La factura está fuera del plazo permitido para su anulación."
 
     else:
-        return False, "Error desconocido en la anulación."
+        return False, f"Error desconocido en la anulación: {codigo_descripcion}"
+
 
 def anular_factura(numero_factura, descripcion_motivo):
     cuf, factura = obtener_cuf_por_numero_factura(numero_factura)
-    if cuf is None:
+
+    if factura is None:
         return False, "No se encontró la factura especificada."
+
+    # Verificar si la factura está revertida y bloquear una nueva anulación
+    if factura.estado == "Valida" and factura.fechaValidacion is not None:
+        return False, "La factura ya fue revertida y no puede ser anulada nuevamente."
+
+    # Verificar si la fecha actual supera el plazo de anulación
+    if datetime.now().month > factura.fechaEmision.month + 1:
+        return False, "La factura está fuera del plazo para su anulación."
 
     cufd = obtener_cufd_vigente()
     if cufd is None:
@@ -131,6 +160,6 @@ def anular_factura(numero_factura, descripcion_motivo):
 
     exito, respuesta = enviar_solicitud_anulacion(cuf, cufd, codigo_motivo)
     if exito:
-        return procesar_respuesta_anulacion(respuesta, factura)
+        return procesar_respuesta_anulacion(respuesta, factura, descripcion_motivo)
     else:
         return False, respuesta

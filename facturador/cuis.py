@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from database import get_db
 from data_access import solicitar_cuis, insertar_cuis_manual
-from models import Cuis, PuntoVenta
+from facturador.models import Cuis, PuntoVenta
 import os
 from dotenv import load_dotenv
 
@@ -39,7 +39,7 @@ def solicitar_nuevo_cuis(db: Session, codigo_punto_venta: int):
         st.error(f"No se pudo solicitar un nuevo CUIS: {resultado['message']}")
 
 def main():
-    st.title("Gestión de CUIS")
+    #st.title("Gestión de CUIS")
 
     # Obtener la sesión de la base de datos
     db = next(get_db())

@@ -1,12 +1,13 @@
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import random
 import requests
 import streamlit as st
 from database import SessionLocal, engine, URL_DATABASE
-import models
 from config import ENDPOINT_URL
-import os
 from dotenv import load_dotenv
-from models import FacturaCabecera, FacturaDetalle, SincronizarListaLeyendasFactura, ProductoSiat, Cuis, PuntoVenta, SincronizarParametricaMotivoAnulacion
+from facturador.models import SincronizarListaLeyendasFactura, SincronizarParametricaTipoMetodoPago, SincronizarParametricaTipoDocumentoIdentidad, Cliente, FacturaCabecera, FacturaDetalle, ProductoSiat, PuntoVenta, Cuis, SincronizarParametricaMotivoAnulacion, SincronizarListaMensajesServicios, Cufd
 from sqlalchemy import create_engine, Table, Column, Integer, String, DECIMAL, MetaData, TIMESTAMP, Text, BIGINT, ForeignKeyConstraint
 from sqlalchemy.dialects.mysql import VARCHAR
 from typing import List, Dict, Union
@@ -23,9 +24,9 @@ logging.basicConfig(level=logging.DEBUG,
                     filename='invoice_log.txt')
 load_dotenv()
 metadata = MetaData()
-
-# Create the engine to connect to the database
 engine = create_engine(URL_DATABASE)
+# Create the engine to connect to the database
+
 
 @st.cache_resource
 def fetch_comandas():
@@ -40,7 +41,7 @@ def fetch_comandas():
 def fetch_metodos_pago():
     session = SessionLocal()
     try:
-        metodos = session.query(models.SincronizarParametricaTipoMetodoPago).all()
+        metodos = session.query(SincronizarParametricaTipoMetodoPago).all()
         if not metodos:
             return [], "No se encontraron métodos de pago"
         return [metodo.to_dict() for metodo in metodos], None
@@ -53,7 +54,7 @@ def fetch_metodos_pago():
 def fetch_tipos_documento():
     session = SessionLocal()
     try:
-        documentos = session.query(models.SincronizarParametricaTipoDocumentoIdentidad).all()
+        documentos = session.query(SincronizarParametricaTipoDocumentoIdentidad).all()
         if not documentos:
             return [], "No se encontraron tipos de documento"
         return [documento.to_dict() for documento in documentos], None
@@ -65,7 +66,7 @@ def fetch_tipos_documento():
 def fetch_cliente(numero_documento):
     session = SessionLocal()
     try:
-        cliente = session.query(models.Cliente).filter(models.Cliente.codigo_cliente == numero_documento).first()
+        cliente = session.query(Cliente).filter(Cliente.codigo_cliente == numero_documento).first()
         if not cliente:
             return None, "Cliente no encontrado"
         return cliente.to_dict(), None
@@ -80,6 +81,7 @@ ACTIVIDAD_ECONOMICA = os.getenv('ACTIVIDAD_ECONOMICA')
 # IDs de leyendas permitidos
 LEYENDA_IDS = [2, 6, 9, 13, 19, 22, 27, 31]
 
+@st.cache_data
 def fetch_random_leyenda():
     session = SessionLocal()
     try:
@@ -108,7 +110,7 @@ def guardar_factura_cabecera(cabecera: Dict[str, Union[str, float, int]]) -> Non
 
     session = SessionLocal()
     try:
-        query = models.FacturaCabecera.__table__.insert().values(
+        query = FacturaCabecera.__table__.insert().values(
             nitEmisor=cabecera['nitEmisor'],
             razonSocialEmisor=cabecera['razonSocialEmisor'],
             municipio=cabecera['municipio'],
@@ -213,7 +215,7 @@ def obtener_nombre_unidad_medida(codigo_producto: str, db: Session) -> str:
     except SQLAlchemyError as e:
         logging.error(f"Error al obtener el nombre de la unidad de medida: {e}")
         return "Error"
-    
+
 def obtener_codigo_unidad_medida_sin(codigo_producto: str, db: Session) -> str:
     try:
         producto = db.query(ProductoSiat).filter(ProductoSiat.codigo == codigo_producto).first()
@@ -328,7 +330,7 @@ def insertar_cuis_manual(db: Session, codigo: str, fecha_vigencia: datetime, cod
         db.rollback()  # Revertir la transacción en caso de error
         print(f"Error durante la inserción manual del CUIS: {e}")
         return {"success": False, "message": f"Error durante la inserción manual del CUIS: {e}"}
-
+@st.cache_data
 def obtener_motivos_anulacion():
     session = SessionLocal()
     try:
@@ -339,5 +341,36 @@ def obtener_motivos_anulacion():
     except Exception as e:
         logging.error(f"Error al obtener los motivos de anulación: {e}")
         return []
+    finally:
+        session.close()
+@st.cache_data
+def obtener_mensaje_por_codigo(codigo_clasificador):
+    session = SessionLocal()
+    try:
+        # Usar la clase importada para hacer la consulta
+        mensaje = session.query(SincronizarListaMensajesServicios).filter_by(codigoClasificador=codigo_clasificador).first()
+        
+        # Retornar la descripción si se encuentra
+        if mensaje:
+            return mensaje.descripcion
+        else:
+            return None  # Si no se encuentra el código
+    except Exception as e:
+        logging.error(f"Error al obtener el mensaje: {e}")
+        return None
+    finally:
+        session.close()
+
+def obtener_cufd_vigente():
+    session = SessionLocal()
+    try:
+        cufd_vigente = session.query(Cufd).filter_by(vigente=1).first()
+        if cufd_vigente:
+            return cufd_vigente.codigo
+        else:
+            return None
+    except Exception as e:
+        logging.error(f"Error al obtener CUFD vigente: {e}")
+        return None
     finally:
         session.close()

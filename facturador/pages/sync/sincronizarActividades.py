@@ -1,23 +1,31 @@
+import sys
 import os
-import requests
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
+from models import SincronizarActividades  # Import using absolute path
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine
 from zeep import Client
-import mysql.connector
-from dotenv import load_dotenv
+import requests
 import logging
 import traceback
+from sqlalchemy.sql import func
+from dotenv import load_dotenv
 
-# Configurar el logging
+# Load environment variables
+load_dotenv()
+
+# Database connection settings
+DATABASE_URL = os.getenv('DATABASE_URL')
+
+# Configure logging
 log_file_path = os.path.splitext(__file__)[0] + '.txt'
 logging.basicConfig(
     filename=log_file_path,
-    level=logging.DEBUG,  # Nivel de detalle
+    level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-# Cargar variables de entorno desde el archivo .env
-load_dotenv()
-
-# Obtener las variables de entorno y convertir las necesarias a enteros
+# SOAP API settings
 wsdl_url = os.getenv("WSDL_URL")
 api_key = os.getenv("API_KEY")
 codigo_ambiente = int(os.getenv("CODIGO_AMBIENTE"))
@@ -26,21 +34,15 @@ codigo_sistema = os.getenv("CODIGO_SISTEMA")
 codigo_sucursal = int(os.getenv("CODIGO_SUCURSAL"))
 cuis = os.getenv("CUIS")
 nit = int(os.getenv("NIT"))
-mysql_host = os.getenv("MYSQL_HOST")
-mysql_user = os.getenv("MYSQL_USER")
-mysql_password = os.getenv("MYSQL_PASSWORD")
-mysql_database = os.getenv("MYSQL_DATABASE")
 
-logging.debug(f'Variables de entorno cargadas: WSDL_URL={wsdl_url}, API_KEY={api_key}, '
-              f'CODIGO_AMBIENTE={codigo_ambiente}, CODIGO_PUNTO_VENTA={codigo_punto_venta}, '
-              f'CODIGO_SISTEMA={codigo_sistema}, CODIGO_SUCURSAL={codigo_sucursal}, '
-              f'CUIS={cuis}, NIT={nit}, MYSQL_HOST={mysql_host}, MYSQL_USER={mysql_user}, MYSQL_DATABASE={mysql_database}')
+# Initialize SQLAlchemy engine and session factory
+engine = create_engine(DATABASE_URL)
+Session = sessionmaker(bind=engine)
 
 def sincronizar():
-    mydb = None  # Inicializar mydb como None para asegurarse de que está definida
     logging.debug('Iniciando sincronización...')
 
-    # Crear el cliente SOAP
+    # SOAP Client creation
     try:
         client = Client(wsdl_url)
         logging.debug('Cliente SOAP creado.')
@@ -49,67 +51,42 @@ def sincronizar():
         logging.error(traceback.format_exc())
         return
 
-    # Configurar la sesión con la API Key
-    session = requests.Session()
-    session.headers.update({"apikey": api_key})
-    client.transport.session = session
+    # Configure the session with the API Key
+    request_session = requests.Session()
+    request_session.headers.update({"apikey": api_key})
+    client.transport.session = request_session
     logging.debug('Sesión configurada con la API Key.')
 
-    # Definir la estructura solicitudSincronizacion
+    # Create SQLAlchemy session
+    db_session = Session()
     try:
-        SolicitudSincronizacion = client.get_type('ns0:solicitudSincronizacion')
-        solicitud = SolicitudSincronizacion(
-            codigoAmbiente=codigo_ambiente,
-            codigoPuntoVenta=codigo_punto_venta,
-            codigoSistema=codigo_sistema,
-            codigoSucursal=codigo_sucursal,
-            cuis=cuis,
-            nit=nit
-        )
-        logging.info(f'Solicitud enviada: {solicitud}')
-    except Exception as e:
-        logging.error(f'Error al crear la solicitud de sincronización: {e}')
-        logging.error(traceback.format_exc())
-        return
+        # Create the synchronization request
+        try:
+            SolicitudSincronizacion = client.get_type('ns0:solicitudSincronizacion')
+            solicitud = SolicitudSincronizacion(
+                codigoAmbiente=codigo_ambiente,
+                codigoPuntoVenta=codigo_punto_venta,
+                codigoSistema=codigo_sistema,
+                codigoSucursal=codigo_sucursal,
+                cuis=cuis,
+                nit=nit
+            )
+            logging.info(f'Solicitud enviada: {solicitud}')
+        except Exception as e:
+            logging.error(f'Error al crear la solicitud de sincronización: {e}')
+            logging.error(traceback.format_exc())
+            return
 
-    try:
-        # Llamar al método sincronizarActividades
+        # Call the SOAP method
         response = client.service.sincronizarActividades(solicitud)
         logging.info(f'Respuesta completa del servicio SOAP: {response}')
 
-        # Verificar si la transacción fue exitosa
+        # Check if the transaction was successful
         if not response.transaccion:
             logging.error(f'Error en la transacción SOAP: {response.mensajesList}')
-            return  # Salir si hay error
+            return
 
-        # Conexión a MySQL
-        mydb = mysql.connector.connect(
-            host=mysql_host,
-            user=mysql_user,
-            password=mysql_password,
-            database=mysql_database
-        )
-        cursor = mydb.cursor()
-        logging.debug('Conexión a MySQL establecida.')
-
-        # Configuración de variables de sesión
-        cursor.execute("SET sql_mode = '';")
-
-        # Crear la tabla si no existe
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS sincronizaractividades (
-            id INT(11) NOT NULL AUTO_INCREMENT,
-            codigoCaeb VARCHAR(10) NOT NULL UNIQUE,
-            descripcion VARCHAR(255) DEFAULT NULL,
-            tipoActividad VARCHAR(255) DEFAULT NULL,
-            fecha_creacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, 
-            fecha_sincronizacion TIMESTAMP NULL DEFAULT NULL,  
-            estado_sincronizacion VARCHAR(10) DEFAULT NULL,
-            PRIMARY KEY (id)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-        """)
-        logging.debug('Tabla sincronizaractividades verificada/creada.')
-
+        # Process each activity in the response
         if response.listaActividades:
             for actividad in response.listaActividades:
                 logging.info(f'Procesando actividad: {actividad}')
@@ -117,51 +94,46 @@ def sincronizar():
                 descripcion = actividad.descripcion
                 tipoActividad = actividad.tipoActividad
 
-                # Insertar o actualizar datos
-                sql = """
-                INSERT INTO sincronizaractividades (codigoCaeb, descripcion, tipoActividad, fecha_creacion, fecha_sincronizacion, estado_sincronizacion)
-                VALUES (%s, %s, %s, NOW(), NOW(), 'Exitoso')
-                ON DUPLICATE KEY UPDATE 
-                    descripcion = VALUES(descripcion), 
-                    tipoActividad = VALUES(tipoActividad), 
-                    fecha_sincronizacion = NOW(), 
-                    estado_sincronizacion = 'Exitoso';
-                """
-                val = (codigoCaeb, descripcion, tipoActividad)
-                logging.debug(f'Ejecutando SQL: {sql} con valores {val}')
-                cursor.execute(sql, val)
+                # Insert or update using SQLAlchemy
+                actividad_existente = db_session.query(SincronizarActividades).filter_by(codigoCaeb=codigoCaeb).first()
 
-            # Confirmar los cambios en la base de datos
-            mydb.commit()
+                if actividad_existente:
+                    actividad_existente.descripcion = descripcion
+                    actividad_existente.tipoActividad = tipoActividad
+                    actividad_existente.fecha_sincronizacion = func.now()
+                    actividad_existente.estado_sincronizacion = 'Exitoso'
+                else:
+                    nueva_actividad = SincronizarActividades(
+                        codigoCaeb=codigoCaeb,
+                        descripcion=descripcion,
+                        tipoActividad=tipoActividad,
+                        fecha_sincronizacion=func.now(),
+                        estado_sincronizacion='Exitoso'
+                    )
+                    db_session.add(nueva_actividad)
+
+                logging.debug(f'Actividad {codigoCaeb} procesada.')
+
+            # Commit the changes
+            db_session.commit()
             logging.debug('Cambios en la base de datos confirmados.')
         else:
-            # Actualizar fecha de sincronización y estado de todas las leyendas
-            cursor.execute(
-                """
-                UPDATE sincronizaractividades
-                SET fecha_sincronizacion = NOW(),
-                    estado_sincronizacion = 'Exitoso'
-                """
-            )
-            mydb.commit()
+            # If no activities were found, update all records
+            db_session.query(SincronizarActividades).update({
+                SincronizarActividades.fecha_sincronizacion: func.now(),
+                SincronizarActividades.estado_sincronizacion: 'Exitoso'
+            })
+            db_session.commit()
             logging.info("No se encontraron actividades para procesar.")
 
         logging.info("¡Sincronización completada con éxito!")
 
-    except mysql.connector.Error as err:
-        logging.error(f"Error en MySQL: {err}")
-        logging.error(traceback.format_exc())
     except Exception as e:
         logging.error(f"Error durante la sincronización: {e}")
         logging.error(traceback.format_exc())
     finally:
-        # Cerrar la conexión (si está abierta)
-        if mydb and mydb.is_connected():
-            cursor.close()
-            mydb.close()
-            logging.debug('Conexión a MySQL cerrada.')
+        db_session.close()
 
+# Only run if the script is invoked directly
 if __name__ == "__main__":
-    logging.debug('Inicio de la función principal.')
     sincronizar()
-    logging.debug('Fin de la función principal.')

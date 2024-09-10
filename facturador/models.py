@@ -8,10 +8,12 @@ from datetime import datetime
 
 
 
-Base = declarative_base()
+
 
 class Comanda(Base):
     __tablename__ = "comandas"
+    __table_args__ = {'extend_existing': True}
+    
     id = Column(Integer, primary_key=True, index=True)
     cantidad = Column(Integer, index=True)
     id_comanda = Column(Integer, index=True)
@@ -25,8 +27,8 @@ class Comanda(Base):
     id_barra = Column(Integer, index=True)
     comision = Column(Numeric(10, 2), index=True, nullable=True)
     usuario_reg = Column(String, index=True)
-    fecha_reg = Column(Date, index=True)
-    fecha_mod = Column(Date, index=True)
+    fecha_reg = Column(TIMESTAMP, server_default=func.now())
+    fecha_mod = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
     estado = Column(String(3), index=True)
     id_operacion = Column(Integer, index=True)
     nombre = Column(String, index=True)
@@ -35,6 +37,8 @@ class Comanda(Base):
     estado_comanda = Column(Integer, index=True)
     estado_impresion = Column(Integer, index=True, nullable=True)
     codigo = Column(String(255), index=True, nullable=True)
+
+   
 
     def to_dict(self):
         return {
@@ -63,49 +67,12 @@ class Comanda(Base):
             "codigo": self.codigo
         }
 
-class SincronizarParametricaTipoMetodoPago(Base):
-    __tablename__ = 'sincronizarparametricatipometodopago'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    codigoClasificador = Column(String(5), nullable=False, unique=True, index=True)
-    descripcion = Column(String(255), nullable=True)
-    fecha_creacion = Column(DateTime, nullable=True)
-    fecha_sincronizacion = Column(DateTime, nullable=True)
 
-    __table_args__ = (
-        UniqueConstraint('codigoClasificador', name='uq_codigoClasificador'),
-    )
 
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "codigoClasificador": self.codigoClasificador,
-            "descripcion": self.descripcion,
-            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
-            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None
-        }
-
-class SincronizarParametricaTipoDocumentoIdentidad(Base):
-    __tablename__ = 'sincronizarparametricatipodocumentoidentidad'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    codigoClasificador = Column(String(5), unique=True, nullable=False)
-    descripcion = Column(String(255), nullable=True)
-    fecha_creacion = Column(TIMESTAMP, server_default=func.current_timestamp(), nullable=False)
-    fecha_sincronizacion = Column(TIMESTAMP, nullable=True)
-    estado_sincronizacion = Column(String(10), nullable=True)
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "codigoClasificador": self.codigoClasificador,
-            "descripcion": self.descripcion,
-            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
-            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
-            "estado_sincronizacion": self.estado_sincronizacion
-        }
 
 class Cliente(Base):
     __tablename__ = 'cliente'
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     codigo_cliente = Column(String(20), unique=True, nullable=False)
@@ -118,7 +85,8 @@ class Cliente(Base):
     fecha_creacion = Column(TIMESTAMP, server_default=func.current_timestamp(), nullable=False)
     fecha_modificacion = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp(), nullable=False)
 
-    tipo_documento = relationship("SincronizarParametricaTipoDocumentoIdentidad")
+    tipo_documento = relationship("SincronizarParametricaTipoDocumentoIdentidad", back_populates="clientes")
+    
 
     def to_dict(self):
         return {
@@ -137,6 +105,7 @@ class Cliente(Base):
 
 class Cufd(Base):
     __tablename__ = 'cufd'
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     codigo = Column(String(255), nullable=True)
@@ -146,6 +115,7 @@ class Cufd(Base):
     vigente = Column(Integer, nullable=True)
     id_punto_venta = Column(Integer, ForeignKey('punto_venta.id'), nullable=False)
     direccion = Column(String(255), nullable=True)
+    
 
     def to_dict(self):
         return {
@@ -159,28 +129,11 @@ class Cufd(Base):
             "direccion": self.direccion
         }
 
-class SincronizarListaLeyendasFactura(Base):
-    __tablename__ = 'sincronizarlistaleyendasfactura'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    codigoActividad = Column(String(255), nullable=False)
-    descripcionLeyenda = Column(Text, nullable=True)
-    fecha_creacion = Column(TIMESTAMP, server_default=func.current_timestamp(), nullable=False)
-    fecha_sincronizacion = Column(TIMESTAMP, nullable=True)
-    estado_sincronizacion = Column(String(10), nullable=True)
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "codigoActividad": self.codigoActividad,
-            "descripcionLeyenda": self.descripcionLeyenda,
-            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
-            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
-            "estado_sincronizacion": self.estado_sincronizacion
-        }
     
 class FacturaCabecera(Base):
     __tablename__ = 'factura_cabecera'
+    __table_args__ = {'extend_existing': True}
     nitEmisor = Column(BigInteger, nullable=False)
     razonSocialEmisor = Column(String(200), nullable=False)
     municipio = Column(String(25), nullable=False)
@@ -230,6 +183,7 @@ class FacturaCabecera(Base):
     motivoAnulacion = Column(Text)
     enlaceSiat = Column(String(255))
     codigoRecepcion = Column(String(255))
+  
 
     def to_dict(self):
         return {
@@ -287,6 +241,7 @@ class FacturaCabecera(Base):
 
 class FacturaDetalle(Base):
     __tablename__ = 'factura_detalle'
+    __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     numeroFactura = Column(Integer, ForeignKey('factura_cabecera.numeroFactura'), nullable=False)
     actividadEconomica = Column(String(10), nullable=False)
@@ -300,6 +255,7 @@ class FacturaDetalle(Base):
     subTotal = Column(DECIMAL(17, 2), nullable=False)
     numeroSerie = Column(String(1500))
     numeroImei = Column(String(1500))
+    
 
     def to_dict(self):
         return {
@@ -318,10 +274,11 @@ class FacturaDetalle(Base):
             'numeroImei': self.numeroImei
         }
     
-Base = declarative_base()
+
 
 class ProductoSiat(Base):
     __tablename__ = 'productos_siat'
+    __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, autoincrement=True)
     categoria = Column(String(255), nullable=True)
     codigo = Column(String(191), nullable=False, unique=True)  # Ajustar la longitud del VARCHAR y agregar unique
@@ -335,6 +292,7 @@ class ProductoSiat(Base):
     fecha_creacion = Column(TIMESTAMP, server_default=func.current_timestamp(), nullable=False)
     fecha_actualizacion = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp(), nullable=False)
     estado_sincronizacion = Column(String(255), nullable=True)
+   
 
     def to_dict(self):
         return {
@@ -355,6 +313,7 @@ class ProductoSiat(Base):
     
 class PuntoVenta(Base):
     __tablename__ = 'punto_venta'
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     codigo_punto_venta = Column(Integer, nullable=False)
@@ -368,6 +327,7 @@ class PuntoVenta(Base):
 
     # Relación con CUIS
     cuis = relationship("Cuis", back_populates="punto_venta")
+   
 
     def to_dict(self):
         return {
@@ -384,6 +344,7 @@ class PuntoVenta(Base):
 
 class Cuis(Base):
     __tablename__ = 'cuis'
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     codigo = Column(String(10), nullable=False)
@@ -393,6 +354,7 @@ class Cuis(Base):
 
     # Relación con PuntoVenta
     punto_venta = relationship("PuntoVenta", back_populates="cuis")
+    
 
     def to_dict(self):
         return {
@@ -406,6 +368,7 @@ class Cuis(Base):
 
 class SincronizarParametricaMotivoAnulacion(Base):
     __tablename__ = 'sincronizarparametricamotivoanulacion'
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     codigoClasificador = Column(String(5), nullable=False, unique=True)  # Código del clasificador
@@ -413,7 +376,7 @@ class SincronizarParametricaMotivoAnulacion(Base):
     fecha_creacion = Column(TIMESTAMP, server_default=func.now())  # Fecha de creación
     fecha_sincronizacion = Column(TIMESTAMP, nullable=True)  # Fecha de sincronización
     estado_sincronizacion = Column(String(10), nullable=True)  # Estado de sincronización
-
+   
     # Método to_dict para convertir la instancia en un diccionario
     def to_dict(self):
         return {
@@ -423,4 +386,366 @@ class SincronizarParametricaMotivoAnulacion(Base):
             'fecha_creacion': self.fecha_creacion,
             'fecha_sincronizacion': self.fecha_sincronizacion,
             'estado_sincronizacion': self.estado_sincronizacion
+        }
+
+class SincronizarListaMensajesServicios(Base):
+    __tablename__ = 'sincronizarlistamensajesservicios'
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    codigoClasificador = Column(String(10), nullable=False, unique=True)  # Código clasificador
+    descripcion = Column(String(255), nullable=True)  # Descripción del mensaje
+    fecha_creacion = Column(TIMESTAMP, server_default=func.now())  # Fecha de creación
+    fecha_sincronizacion = Column(TIMESTAMP, nullable=True)  # Fecha de sincronización
+    estado_sincronizacion = Column(String(10), nullable=True)  # Estado de sincronización
+   
+    # Método to_dict opcional para convertir el objeto en un diccionario
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'codigoClasificador': self.codigoClasificador,
+            'descripcion': self.descripcion,
+            'fecha_creacion': self.fecha_creacion,
+            'fecha_sincronizacion': self.fecha_sincronizacion,
+            'estado_sincronizacion': self.estado_sincronizacion
+        }
+
+class SincronizarParametricaTipoEmision(Base):
+    __tablename__ = 'sincronizarparametricatipoemision'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    codigoClasificador = Column(String(5), nullable=False, unique=True)
+    descripcion = Column(String(255), nullable=True)
+    fecha_creacion = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp())
+    fecha_sincronizacion = Column(TIMESTAMP, nullable=True)
+    estado_sincronizacion = Column(String(10), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint('codigoClasificador', name='uq_codigoClasificador'), {'extend_existing': True}
+         
+        
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "codigoClasificador": self.codigoClasificador,
+            "descripcion": self.descripcion,
+            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
+            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
+            "estado_sincronizacion": self.estado_sincronizacion
+        }
+    
+class SincronizarParametricaEventosSignificativos(Base):
+    __tablename__ = 'sincronizarparametricaeventossignificativos'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    codigoClasificador = Column(String(5), nullable=False, unique=True)
+    descripcion = Column(String(255), nullable=True)
+    fecha_creacion = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp())
+    fecha_sincronizacion = Column(TIMESTAMP, nullable=True)
+    estado_sincronizacion = Column(String(10), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint('codigoClasificador', name='uq_codigoClasificador'), {'extend_existing': True}
+        
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "codigoClasificador": self.codigoClasificador,
+            "descripcion": self.descripcion,
+            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
+            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
+            "estado_sincronizacion": self.estado_sincronizacion
+        }
+    
+class SincronizarActividades(Base):
+    __tablename__ = 'sincronizaractividades'
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    codigoCaeb = Column(String(10), nullable=False, unique=True)
+    descripcion = Column(String(255), nullable=True)
+    tipoActividad = Column(String(255), nullable=True)
+    fecha_creacion = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    fecha_sincronizacion = Column(TIMESTAMP, nullable=True)
+    estado_sincronizacion = Column(String(10), nullable=True)
+
+     # Add this to prevent multiple definitions
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'codigoCaeb': self.codigoCaeb,
+            'descripcion': self.descripcion,
+            'tipoActividad': self.tipoActividad,
+            'fecha_creacion': self.fecha_creacion.isoformat() if self.fecha_creacion else None,
+            'fecha_sincronizacion': self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
+            'estado_sincronizacion': self.estado_sincronizacion
+        }
+
+class SincronizarParametricaUnidadMedida(Base):
+    __tablename__ = 'sincronizarparametricaunidadmedida'
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    codigoClasificador = Column(String(5), nullable=False, unique=True)
+    descripcion = Column(String(255), nullable=True)
+    fecha_creacion = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp())
+    fecha_sincronizacion = Column(TIMESTAMP, nullable=True)
+    estado_sincronizacion = Column(String(10), nullable=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "codigoClasificador": self.codigoClasificador,
+            "descripcion": self.descripcion,
+            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
+            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
+            "estado_sincronizacion": self.estado_sincronizacion
+        }
+
+class SincronizarParametricaTiposFactura(Base):
+    __tablename__ = 'sincronizarparametricatiposfactura'
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    codigoClasificador = Column(String(5), nullable=False, unique=True)
+    descripcion = Column(String(255), nullable=True)
+    fecha_creacion = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp())
+    fecha_sincronizacion = Column(TIMESTAMP, nullable=True)
+    estado_sincronizacion = Column(String(10), nullable=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "codigoClasificador": self.codigoClasificador,
+            "descripcion": self.descripcion,
+            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
+            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
+            "estado_sincronizacion": self.estado_sincronizacion
+        }
+
+class SincronizarParametricaTipoPuntoVenta(Base):
+    __tablename__ = 'sincronizarparametricatipopuntoventa'
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    codigoClasificador = Column(String(5), nullable=False, unique=True)
+    descripcion = Column(String(255), nullable=True)
+    fecha_creacion = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp())
+    fecha_sincronizacion = Column(TIMESTAMP, nullable=True)
+    estado_sincronizacion = Column(String(10), nullable=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "codigoClasificador": self.codigoClasificador,
+            "descripcion": self.descripcion,
+            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
+            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
+            "estado_sincronizacion": self.estado_sincronizacion
+        }
+
+class SincronizarParametricaTipoMoneda(Base):
+    __tablename__ = 'sincronizarparametricatipomoneda'
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    codigoClasificador = Column(String(5), nullable=False, unique=True)
+    descripcion = Column(String(255), nullable=True)
+    fecha_creacion = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp())
+    fecha_sincronizacion = Column(TIMESTAMP, nullable=True)
+    estado_sincronizacion = Column(String(10), nullable=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "codigoClasificador": self.codigoClasificador,
+            "descripcion": self.descripcion,
+            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
+            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
+            "estado_sincronizacion": self.estado_sincronizacion
+        }
+
+class SincronizarParametricaTipoHabitacion(Base):
+    __tablename__ = 'sincronizarparametricatipohabitacion'
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    codigoClasificador = Column(String(5), nullable=False, unique=True)
+    descripcion = Column(String(255), nullable=True)
+    fecha_creacion = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp())
+    fecha_sincronizacion = Column(TIMESTAMP, nullable=True)
+    estado_sincronizacion = Column(String(10), nullable=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "codigoClasificador": self.codigoClasificador,
+            "descripcion": self.descripcion,
+            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
+            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
+            "estado_sincronizacion": self.estado_sincronizacion
+        }
+
+class SincronizarParametricaTipoDocumentoSector(Base):
+    __tablename__ = 'sincronizarparametricatipodocumentosector'
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    codigoClasificador = Column(String(5), nullable=False, unique=True)
+    descripcion = Column(String(255), nullable=True)
+    fecha_creacion = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp())
+    fecha_sincronizacion = Column(TIMESTAMP, nullable=True)
+    estado_sincronizacion = Column(String(10), nullable=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "codigoClasificador": self.codigoClasificador,
+            "descripcion": self.descripcion,
+            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
+            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
+            "estado_sincronizacion": self.estado_sincronizacion
+        }
+
+class SincronizarParametricaPaisOrigen(Base):
+    __tablename__ = 'sincronizarparametricapaisorigen'
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    codigoClasificador = Column(String(5), nullable=False, unique=True)
+    descripcion = Column(String(255), nullable=True)
+    fecha_creacion = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp())
+    fecha_sincronizacion = Column(TIMESTAMP, nullable=True)
+    estado_sincronizacion = Column(String(10), nullable=True)
+
+    
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "codigoClasificador": self.codigoClasificador,
+            "descripcion": self.descripcion,
+            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
+            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
+            "estado_sincronizacion": self.estado_sincronizacion
+        }
+
+class SincronizarListaProductosServicios(Base):
+    __tablename__ = 'sincronizarlistaproductosservicios'
+    
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    codigoActividad = Column(String(20), nullable=False)
+    codigoProducto = Column(String(20), nullable=False)
+    descripcionProducto = Column(String(255), nullable=True)
+    nandina = Column(Text, nullable=True)
+    fecha_creacion = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp())
+    fecha_sincronizacion = Column(TIMESTAMP, nullable=True)
+    estado_sincronizacion = Column(String(10), nullable=True)
+
+    __table_args__ = (UniqueConstraint('codigoActividad', 'codigoProducto', name='unique_codigo'), {'extend_existing': True})
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "codigoActividad": self.codigoActividad,
+            "codigoProducto": self.codigoProducto,
+            "descripcionProducto": self.descripcionProducto,
+            "nandina": self.nandina,
+            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
+            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
+            "estado_sincronizacion": self.estado_sincronizacion
+        }
+
+class SincronizarListaActividadesDocumentoSector(Base):
+    __tablename__ = 'sincronizarlistaactividadesdocumentosector'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    codigoActividad = Column(String(10), nullable=False)
+    codigoDocumentoSector = Column(Integer, nullable=False)
+    tipoDocumentoSector = Column(String(255), nullable=True)
+    fecha_creacion = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp())
+    fecha_sincronizacion = Column(TIMESTAMP, nullable=True)
+    estado_sincronizacion = Column(String(10), nullable=True)
+
+    __table_args__ = (UniqueConstraint('codigoActividad', 'codigoDocumentoSector', name='codigoActividad'), {'extend_existing': True})
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "codigoActividad": self.codigoActividad,
+            "codigoDocumentoSector": self.codigoDocumentoSector,
+            "tipoDocumentoSector": self.tipoDocumentoSector,
+            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
+            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
+            "estado_sincronizacion": self.estado_sincronizacion
+        }
+    
+class SincronizarParametricaTipoMetodoPago(Base):
+    __tablename__ = 'sincronizarparametricatipometodopago'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    codigoClasificador = Column(String(5), nullable=False, unique=True, index=True)
+    descripcion = Column(String(255), nullable=True)
+    fecha_creacion = Column(DateTime, nullable=True)
+    fecha_sincronizacion = Column(DateTime, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint('codigoClasificador', name='uq_codigoClasificador'), {'extend_existing': True})
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "codigoClasificador": self.codigoClasificador,
+            "descripcion": self.descripcion,
+            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
+            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None
+        }
+    
+class SincronizarParametricaTipoDocumentoIdentidad(Base):
+    __tablename__ = 'sincronizarparametricatipodocumentoidentidad'
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    codigoClasificador = Column(String(5), unique=True, nullable=False)
+    descripcion = Column(String(255), nullable=True)
+    fecha_creacion = Column(TIMESTAMP, server_default=func.current_timestamp(), nullable=False)
+    fecha_sincronizacion = Column(TIMESTAMP, nullable=True)
+    estado_sincronizacion = Column(String(10), nullable=True)
+
+        # Relación con la tabla Cliente
+    clientes = relationship("Cliente", back_populates="tipo_documento")
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "codigoClasificador": self.codigoClasificador,
+            "descripcion": self.descripcion,
+            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
+            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
+            "estado_sincronizacion": self.estado_sincronizacion
+        }
+
+class SincronizarListaLeyendasFactura(Base):
+    __tablename__ = 'sincronizarlistaleyendasfactura'
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    codigoActividad = Column(String(255), nullable=False)
+    descripcionLeyenda = Column(Text, nullable=True)
+    fecha_creacion = Column(TIMESTAMP, server_default=func.current_timestamp(), nullable=False)
+    fecha_sincronizacion = Column(TIMESTAMP, nullable=True)
+    estado_sincronizacion = Column(String(10), nullable=True)
+    
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "codigoActividad": self.codigoActividad,
+            "descripcionLeyenda": self.descripcionLeyenda,
+            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
+            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
+            "estado_sincronizacion": self.estado_sincronizacion
         }

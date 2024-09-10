@@ -3,116 +3,156 @@ import sys
 import logging
 import traceback
 import streamlit as st
-sys.path.append(os.path.dirname(__file__))
-from sync import sincronizarActividades
-from sync import sincronizarListaActividadesDocumentoSector
-from sync import sincronizarListaLeyendasFactura
-from sync import sincronizarListaMensajesServicios
-from sync import sincronizarListaProductosServicios
-from sync import sincronizarParametricaEventosSignificativos
-from sync import sincronizarParametricaTipoDocumentoIdentidad
-from sync import sincronizarParametricaTipoDocumentoSector
-from sync import sincronizarParametricaTipoHabitacion
-from sync import sincronizarParametricaTipoMetodoPago
-from sync import sincronizarParametricaTipoMoneda
-from sync import sincronizarParametricaTipoPuntoVenta
-from sync import sincronizarParametricaTiposFactura
-from sync import sincronizarParametricaUnidadMedida
-from sync import sincronizarParametricaTipoEmision
-from sync import sincronizarParametricaPaisOrigen
-from sync import sincronizarParametricaMotivoAnulacion
-# Agregar el directorio actual al PYTHONPATH
+from zeep import Client
+import requests
+from dotenv import load_dotenv
+from sqlalchemy import func
 
-# Configurar el logging
-log_file_path = 'sincronizaciones.txt'
-if not os.path.exists(log_file_path):
-    open(log_file_path, 'a').close()
 
+# Añadir el directorio raíz y el directorio 'facturador' al path de Python
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+facturador_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.extend([root_dir, facturador_dir])
+
+# Importar desde database.py en el directorio facturador
+from facturador.database import get_db, Base
+
+# Importar todos los modelos necesarios
+from facturador.models import (
+    SincronizarActividades, SincronizarListaActividadesDocumentoSector,
+    SincronizarListaLeyendasFactura, SincronizarListaMensajesServicios,
+    SincronizarListaProductosServicios, SincronizarParametricaEventosSignificativos,
+    SincronizarParametricaMotivoAnulacion, SincronizarParametricaPaisOrigen,
+    SincronizarParametricaTipoDocumentoIdentidad, SincronizarParametricaTipoDocumentoSector,
+    SincronizarParametricaTipoEmision, SincronizarParametricaTipoHabitacion,
+    SincronizarParametricaTipoMetodoPago, SincronizarParametricaTipoMoneda,
+    SincronizarParametricaTipoPuntoVenta, SincronizarParametricaTiposFactura,
+    SincronizarParametricaUnidadMedida
+)
+
+# Cargar variables de entorno desde el directorio raíz
+load_dotenv(os.path.join(root_dir, '.env'))
+
+# Configuración de logging
+log_dir = os.path.join(facturador_dir, 'logs')
+os.makedirs(log_dir, exist_ok=True)
 logging.basicConfig(
-    filename=log_file_path,
-    filemode='a',  # Agregar a los logs existentes
-    level=logging.DEBUG,  # Nivel de detalle
+    filename=os.path.join(log_dir, 'sincronizacion.log'),
+    level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-# Directorio donde se encuentran los archivos de sincronización
-sync_dir = 'sync'
+# Configuración del cliente SOAP
+wsdl_url = os.getenv("WSDL_URL")
+api_key = os.getenv("API_KEY")
 
+def sincronizar_generico(service_name, model_class):
+    st.text(f"Iniciando sincronización de {service_name}")
+    
+    # Crear cliente SOAP
+    client = Client(wsdl_url)
+    session = requests.Session()
+    session.headers.update({"apikey": api_key})
+    client.transport.session = session
 
-st.set_page_config(page_title="Sincronizar", page_icon=":arrows_counterclockwise:", layout="wide")
+    # Crear solicitud de sincronización
+    SolicitudSincronizacion = client.get_type('ns0:solicitudSincronizacion')
+    solicitud = SolicitudSincronizacion(
+        codigoAmbiente=int(os.getenv("CODIGO_AMBIENTE")),
+        codigoPuntoVenta=int(os.getenv("CODIGO_PUNTO_VENTA")),
+        codigoSistema=os.getenv("CODIGO_SISTEMA"),
+        codigoSucursal=int(os.getenv("CODIGO_SUCURSAL")),
+        cuis=os.getenv("CUIS"),
+        nit=int(os.getenv("NIT"))
+    )
 
-st.markdown("# Sincronizar Datos")
-st.sidebar.header("Sincronizar")
-# Lista de tuplas (nombre de archivo, función de sincronización)
-sync_functions = [
-    ('sincronizarActividades.py', sincronizarActividades.sincronizar),
-    ('sincronizarListaActividadesDocumentoSector.py', sincronizarListaActividadesDocumentoSector.sincronizar_documento_sector),
-    ('sincronizarListaLeyendasFactura.py', sincronizarListaLeyendasFactura.sincronizar_lista_leyendas_factura),
-    ('sincronizarListaMensajesServicios.py', sincronizarListaMensajesServicios.sincronizar_lista_mensajes_servicios),
-    ('sincronizarListaProductosServicios.py', sincronizarListaProductosServicios.sincronizar_lista_productos_servicios),    
-    ('sincronizarParametricaEventosSignificativos.py', sincronizarParametricaEventosSignificativos.sincronizar_parametrica_eventos_significativos),
-    ('sincronizarParametricaTipoDocumentoIdentidad.py', sincronizarParametricaTipoDocumentoIdentidad.sincronizar_parametrica_tipo_documento_identidad),
-    ('sincronizarParametricaTipoDocumentoSector.py', sincronizarParametricaTipoDocumentoSector.sincronizar_parametrica_tipo_documento_sector),
-    ('sincronizarParametricaTipoHabitacion.py', sincronizarParametricaTipoHabitacion.sincronizar_parametrica_tipo_habitacion),
-    ('sincronizarParametricaTipoMetodoPago.py', sincronizarParametricaTipoMetodoPago.sincronizar_parametrica_tipo_metodo_pago),
-    ('sincronizarParametricaTipoMoneda.py', sincronizarParametricaTipoMoneda.sincronizar_parametrica_tipo_moneda),
-    ('sincronizarParametricaTipoPuntoVenta.py', sincronizarParametricaTipoPuntoVenta.sincronizar_parametrica_tipo_punto_venta),
-    ('sincronizarParametricaTiposFactura.py', sincronizarParametricaTiposFactura.sincronizar_parametrica_tipos_factura),
-    ('sincronizarParametricaUnidadMedida.py', sincronizarParametricaUnidadMedida.sincronizar_parametrica_unidad_medida),
-    ('sincronizarParametricaTipoEmision.py', sincronizarParametricaTipoEmision.sincronizar_parametrica_tipo_emision),
-    ('sincronizarParametricaPaisOrigen.py', sincronizarParametricaPaisOrigen.sincronizar_parametrica_pais_origen),
-    ('sincronizarParametricaMotivoAnulacion.py', sincronizarParametricaMotivoAnulacion.sincronizar_parametrica_motivo_anulacion)
-]
-
-# Interfaz de Streamlit
-
-
-# Columna para los botones
-col1, col2 = st.columns(2)
-
-# Función para ejecutar sincronización y registrar logs
-def ejecutar_sincronizacion(func, file_name):
     try:
-        logging.info(f'Iniciando sincronización para {file_name}')
-        func()
-        logging.info(f'Sincronización completada para {file_name}')
+        # Llamar al servicio de sincronización
+        response = getattr(client.service, service_name)(solicitud)
+        
+        if not response.transaccion:
+            st.error(f"Error en la transacción SOAP para {service_name}: {response.mensajesList}")
+            return
+
+        # Procesar la respuesta
+        db = next(get_db())
+        try:
+            lista_items = getattr(response, f"lista{service_name[11:]}", [])
+            if lista_items:
+                for item in lista_items:
+                    # Determinar el campo clave para la búsqueda
+                    campo_clave = 'codigoClasificador' if hasattr(item, 'codigoClasificador') else 'codigoCaeb'
+                    valor_clave = getattr(item, campo_clave)
+                    
+                    # Buscar el item en la base de datos
+                    db_item = db.query(model_class).filter(getattr(model_class, campo_clave) == valor_clave).first()
+                    
+                    if db_item:
+                        # Actualizar item existente
+                        for key, value in item.__dict__.items():
+                            if hasattr(db_item, key):
+                                setattr(db_item, key, value)
+                        db_item.fecha_sincronizacion = func.now()
+                        db_item.estado_sincronizacion = 'Exitoso'
+                    else:
+                        # Crear nuevo item
+                        new_item = model_class(**item.__dict__)
+                        new_item.fecha_sincronizacion = func.now()
+                        new_item.estado_sincronizacion = 'Exitoso'
+                        db.add(new_item)
+                
+                db.commit()
+                st.success(f"Sincronización de {service_name} completada con éxito.")
+            else:
+                st.info(f"No se encontraron items para sincronizar en {service_name}.")
+        
+        except Exception as e:
+            db.rollback()
+            st.error(f"Error al procesar la respuesta de {service_name}: {str(e)}")
+            logging.error(traceback.format_exc())
+        finally:
+            db.close()
+
     except Exception as e:
-        logging.error(f'Error al sincronizar {file_name}: {e}')
+        st.error(f"Error al sincronizar {service_name}: {str(e)}")
         logging.error(traceback.format_exc())
-        st.error(f'Error al sincronizar {file_name}: {e}')
 
-# Botón para ejecutar todas las sincronizaciones con st.spinner
-if col1.button('Sincronizar Todo (Spinner)'):
-    for file, sync_function in sync_functions:
-        file_name = file.replace('sincronizar', '').replace('.py', '')
-        with st.spinner(f"Sincronizando {file_name}..."):
-            ejecutar_sincronizacion(sync_function, file_name)
-        if file_name == 'Actividades':
-            st.success(f" :heavy_check_mark: Las {file_name} se han sincronizado correctamente.")
-        else:
-            st.success(f" :heavy_check_mark: Los valores de :blue[ {file_name} ] se han sincronizado correctamente.")
+# Diccionario que mapea nombres de servicios a clases de modelo
+service_model_map = {
+    'sincronizarActividades': SincronizarActividades,
+    'sincronizarListaActividadesDocumentoSector': SincronizarListaActividadesDocumentoSector,
+    'sincronizarListaLeyendasFactura': SincronizarListaLeyendasFactura,
+    'sincronizarListaMensajesServicios': SincronizarListaMensajesServicios,
+    'sincronizarListaProductosServicios': SincronizarListaProductosServicios,
+    'sincronizarParametricaEventosSignificativos': SincronizarParametricaEventosSignificativos,
+    'sincronizarParametricaMotivoAnulacion': SincronizarParametricaMotivoAnulacion,
+    'sincronizarParametricaPaisOrigen': SincronizarParametricaPaisOrigen,
+    'sincronizarParametricaTipoDocumentoIdentidad': SincronizarParametricaTipoDocumentoIdentidad,
+    'sincronizarParametricaTipoDocumentoSector': SincronizarParametricaTipoDocumentoSector,
+    'sincronizarParametricaTipoEmision': SincronizarParametricaTipoEmision,
+    'sincronizarParametricaTipoHabitacion': SincronizarParametricaTipoHabitacion,
+    'sincronizarParametricaTipoMetodoPago': SincronizarParametricaTipoMetodoPago,
+    'sincronizarParametricaTipoMoneda': SincronizarParametricaTipoMoneda,
+    'sincronizarParametricaTipoPuntoVenta': SincronizarParametricaTipoPuntoVenta,
+    'sincronizarParametricaTiposFactura': SincronizarParametricaTiposFactura,
+    'sincronizarParametricaUnidadMedida': SincronizarParametricaUnidadMedida
+}
 
-# Botón para ejecutar todas las sincronizaciones con st.status
-if col2.button('Sincronizar Todo (Status)'):
-    for file, sync_function in sync_functions:
-        with st.status(f":shark: {file}..."):
-            ejecutar_sincronizacion(sync_function, file)
-    st.status(f" :heavy_check_mark: {file} sincronizado correctamente.:sunglasses:")
+def main():
+    st.title("Sincronizar Datos")
 
-# Lista de sincronizaciones individuales
-st.markdown('---')
-st.header('Sincronizaciones Individuales')
-selected_files = st.multiselect('Selecciona los Servicios a sincronizar', [file for file, _ in sync_functions])
+    if st.button('Sincronizar Todo'):
+        for service_name, model_class in service_model_map.items():
+            with st.spinner(f"Sincronizando {service_name}..."):
+                sincronizar_generico(service_name, model_class)
+        st.success("Todas las sincronizaciones completadas.")
 
-# Botón para ejecutar las sincronizaciones seleccionadas
-if st.button('Ejecutar Sincronizaciones Seleccionadas'):
-    for selected_file in selected_files:
-        for file, sync_function in sync_functions:
-            if file == selected_file:
-                file_name = file.replace('sincronizar', '').replace('.py', '')
-        with st.spinner(f"Sincronizando {file_name}..."):
-            ejecutar_sincronizacion(sync_function, file_name)
-        if file_name == 'Actividades':
-            st.success(f" :heavy_check_mark: Los valores de las {file_name} se han sincronizado correctamente.")
-        else:
-            st.success(f" :heavy_check_mark: Los valores de :blue[ {file_name} ] se han sincronizado correctamente.")
+    # Opción para sincronizar servicios individuales
+    selected_service = st.selectbox("Seleccione un servicio para sincronizar", list(service_model_map.keys()))
+    if st.button('Sincronizar Servicio Seleccionado'):
+        with st.spinner(f"Sincronizando {selected_service}..."):
+            sincronizar_generico(selected_service, service_model_map[selected_service])
+        st.success(f"Sincronización de {selected_service} completada.")
+
+if __name__ == "__main__":
+    main()

@@ -36,6 +36,9 @@ import verifica_stream
 from estado_factura import verificar_estado_factura
 import cuis
 from anulacion import anular_factura
+from reversion import enviar_solicitud_reversion, procesar_respuesta_reversion, obtener_cuf_por_numero_factura
+
+
 
 # Lista de códigos permitidos para gift cards
 gift_card_codes = [
@@ -43,7 +46,7 @@ gift_card_codes = [
     172, 173, 174, 182, 189, 195, 200, 204, 208, 209, 210, 217, 221, 222,
     223, 224, 225, 226, 228, 232, 241, 246, 250, 254, 255, 256, 261, 265,
     269, 270, 271, 275, 279, 280, 281, 285, 286, 287, 291, 292, 293, 30,
-    304, 35, 40, 49, 53, 60, 64, 68, 72, 76, 77, 78, 86, 94
+    304, 35, 40, 49, 53, 60, 64, 68, 72, 76, 77, 78, 86, 94, 27
 ]
 
 # Configurar logging
@@ -564,9 +567,9 @@ def render_sidebar():
 def main():
     message_placeholder = st.empty()
     # Definición de las pestañas
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
         "🧾Facturar", "🔍Ver Facturas", "✅Validar NIT", "😏Clientes", 
-        "🔍Verificar Factura", "🔍Gestionar CUIS", "❌Anular Factura"
+        "🔍Verificar Factura", "🔍Gestionar CUIS", "❌Anular Factura", "❌Revertir Anulacion"
     ])
 
     # Pestaña 2: Ver Facturas Generadas
@@ -605,8 +608,9 @@ def main():
     # Pestaña 6: Gestionar CUIS
     with tab6:
         st.header("Gestionar CUIS")
-        st.write("Aquí puedes gestionar los códigos CUIS.")
+        #st.write("Aquí puedes gestionar los códigos CUIS.")
         # Aquí podrías agregar la funcionalidad para gestionar CUIS
+        cuis.main()
 
     # Pestaña 7: Anular Factura
     with tab7:
@@ -639,7 +643,34 @@ def main():
                     message_placeholder.success(mensaje)
                 else:
                     message_placeholder.error(mensaje)
+    # Pestaña 8: Revertir Anulación de Factura
+    with tab8:
+        st.header("Revertir Anulación de Factura")
+        
+        # Entrada para el número de factura
+        numero_factura_revertir = st.text_input("Ingrese el número de la factura a revertir la anulación:")
 
+        # Botón para iniciar la reversión de la anulación
+        if st.button("Revertir Anulación"):
+            # Limpiar cualquier mensaje previo
+            message_placeholder.empty()
+
+            if not numero_factura_revertir:
+                message_placeholder.warning("Por favor, ingrese el número de la factura.")
+            else:
+                cuf, factura = obtener_cuf_por_numero_factura(numero_factura_revertir)
+                if not cuf:
+                    message_placeholder.error("No se encontró la factura especificada.")
+                else:
+                    exito, respuesta = enviar_solicitud_reversion(cuf)
+                    if exito:
+                        exito_reversion, mensaje_reversion = procesar_respuesta_reversion(respuesta, factura)
+                        if exito_reversion:
+                            message_placeholder.success(mensaje_reversion)
+                        else:
+                            message_placeholder.error(mensaje_reversion)
+                    else:
+                        message_placeholder.error(respuesta)
     
     if 'processed_comandas' not in st.session_state:
         st.session_state.processed_comandas = []
@@ -906,7 +937,7 @@ def main():
                     
                     signed_xml_str = sign_xml(xml_str, private_key_path, cert_path, cuf)
 
-                    filename = f"xmls/factura_{cuf}_.xml"
+                    filename = f"xmls/factura_{numero_factura}_{cuf}_.xml"
                     with open(filename, "w", encoding='utf-8') as signed_xml_file:
                         signed_xml_file.write(signed_xml_str)
 
@@ -990,7 +1021,7 @@ def main():
                                                     st.download_button(
                                                         label="Imprimir Factura",
                                                         data=PDFbyte,
-                                                        file_name=f"factura_{cuf}.pdf",
+                                                        file_name=f"factura_{numero_factura}_{cuf}_.pdf",
                                                         mime='application/pdf'
                                                     )
 
@@ -998,9 +1029,9 @@ def main():
                                             with col3:
                                                 enlace = generate_invoice_link(factura_cabecera_data['nitEmisor'], factura_cabecera_data['cuf'], factura_cabecera_data['numeroFactura'])
                                                 if st.button('Consultar factura'):
-                                                     st.write(f"[Visitar enlace]({enlace})")
+                                                     #st.write(f"[Visitar enlace]({enlace})")
                                                 
-                                                #st.markdown(f"[Consultar factura](<{enlace}>)", unsafe_allow_html=True)
+                                                        st.markdown(f"[Consultar factura](<{enlace}>)", unsafe_allow_html=True)
                                                 #st.image(f"data:image/png;base64,{qr_base64}", width=150)
                                                 # Crear el botón
                                                 # Crear el botón

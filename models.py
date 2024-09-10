@@ -33,47 +33,6 @@ class Comanda(Base):
     
 
 
-class SincronizarParametricaTipoMetodoPago(Base):
-    __tablename__ = 'sincronizarparametricatipometodopago'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    codigoClasificador = Column(String(5), nullable=False, unique=True, index=True)
-    descripcion = Column(String(255), nullable=True)
-    fecha_creacion = Column(DateTime, nullable=True)
-    fecha_sincronizacion = Column(DateTime, nullable=True)
-
-    __table_args__ = (
-        UniqueConstraint('codigoClasificador', name='uq_codigoClasificador'),
-    )
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "codigoClasificador": self.codigoClasificador,
-            "descripcion": self.descripcion,
-            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
-            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None
-        }
-
-class sincronizarParametricaEventosSignificativos(Base):
-    __tablename__ = 'sincronizarparametricaeventossignificativos'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    codigoClasificador = Column(String(5), nullable=False, unique=True, index=True)
-    descripcion = Column(String(255), nullable=True)
-    fecha_creacion = Column(DateTime, nullable=True)
-    fecha_sincronizacion = Column(DateTime, nullable=True)
-
-    __table_args__ = (
-        UniqueConstraint('codigoClasificador', name='uq_codigoClasificador'),
-    )
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "codigoClasificador": self.codigoClasificador,
-            "descripcion": self.descripcion,
-            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
-            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None
-        }
 
 class Comanda_Cat(Base):
     __tablename__ = "comandas_cat"

@@ -9,6 +9,7 @@ import mysql.connector
 from mysql.connector import Error
 import os
 import logging
+from business_logic import verificar_comunicacion
 
 # Configuración del sistema de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -28,7 +29,25 @@ CUIS = os.getenv('CUIS')
 
 # Crear un marcador de posición para mensajes
 message_placeholder = st.empty()
+# Verificar la comunicación con el endpoint de Operaciones
+exito, mensaje = verificar_comunicacion("Facturación Operaciones")
+if not exito:
+    message_placeholder.error(f"Error de comunicación con el servicio de Operaciones: {mensaje}")
+    st.stop()  # Detener la ejecución del código si la verificación falla
+else:
+    message_placeholder.success("Conexión exitosa con el servicio de Operaciones.")
 
+# Configuración de la sesión SOAP
+def get_soap_client():
+    session = Session()
+    session.headers.update({
+        'apikey': f'TokenApi {API_KEY}',
+        'Content-Type': 'text/xml;charset=UTF-8'
+    })
+    transport = Transport(session=session)
+    settings = Settings(strict=False, xml_huge_tree=True)
+    client = Client(wsdl=WSDL_URL, transport=transport, settings=settings)
+    return client
 # Función para gestionar la conexión a la base de datos
 @st.cache_resource
 def get_connection():

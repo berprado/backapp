@@ -2,7 +2,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 from data_access import (
     fetch_comandas, fetch_metodos_pago, fetch_tipos_documento, fetch_cliente, 
-    fetch_random_leyenda, guardar_factura_cabecera, guardar_factura_detalle, obtener_nombre_unidad_medida
+    fetch_random_leyenda, guardar_factura_cabecera, guardar_factura_detalle, obtener_nombre_unidad_medida, obtener_motivos_anulacion
 )
 from business_logic import calculate_totals, collect_product_lines, generate_invoice_link, generate_qr
 from invoice_xml_generator import generate_xml_invoice
@@ -32,9 +32,11 @@ import logging
 import traceback
 import xml.etree.ElementTree as ET
 from export import imprimir_recibo
-
 import verifica_stream
-
+from estado_factura import verificar_estado_factura
+import cuis
+from anulacion import anular_factura
+from reversion import enviar_solicitud_reversion, procesar_respuesta_reversion, obtener_cuf_por_numero_factura
 
 # Lista de códigos permitidos para gift cards
 gift_card_codes = [
@@ -42,7 +44,7 @@ gift_card_codes = [
     172, 173, 174, 182, 189, 195, 200, 204, 208, 209, 210, 217, 221, 222,
     223, 224, 225, 226, 228, 232, 241, 246, 250, 254, 255, 256, 261, 265,
     269, 270, 271, 275, 279, 280, 281, 285, 286, 287, 291, 292, 293, 30,
-    304, 35, 40, 49, 53, 60, 64, 68, 72, 76, 77, 78, 86, 94
+    304, 35, 40, 49, 53, 60, 64, 68, 72, 76, 77, 78, 86, 94, 27
 ]
 
 # Configurar logging
@@ -58,7 +60,7 @@ if not logger.handlers:
     )
 
 
-def es_email_valido(email):
+def es_email_valido(email, message_placeholder):
     patron = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
     return re.match(patron, email) is not None
 
@@ -90,7 +92,7 @@ def verificar_nit(nit):
         if response.transaccion:
             return True, response.mensajesList[0].descripcion
         else:
-            return False, "❗ Verifica el NIT o elige otro Tipo de Documento."
+            return False, "Verifica el NIT o elige otro Tipo de Documento."
     except Exception as e:
         return False, f"Ocurrió un error: {str(e)}"
 
@@ -129,13 +131,13 @@ def numero_a_palabras_con_decimales_como_fraccion(numero, lang='es'):
     parte_entera_palabras = num2words(parte_entera, lang=lang).capitalize()
     
     if parte_decimal > 0:
-        return f" {parte_entera_palabras} {parte_decimal:02d}/100 bolivianos"
+        return f" {parte_entera_palabras} {parte_decimal:02d}/100 bolivianos."
     else:
-        return f" {parte_entera_palabras} 00/100 bolivianos"
+        return f" {parte_entera_palabras} 00/100 bolivianos."
 
 
 
-
+@st.cache_data
 def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_productos, nombre_cliente, fecha_emision, numero_factura, metodo_de_pago=None, codigo_clasificador_metodo_pago=None, tipo_documento=None, codigo_clasificador_documento=None, numero_documento=None, complemento=None, email=None, telefono=None, ultimos_digitos_tarjeta=None):
     total = subtotal - descuento_adicional
     total_final = total - monto_giftcard
@@ -160,130 +162,218 @@ def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_
     subtitulo = os.getenv('SUBTITULO')    # Generar el código QR si el CUF está disponible
 
 
+        # HTML con la estructura proporcionada y el fondo blanco añadido
     html_content = f"""
     <!DOCTYPE html>
     <html lang="es">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Factura</title>
-        <style type="text/css">
-        .tg  {{border-collapse:collapse;border-spacing:0;margin:0px auto;}}
-        .tg td{{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-        overflow:hidden;padding:10px 5px;word-break:normal;}}
-        .tg th{{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-        font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}}
-        .tg .tg-4pi9{{background-color:#ffffff;border-color:#ffffff;font-family:"Lucida Console", Monaco, monospace !important;
-        font-size:12px;text-align:left;vertical-align:middle;word-break:break-all;}}
-        .tg .tg-tdlr{{background-color:#ffffff;border-color:#ffffff;font-size:12px;text-align:left;vertical-align:top;}}
-        .tg .tg-c01i{{background-color:#9b9b9b;border-color:#ffffff;font-family:"Lucida Console", Monaco, monospace !important;
-        font-size:12px;font-weight:bold;text-align:right;vertical-align:middle;}}
-        .tg .tg-n17z{{background-color:#ffffff;border-color:#ffffff;font-family:"Lucida Console", Monaco, monospace !important;
-        font-size:12px;text-align:center;vertical-align:middle;}}
-        .tg .tg-i6l2{{background-color:#ffffff;border-color:#ffffff;font-family:"Lucida Console", Monaco, monospace !important;
-        font-size:12px;text-align:right;vertical-align:middle;}}
-        .tg .tg-gayi{{background-color:#9b9b9b;border-color:#efefef;font-family:"Lucida Console", Monaco, monospace !important;
-        font-size:12px;font-weight:bold;text-align:center;vertical-align:middle;}}
-        .tg .tg-1kjo{{background-color:#c0c0c0c0;border-color:#efefef;font-family:"Lucida Console", Monaco, monospace !important;
-        font-size:12px;text-align:center;vertical-align:middle;}}
-        .tg .tg-tm6e{{background-color:#c0c0c0;border-color:#ffffff;font-family:"Lucida Console", Monaco, monospace !important;
-        font-size:12px;text-align:left;vertical-align:middle;}}
-        .tg .tg-q5sf{{background-color:#ffffff;border-color:#ffffff;font-family:"Lucida Console", Monaco, monospace !important;
-        font-size:9px;text-align:center;vertical-align:middle;}}
-        .tg .tg-e8cb{{background-color:#9b9b9b;border-color:#ffffff;font-family:"Lucida Console", Monaco, monospace !important;
-        font-size:12px;text-align:right;vertical-align:middle;}}
-        .tg .tg-6l70{{background-color:#9b9b9b;border-color:#ffffff;font-family:"Lucida Console", Monaco, monospace !important;
-        font-size:12px;text-align:center;vertical-align:middle;}}
-        </style>
-    </head>
-    <body>
-    <table class="tg"><tbody>
-    <tr>
-        <td class="tg-n17z" colspan="4"><span style="font-weight:bold">{razon_social}</span><br><span style="font-weight:bold">{nombre_sucursal}</span><br><span style="font-weight:bold">Punto de Venta:</span> {codigo_punto_venta}</td>
-        <td class="tg-n17z"></td>
-        <td class="tg-i6l2"><span style="font-weight:bold">NIT:</span><br><span style="font-weight:bold">Factura N°:</span></td>
-        <td class="tg-4pi9">{nit}<br>{numero_factura}</td>
-    </tr>
-    <tr>
-        <td class="tg-n17z" colspan="4">{direccion}<br><span style="font-weight:bold">{municipio}</span><br><span style="font-weight:bold">Teléfono:</span> {telefono_empresa}</td>
-        <td class="tg-n17z"></td>
-        <td class="tg-i6l2"><span style="font-weight:bold">Código de</span><br><span style="font-weight:bold">Autorización</span></td>
-        <td class="tg-4pi9">{{cuf}}</td>
-    </tr>
-    <tr>
-        <td class="tg-n17z" colspan="7"><span style="font-weight:bold">{tipo_factura}</span><br>{subtitulo}</td>
-    </tr>
-    <tr>
-        <td class="tg-n17z" colspan="4"><span style="font-weight:bold">Fecha/Hora:</span> {fecha_emision}<br><span style="font-weight:bold">Nombre/Razón Social:</span> {nombre_cliente}</td>
-        <td class="tg-n17z"></td>
-        <td class="tg-i6l2"><span style="font-weight:bold">NIT/CI/CEX:</span><br><span style="font-weight:bold">Cod. Cliente:</span></td>
-        <td class="tg-4pi9">{numero_documento}<br>{numero_documento}</td>
-    </tr>
-    <tr>
-        <td class="tg-tdlr" colspan="7"></td>
-    </tr>
-    <tr>
-        <td class="tg-gayi" width="10%">CODIGO</td>
-        <td class="tg-gayi" width="5%">CANTIDAD</td>
-        <td class="tg-gayi" width="10%">UNIDAD</td>
-        <td class="tg-gayi" width="35%">DESCRIPCIÓN</td>
-        <td class="tg-gayi" width="10%">PRECIO UNIT.</td>
-        <td class="tg-gayi" width="15%">DESCUENTO</td>
-        <td class="tg-gayi" width="15%">SUBTOTAL</td>
-    </tr>
-    """
+    <style type="text/css">
+      body {{
+        background-color: white; /* Fondo blanco */
+        color: black;  /* Texto negro */
+      }}
+      .tg {{
+        border-collapse: collapse;
+        border-spacing: 0;
+        margin: 0px auto;
+        width: 8cm !important;
+        background-color: white;  /* Fondo blanco para la tabla */
+      }}
 
-    for linea in lineas_productos:
-        html_content += f"""
-        <tr>
-            <td class="tg-1kjo">{linea["codigo"]}</td>
-            <td class="tg-1kjo">{linea["cantidad"]}</td>
-            <td class="tg-1kjo">{linea["unidad"]}</td>
-            <td class="tg-1kjo">{linea["nombre"]}</td>
-            <td class="tg-1kjo">{linea["precio_venta"]}</td>
-            <td class="tg-1kjo">{linea.get("montoDescuento", 0)}</td>
-            <td class="tg-1kjo">{linea["sub_total"]}</td>
-        </tr>
+      .tg td, .tg th {{
+        border-color: white;
+        border-style: solid;
+        border-width: 1px;
+        font-family: "Lucida Console", Monaco, monospace !important;
+        font-size: 10px;
+        overflow: hidden;
+        padding: 5px 2px;
+        word-break: normal;
+        color: black;  /* Texto negro */
+      }}
+
+    
+
+      .tg-9k97 {{
+        border-color: #ffffff;
+        font-family: "Lucida Console", Monaco, monospace !important;
+        text-align: right;
+        vertical-align: top;
+        color: black;
+      }}
+
+      .tg-8jgo {{
+        border-color: #ffffff;
+        text-align: center;
+        vertical-align: top;
+        color: black;
+      }}
+
+      .tg-eavw {{
+        border-color: #ffffff;
+        font-family: "Lucida Console", Monaco, monospace !important;
+        text-align: center;
+        vertical-align: top;
+        color: black;
+      }}
+
+      .tg-sz8q {{
+        border-color: #ffffff;
+        font-family: "Lucida Console", Monaco, monospace !important;
+        text-align: left;
+        vertical-align: top;
+        color: black;
+      }}
+
+      .tg-02er {{
+        border-color: #ffffff;
+        font-family: "Lucida Console", Monaco, monospace !important;
+        font-weight: bold;
+        text-align: center;
+        vertical-align: top;
+        color: black;
+      }}
+
+      .separator {{
+        border: none;
+        height: 1px;
+        background: black;
+        margin: 10px 0;
+      }}
+
+      @media screen and (max-width: 8cm) {{
+        .tg {{
+          width: 100% !important;
+        }}
+
+        .tg-wrap {{
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          margin: auto 0px;
+        }}
+
+        .separator {{
+          background: #ccc;
+        }}
+      }}
+    </style>
+
+    <div class="tg-wrap">
+      <table class="tg">
+        <tbody>
+          <tr>
+            <td class="tg-eavw">
+              <strong>{tipo_factura}</strong><br>
+              <strong>{subtitulo}</strong>
+            </td>
+          </tr>
+          <tr>
+            <td class="tg-eavw">{razon_social}<br>{nombre_sucursal}<br>Punto de Venta: {codigo_punto_venta}</td>
+          </tr>
+          <tr>
+            <td class="tg-eavw">{direccion}<br>{municipio}<br>Tel. {telefono_empresa}</td>
+          </tr>
+
+          <tr><td class="separator"></td></tr>
+
+          <tr>
+            <td class="tg-eavw">
+              <span style="font-weight:bold">NIT</span><br>{nit}<br>
+              <span style="font-weight:bold">Factura N°</span><br>{numero_factura}
+            </td>
+          </tr>
+          <tr>
+            <td class="tg-eavw">
+              <span style="font-weight:bold">Código de Autorización</span><br>{{cuf}}
+            </td>
+          </tr>
+
+          <tr><td class="separator"></td></tr>
+
+          <tr>
+            <td class="tg-eavw">
+              <span style="font-weight:bold">Nombre/Razón Social:</span> {nombre_cliente}<br>
+              <span style="font-weight:bold">NIT/CI/CEX:</span> {numero_documento}<br>
+              <span style="font-weight:bold">Cod. Cliente:</span> {numero_documento}<br>
+              <span style="font-weight:bold">Fecha de Emisión: </span>{fecha_emision}
+            </td>
+          </tr>
+
+          <tr><td class="separator"></td></tr>
+        
+        
+          <tr>
+            <td class="tg-eavw"><span style="font-weight:bold">DETALLE</span></td>
+          </tr>
         """
-
+    for linea in lineas_productos:
+            html_content += f""" 
+                <tr>
+                    <td class="tg-sz8q">
+                    <table style="width: 100%;">
+                        <tr>
+                            <td colspan=2><strong>{linea["codigo"]} - {linea["nombre"]}</strong></td>
+                        </tr>
+                        <tr>
+                            <td colspan=2>Unidad de Medida: {linea["unidad"]}</td>
+                        </tr>
+                        <tr>
+                            <td>{linea["cantidad"]} x {linea["precio_venta"]} Bs</td>
+                            <td align="right">{linea["sub_total"]} Bs</td>
+                        </tr>
+                    </table>
+                    </td>
+                </tr>
+            """
     html_content += f"""
-    <tr>
-        <td class="tg-n17z" colspan="5"></td>
-        <td class="tg-c01i">Sub Total:</td>
-        <td class="tg-tm6e"><span style="font-weight:bold">{subtotal:.2f}</span></td>
-    </tr>
-    <tr>
-        <td class="tg-q5sf" colspan="5"></td>
-        <td class="tg-c01i">Descuento:</td>
-        <td class="tg-tm6e"><span style="font-weight:bold">{descuento_adicional:.2f}</span></td>
-    </tr>
-    <tr>
-        <td class="tg-n17z" colspan="5"><span style="font-weight:bold">Son: {total_en_palabras}</span></td>
-        <td class="tg-e8cb"><span style="font-weight:bold">Total:</span></td>
-        <td class="tg-tm6e"><span style="font-weight:bold">{total:.2f}</span></td>
-    </tr>
-    <tr>
-        <td class="tg-q5sf" colspan="5"></td>
-        <td class="tg-e8cb"><span style="font-weight:bold">Gift Card:</span></td>
-        <td class="tg-tm6e"><span style="font-weight:bold">{monto_giftcard:.2f}</span></td>
-    </tr>
-    <tr>
-        <td class="tg-q5sf" colspan="5"></td>
-        <td class="tg-e8cb"><span style="font-weight:bold">Monto a Pagar:</span></td>
-        <td class="tg-tm6e"><span style="font-weight:bold">{total_final:.2f}</span></td>
-    </tr>
-    <tr>
-        <td class="tg-q5sf" colspan="5"></td>
-        <td class="tg-6l70"><span style="font-weight:bold">Imp. Base Cred. Fiscal:</span></td>
-        <td class="tg-tm6e"><span style="font-weight:bold">{monto_total_sujeto_iva:.2f}</span></td>
-    </tr>
-    <tr>
-        <td class="tg-n17z" colspan="5"><span class="tg-q5sf">ESTA FACTURA CONTRIBUYE AL DESARROLLO DEL PAÍS, EL USO ILÍCITO SERÁ SANCIONADO PENALMENTE DE ACUERDO A LEY</span><br><br><span style="font-weight:bold">{leyenda}</span><br><br><span class="tg-q5sf">“Este documento es la Representación Gráfica de un Documento Fiscal Digital emitido en una modalidad de facturación en línea”</span></td>
-        <td class="tg-n17z" colspan="2">{{codigo_qr}}</td>
-    </tr>
-    </tbody></table>
-    </body>
-    </html>
+          <tr><td class="separator"></td></tr>
+
+          <tr>
+            <td class="tg-9k97">Sub Total: {subtotal:.2f}</td>
+          </tr>
+          <tr>
+            <td class="tg-9k97">Descuento: {descuento_adicional:.2f}</td>
+          </tr>
+          <tr>
+            <td class="tg-9k97">Total: {total:.2f}</td>
+          </tr>
+          <tr>
+            <td class="tg-9k97">Gift Card: {monto_giftcard:.2f}</td>
+          </tr>
+          <tr>
+            <td class="tg-9k97">
+              <span style="font-weight:bold">Monto a Pagar:</span> {total_final:.2f}
+            </td>
+          </tr>
+          <tr>
+            <td class="tg-9k97">
+              <span style="font-weight:bold">Imp. Base Cred. Fiscal:</span> {monto_total_sujeto_iva:.2f}
+            </td>
+          </tr>
+          <tr>
+            <td class="tg-sz8q">Son: {total_en_palabras}.</td>
+          </tr>
+
+          <tr><td class="separator"></td></tr>
+
+          <tr>
+            <td class="tg-eavw">
+              ESTA FACTURA CONTRIBUYE AL DESARROLLO DEL PAÍS, EL USO ILÍCITO SERÁ SANCIONADO PENALMENTE DE ACUERDO A LEY.
+            </td>
+          </tr>
+          <tr>
+            <td class="tg-eavw">{leyenda}</td>
+          </tr>
+          <tr>
+            <td class="tg-eavw">
+              “Este documento es la Representación Gráfica de un Documento Fiscal Digital emitido en una modalidad de facturación en línea”
+            </td>
+          </tr>
+          <tr>
+            <td class="tg-8jgo">{{codigo_qr}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     """
     return html_content
 
@@ -310,17 +400,17 @@ def increment_invoice_number(numero_factura):
         logging.error(f"Error al escribir en 'invoice_number.txt': {e}")
         raise e
 
-def save_or_fetch_client_data(codigo_cliente, codigo_tipo_documento_identidad, complemento, email, nombre_razon_social, numero_documento, telefono):
+def save_or_fetch_client_data(codigo_cliente, codigo_tipo_documento_identidad, complemento, email, nombre_razon_social, numero_documento, telefono, message_placeholder):
     if not nombre_razon_social:
-        st.error("El campo 'Razón Social' es obligatorio.")
+        message_placeholder.error("❌El campo 'Razón Social' es obligatorio.")
         return None
 
-    if email and not es_email_valido(email):
-        st.error("Por favor, ingrese un email válido.")
+    if email and not es_email_valido(email, message_placeholder):
+        message_placeholder.error("❌Por favor, ingrese un email válido.")
         return None
 
     if telefono and not es_telefono_valido(telefono):
-        st.error("Por favor, ingrese un número de teléfono válido.")
+        message_placeholder.error("❌Por favor, ingrese un número de teléfono válido.")
         return None
 
     cliente_data, error = fetch_cliente(codigo_cliente)
@@ -341,11 +431,11 @@ def save_or_fetch_client_data(codigo_cliente, codigo_tipo_documento_identidad, c
             cliente_data = nuevo_cliente.to_dict()
         except IntegrityError:
             session.rollback()
-            st.error("El cliente ya existe en la base de datos.")
+            message_placeholder.error("❌El cliente ya existe en la base de datos.")
             return None
         except Exception as e:
             session.rollback()
-            st.error(f"Error al guardar los datos del cliente: {e}")
+            message_placeholder.error(f"❌Error al guardar los datos del cliente: {e}")
             return None
         finally:
             session.close()
@@ -358,13 +448,13 @@ def get_cufd():
         if cufd_record:
             return cufd_record.codigo
         else:
-            raise ValueError("CUFD no encontrado en la base de datos.")
+            raise ValueError("❌CUFD no encontrado en la base de datos.")
     except Exception as e:
-        raise ValueError(f"Error al obtener el CUFD: {e}")
+        raise ValueError(f"❌Error al obtener el CUFD: {e}")
     finally:
         session.close()
 
-def verificar_y_obtener_cufd():
+def verificar_y_obtener_cufd(message_placeholder):
     session = SessionLocal()
     try:
         cufd_record = session.query(models.Cufd).filter(models.Cufd.vigente == 1).first()
@@ -372,10 +462,10 @@ def verificar_y_obtener_cufd():
             return cufd_record.codigo
         else:
             nuevo_cufd = solicitar_cufd()
-            st.info("Se ha renovado el CUFD.")
+            message_placeholder.info(":heavy_check_mark: Se ha renovado el CUFD.")
             return nuevo_cufd
     except Exception as e:
-        st.error(f"Error al verificar o solicitar CUFD: {e}")
+        message_placeholder.error(f"❌Error al verificar o solicitar CUFD: {e}")
         raise ValueError(f"Error al verificar o solicitar CUFD: {e}")
     finally:
         session.close()
@@ -539,10 +629,12 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
 
 with open('verifica_stream.py', 'r') as file:
     file_content = file.read()
-
+with open('cuis.py', 'r') as file:
+    file_content += file.read()
+@st.cache_data
 def render_sidebar():
     # Toda la lógica relacionada con st.sidebar aquí
-    numero_documento = st.sidebar.text_input("Número de Documento:", key="numero_documento")
+    numero_documento = st.sidebar.text_input("Número de Documento:", key="numero_documento", help="Ingresa el número de documento del cliente.")
     nit_valido = False
     nombre_cliente = ""
     complemento = None
@@ -559,13 +651,113 @@ def render_sidebar():
     return numero_documento, nit_valido, nombre_cliente, complemento, email, telefono, seleccion_tipo_documento, codigo_clasificador_documento, codigo_clasificador_metodo_pago, ultimos_digitos_tarjeta, codigo_cliente
 
 def main():
-    tab1, tab2 = st.tabs(["Facturar", "Validar NIT"])
+    message_placeholder = st.empty()
+    # Definición de las pestañas
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+        "🧾Facturar", "🔍Ver Facturas", "✅Validar NIT", "😏Clientes", 
+        "🔍Verificar Factura", "🔍Gestionar CUIS", "❌Anular Factura", "❌Revertir Anulacion"
+    ])
 
-    
+    # Pestaña 2: Ver Facturas Generadas
     with tab2:
+        st.header("Facturas Generadas")
+        st.write("Aquí se mostrarán las facturas generadas.")   
+    
+    # Pestaña 3: Validar NIT
+    with tab3:
         st.header("Validar NIT")
         verifica_stream.main()
+        
+    # Pestaña 4: Lista de Clientes
+    with tab4:
+        st.header("Lista de Clientes")
+        st.write("Aquí se mostrarán los clientes.")
 
+    # Pestaña 5: Verificar Factura
+    with tab5:
+        st.header("Verificar Factura")
+        numero_factura = st.text_input("Ingrese el número de la factura:")
+
+        if st.button("Verificar Factura"):
+            # Limpiar cualquier mensaje previo
+            message_placeholder.empty()
+
+            if not numero_factura:
+                message_placeholder.warning("Por favor, ingrese un número de factura.")
+            else:
+                exito, mensaje = verificar_estado_factura(numero_factura)
+                if exito:
+                    message_placeholder.success(mensaje)
+                else:
+                    message_placeholder.error(mensaje)
+
+    # Pestaña 6: Gestionar CUIS
+    with tab6:
+        st.header("Gestionar CUIS")
+        #st.write("Aquí puedes gestionar los códigos CUIS.")
+        # Aquí podrías agregar la funcionalidad para gestionar CUIS
+        cuis.main()
+
+    # Pestaña 7: Anular Factura
+    with tab7:
+        st.header("Anular Factura")
+        
+        # Entrada para el número de factura
+        numero_factura_anular = st.text_input("Ingrese el número de la factura a anular:")
+        
+        # Obtener las opciones de motivos desde la base de datos
+        opciones_motivos = obtener_motivos_anulacion()
+        
+        # Verificar si hay motivos de anulación disponibles
+        if opciones_motivos:
+            descripcion_motivo = st.selectbox("Seleccione el motivo de la anulación", opciones_motivos)
+        else:
+            st.error("No se encontraron motivos de anulación disponibles.")
+
+        # Botón para iniciar la anulación de la factura
+        if st.button("Anular Factura"):
+            # Limpiar cualquier mensaje previo
+            message_placeholder.empty()
+
+            if not numero_factura_anular or not descripcion_motivo:
+                message_placeholder.warning("Por favor, ingrese todos los datos requeridos.")
+            else:
+                # Llamar a la función anular_factura
+                exito, mensaje = anular_factura(numero_factura_anular, descripcion_motivo)
+                
+                if exito:
+                    message_placeholder.success(mensaje)
+                else:
+                    message_placeholder.error(mensaje)
+    # Pestaña 8: Revertir Anulación de Factura
+    with tab8:
+        st.header("Revertir Anulación de Factura")
+        
+        # Entrada para el número de factura
+        numero_factura_revertir = st.text_input("Ingrese el número de la factura a revertir la anulación:")
+
+        # Botón para iniciar la reversión de la anulación
+        if st.button("Revertir Anulación"):
+            # Limpiar cualquier mensaje previo
+            message_placeholder.empty()
+
+            if not numero_factura_revertir:
+                message_placeholder.warning("Por favor, ingrese el número de la factura.")
+            else:
+                cuf, factura = obtener_cuf_por_numero_factura(numero_factura_revertir)
+                if not cuf:
+                    message_placeholder.error("No se encontró la factura especificada.")
+                else:
+                    exito, respuesta = enviar_solicitud_reversion(cuf)
+                    if exito:
+                        exito_reversion, mensaje_reversion = procesar_respuesta_reversion(respuesta, factura)
+                        if exito_reversion:
+                            message_placeholder.success(mensaje_reversion)
+                        else:
+                            message_placeholder.error(mensaje_reversion)
+                    else:
+                        message_placeholder.error(respuesta)
+    
     if 'processed_comandas' not in st.session_state:
         st.session_state.processed_comandas = []
 
@@ -584,7 +776,7 @@ def main():
 
 
     
-    numero_documento = st.sidebar.text_input("Número de Documento:", key="numero_documento")
+    numero_documento = st.sidebar.text_input("Número de Documento:", key="numero_documento", help="Ingresa el número de documento del cliente.")
     nit_valido = False
 
     nombre_cliente = ""
@@ -627,33 +819,33 @@ def main():
                 codigo_clasificador_documento = tipo_documento_seleccionado["codigoClasificador"]
                 if tipo_documento_seleccionado['codigoClasificador'] == '2':
                     complemento = st.sidebar.text_input("Complemento:", key="complemento")
-                nombre_cliente = st.sidebar.text_input("Razón Social:", key="nombre_cliente")
+                nombre_cliente = st.sidebar.text_input("Razón Social:", placeholder="Sin Nombre", key="nombre_cliente")
                 email = st.sidebar.text_input("Email:", key="email")
                 telefono = st.sidebar.text_input("Teléfono:", key="telefono")
 
                 if seleccion_tipo_documento == "NIT - NÚMERO DE IDENTIFICACIÓN TRIBUTARIA":
                     valido, mensaje = verificar_nit(numero_documento)
                     if valido:
-                        st.success(f"NIT válido: {mensaje}")
+                        message_placeholder.success(f"✔️ NIT válido: {mensaje}")
                         nit_valido = True
                     else:
-                        st.error(mensaje)
+                        message_placeholder.error(mensaje, icon="❌")
                         nit_valido = False
 
                 guardar_cliente_button = st.sidebar.button("Guardar Cliente", key="guardar_cliente", disabled=(not nit_valido and seleccion_tipo_documento == "NIT - NÚMERO DE IDENTIFICACIÓN TRIBUTARIA"))
                 if guardar_cliente_button:
                     if tipo_documento_seleccionado:
-                        cliente_data = save_or_fetch_client_data(numero_documento, tipo_documento_seleccionado['codigoClasificador'], complemento, email, nombre_cliente, numero_documento, telefono)
+                        cliente_data = save_or_fetch_client_data(numero_documento, tipo_documento_seleccionado['codigoClasificador'], complemento, email, nombre_cliente, numero_documento, telefono, message_placeholder)
                         if cliente_data:
-                            message_placeholder.success("Datos del cliente guardados o obtenidos correctamente.")
+                            message_placeholder.success("✔️ Datos del cliente guardados correctamente.")
                             codigo_cliente = numero_documento  # Set codigo_cliente to numero_documento for new client
                     else:
-                        message_placeholder.error("Por favor selecciona un tipo de documento válido.")
+                             message_placeholder.error("Por favor selecciona un tipo de documento válido")
     
     id_comanda_set = set(comanda["id_comanda"] for comanda in comandas)
     available_comandas = [comanda for comanda in id_comanda_set if comanda not in st.session_state.processed_comandas]
 
-    selected_id_comanda = st.sidebar.multiselect("Selecciona las comandas", available_comandas, key="selected_comandas", placeholder="Selecciona la(s) comandas", help="Selecciona las comandas que deseas facturar.")
+    selected_id_comanda = st.sidebar.multiselect("Selecciona las comandas", available_comandas, key="selected_comandas", placeholder="Comandas Generadas", help="Selecciona las comandas que componen la factura.")
 
 
     opciones_metodos_pago = [metodo["descripcion"] for metodo in metodos_pago]
@@ -709,6 +901,7 @@ def main():
     logging.debug(f"Descuento Adicional Final: {descuento_adicional}")
     logging.debug(f"Monto Gift Card Final: {monto_giftcard}")
     numero_factura = get_next_invoice_number()
+    logging.debug(f"Factura #: {numero_factura - 1}")
     if selected_id_comanda:
         comandas_seleccionadas = [comanda for comanda in comandas if comanda["id_comanda"] in selected_id_comanda]
         subtotal, descuento_aplicado, monto_giftcard, total, monto_total_sujeto_iva, monto_total_moneda = calculate_totals(
@@ -738,8 +931,8 @@ def main():
     
 
     with tab1:
-     with st.container():  # Contenedor dentro de la pestaña "Facturar"
-        message_placeholder = st.empty() 
+     
+           
         
         html_invoice = generate_html_invoice(
             subtotal, 
@@ -764,7 +957,7 @@ def main():
         
         col1, col2, col3 = st.columns(3)
         with col1:
-         if st.button("Generar Factura en XML", key="generar_xml", disabled=not selected_id_comanda):
+         if st.button("Facturar", key="generar_xml", help="Generar la factura", disabled=not selected_id_comanda):
             if metodo_pago_seleccionado and seleccion_tipo_documento and numero_documento and selected_id_comanda:
                 try:
                     tipo_documento_seleccionado = next((doc for doc in tipos_documento if doc["descripcion"] == seleccion_tipo_documento), None)
@@ -772,7 +965,7 @@ def main():
                     razon_social_emisor = os.getenv('RAZON_SOCIAL')
                     municipio = os.getenv('MUNICIPIO')
                     telefono = os.getenv('TELEFONO')
-                    cufd = verificar_y_obtener_cufd()
+                    cufd = verificar_y_obtener_cufd(message_placeholder)
                     codigo_sucursal = int(os.getenv('CODIGO_SUCURSAL'))
                     codigo_punto_venta = int(os.getenv('CODIGO_PUNTO_VENTA'))
                     codigo_documento_sector = int(os.getenv('CODIGO_DOCUMENTO_SECTOR')) 
@@ -830,7 +1023,7 @@ def main():
                     
                     signed_xml_str = sign_xml(xml_str, private_key_path, cert_path, cuf)
 
-                    filename = f"xmls/factura_{cuf}_.xml"
+                    filename = f"xmls/factura_{numero_factura}_{cuf}_.xml"
                     with open(filename, "w", encoding='utf-8') as signed_xml_file:
                         signed_xml_file.write(signed_xml_str)
 
@@ -841,7 +1034,7 @@ def main():
                         response = enviar_solicitud(filename, xsd_main_path, fecha_emision_str, cufd)
 
                         if isinstance(response, dict) and response.get("error"):
-                            st.error(f"Error al enviar la factura: {response['error']}")
+                            message_placeholder.error(f"❌Error al enviar la factura: {response['error']}")
                         else:
                             try:
                                 root = ET.fromstring(response.content)
@@ -864,16 +1057,14 @@ def main():
                                         transaccion = transaccion.text.lower() == 'true'
                                         
                                         if transaccion:
-                                            message_placeholder.success(f"""FACTURA {codigo_descripcion} :heavy_check_mark:\n 
-                                            
-                                            """)
+                                            message_placeholder.success(f""":heavy_check_mark: FACTURA {codigo_descripcion}""")
 
                                             is_valid, error_message = validar_factura_cabecera(factura_cabecera_data)
                                             if is_valid:
                                                 guardar_factura_cabecera(factura_cabecera_data)
                                                 increment_invoice_number(numero_factura)
                                             else:
-                                                st.error(error_message)
+                                                message_placeholder.error(error_message)
                                                 return
 
                                             for detalle in detalles_data:
@@ -881,7 +1072,7 @@ def main():
                                                 if is_valid:
                                                     guardar_factura_detalle(detalle)
                                                 else:
-                                                    st.error(error_message)
+                                                    message_placeholder.error(error_message)
                                                     return
 
                                             # Generación directa del PDF utilizando imprimir_recibo
@@ -916,19 +1107,29 @@ def main():
                                                     st.download_button(
                                                         label="Imprimir Factura",
                                                         data=PDFbyte,
-                                                        file_name=f"factura_{cuf}.pdf",
+                                                        file_name=f"factura_{numero_factura}_{cuf}_.pdf",
                                                         mime='application/pdf'
                                                     )
 
 
                                             with col3:
                                                 enlace = generate_invoice_link(factura_cabecera_data['nitEmisor'], factura_cabecera_data['cuf'], factura_cabecera_data['numeroFactura'])
-                                                st.markdown(f"[Consultar factura](<{enlace}>)", unsafe_allow_html=True)
+                                                if st.button('Consultar factura'):
+                                                     st.write(f"[Visitar enlace]({enlace})")
+                                                
+                                                #st.markdown(f"[Consultar factura](<{enlace}>)", unsafe_allow_html=True)
                                                 #st.image(f"data:image/png;base64,{qr_base64}", width=150)
+                                                # Crear el botón
+                                                # Crear el botón
+                                                #if st.button("Consultar factura"):
+                                                    # Redirigir al usuario al enlace de la factura usando JavaScript
+                                                    #js = f"window.open('{enlace}');"
+                                                    #html = f'<img src onerror="{js}">'
+                                                   # st.write(html, unsafe_allow_html=True)
 
                                         else:
                                             mensajes_list = respuesta_servicio.find('mensajesList')
-                                            error_message = "La factura no fue procesada correctamente."
+                                            error_message = "❌La factura no fue procesada correctamente."
                                             if mensajes_list is not None:
                                                 for mensaje in mensajes_list:
                                                     codigo = mensaje.find('codigo')
@@ -936,34 +1137,30 @@ def main():
                                                     if codigo is not None and descripcion is not None:
                                                         error_message += f"\nCódigo: {codigo.text}, Descripción: {descripcion.text}"
                                                 
-                                                st.error(f"""{error_message}
+                                                message_placeholder.error(f"""{error_message}
                                                     Código de recepción: {codigo_recepcion}\n
                                                     Descripción: {codigo_descripcion}\n
                                                     Estado: {codigo_estado}\n
                                                 """)
                                             else:
-                                                st.error("La respuesta del servicio no contiene todos los campos esperados.")
+                                                message_placeholder.error("❌La respuesta del servicio no contiene todos los campos esperados.")
                                                 st.write("Contenido de la respuesta:", response.content)
                                             
                                     else:
-                                        st.error("No se pudo encontrar RespuestaServicioFacturacion en la respuesta XML.")
+                                        message_placeholder.error("❌No se pudo encontrar RespuestaServicioFacturacion en la respuesta XML.")
                                         st.write("Contenido de la respuesta:", response.content)
                                         
                             except ET.ParseError as e:
-                                st.error(f"Error al parsear la respuesta XML: {str(e)}")
+                                message_placeholder.error(f"❌Error al parsear la respuesta XML: {str(e)}")
                                 st.write("Contenido de la respuesta:", response.content)
 
                 except Exception as e:
-                    st.error(f"Error inesperado al procesar la respuesta: {str(e)}")
+                    message_placeholder.error(f"❌Error inesperado al procesar la respuesta: {str(e)}")
                     if 'response' in locals():
                         st.write("Contenido de la respuesta:", response.content)
             else:
-                st.error("Por favor, selecciona un método de pago, un tipo de documento y proporciona un número de documento válido para generar la factura en XML.")
+                message_placeholder.error("❌Por favor, selecciona un método de pago, un tipo de documento y un número de documento válido para generar la factura.")
 
 
 if __name__ == "__main__":
     main()
-    
-
-
-
