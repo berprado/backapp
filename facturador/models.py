@@ -316,7 +316,7 @@ class PuntoVenta(Base):
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    codigo_punto_venta = Column(Integer, nullable=False)
+    codigo_punto_venta = Column(Integer, nullable=False, unique=True)  # O revisar si debe ser la clave primaria
     nombre_punto_venta = Column(String(255), nullable=True)
     descripcion = Column(String(255), nullable=True)
     tipo = Column(String(255), nullable=True)
@@ -347,7 +347,8 @@ class Cuis(Base):
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    codigo = Column(String(10), nullable=False)
+    codigo = Column(String(10), nullable=True)  # Ajustado para permitir NULL si la base de datos lo permite
+    fecha_solicitud = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)  # Agregado este campo
     fecha_vigencia = Column(DateTime, nullable=True)
     vigente = Column(Boolean, default=True)
     codigo_punto_venta = Column(Integer, ForeignKey('punto_venta.codigo_punto_venta'), nullable=False)
@@ -360,12 +361,12 @@ class Cuis(Base):
         return {
             'id': self.id,
             'codigo': self.codigo,
+            'fecha_solicitud': self.fecha_solicitud,  # Añadido al diccionario
             'fecha_vigencia': self.fecha_vigencia,
             'vigente': self.vigente,
             'codigo_punto_venta': self.codigo_punto_venta,
             'punto_venta': self.punto_venta.to_dict() if self.punto_venta else None
         }
-
 class SincronizarParametricaMotivoAnulacion(Base):
     __tablename__ = 'sincronizarparametricamotivoanulacion'
     __table_args__ = {'extend_existing': True}

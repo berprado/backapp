@@ -175,6 +175,15 @@ def verificar_todos_los_servicios():
     return resultados
 
 
-
+def generate_file_name(numero_factura, cuf, extension):
+    """
+    Genera un nombre de archivo consistente para facturas XML y PDF.
+    
+    :param numero_factura: El número de la factura
+    :param cuf: El Código Único de Facturación
+    :param extension: La extensión del archivo ('xml' o 'pdf')
+    :return: El nombre del archivo generado
+    """
+    return f"factura_{numero_factura}_{cuf}_.{extension}"
 
 

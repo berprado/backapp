@@ -1,7 +1,10 @@
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from datetime import datetime
 from database import SessionLocal
 from sqlalchemy.exc import SQLAlchemyError
-import models
+from facturador import models
 import logging
 
 

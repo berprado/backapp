@@ -1,3 +1,6 @@
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import streamlit as st
 import streamlit.components.v1 as components
 from data_access import (
@@ -8,12 +11,11 @@ from business_logic import calculate_totals, collect_product_lines, generate_inv
 from invoice_xml_generator import generate_xml_invoice
 from num2words import num2words
 from database import SessionLocal
-import models
+from facturador.models import Cufd, Cliente
 from sqlalchemy.exc import IntegrityError
 import re
 from zeep import Client
 from zeep.transports import Transport
-import os
 from dotenv import load_dotenv
 from requests import Session
 from datetime import datetime
@@ -331,7 +333,7 @@ def save_or_fetch_client_data(codigo_cliente, codigo_tipo_documento_identidad, c
     if error:
         session = SessionLocal()
         try:
-            nuevo_cliente = models.Cliente(
+            nuevo_cliente = Cliente(
                 codigo_cliente=numero_documento,  # Set codigo_cliente to numero_documento
                 codigo_tipo_documento_identidad=codigo_tipo_documento_identidad,
                 complemento=complemento,
@@ -358,7 +360,7 @@ def save_or_fetch_client_data(codigo_cliente, codigo_tipo_documento_identidad, c
 def get_cufd():
     session = SessionLocal()
     try:
-        cufd_record = session.query(models.Cufd).filter(models.Cufd.vigente == 1).first()
+        cufd_record = session.query(Cufd).filter(Cufd.vigente == 1).first()
         if cufd_record:
             return cufd_record.codigo
         else:
@@ -371,7 +373,7 @@ def get_cufd():
 def verificar_y_obtener_cufd(message_placeholder):
     session = SessionLocal()
     try:
-        cufd_record = session.query(models.Cufd).filter(models.Cufd.vigente == 1).first()
+        cufd_record = session.query(Cufd).filter(Cufd.vigente == 1).first()
         if cufd_record and cufd_record.fecha_vigencia > datetime.now():
             return cufd_record.codigo
         else:
@@ -1025,21 +1027,14 @@ def main():
                                                         mime='application/pdf'
                                                     )
 
-
+                                            nit_emisor = factura_cabecera_data.get('nitEmisor')
+                                            cuf = factura_cabecera_data.get('cuf')
+                                            numero_factura = factura_cabecera_data.get('numeroFactura')
                                             with col3:
-                                                enlace = generate_invoice_link(factura_cabecera_data['nitEmisor'], factura_cabecera_data['cuf'], factura_cabecera_data['numeroFactura'])
-                                                if st.button('Consultar factura'):
-                                                     #st.write(f"[Visitar enlace]({enlace})")
-                                                
-                                                        st.markdown(f"[Consultar factura](<{enlace}>)", unsafe_allow_html=True)
-                                                #st.image(f"data:image/png;base64,{qr_base64}", width=150)
-                                                # Crear el botón
-                                                # Crear el botón
-                                                #if st.button("Consultar factura"):
-                                                    # Redirigir al usuario al enlace de la factura usando JavaScript
-                                                    #js = f"window.open('{enlace}');"
-                                                    #html = f'<img src onerror="{js}">'
-                                                   # st.write(html, unsafe_allow_html=True)
+                                                if nit_emisor and cuf and numero_factura:
+                                                    enlace = generate_invoice_link(nit_emisor, cuf, numero_factura)
+                                                    if st.button('Consultar factura'):
+                                                            st.markdown(f"[Consultar factura](<{enlace}>)", unsafe_allow_html=True)
 
                                         else:
                                             mensajes_list = respuesta_servicio.find('mensajesList')

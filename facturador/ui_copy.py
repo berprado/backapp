@@ -1,3 +1,6 @@
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import streamlit as st
 import streamlit.components.v1 as components
 from data_access import (
@@ -8,12 +11,11 @@ from business_logic import calculate_totals, collect_product_lines, generate_inv
 from invoice_xml_generator import generate_xml_invoice
 from num2words import num2words
 from database import SessionLocal
-import models
+from facturador.models import Cufd, Cliente
 from sqlalchemy.exc import IntegrityError
 import re
 from zeep import Client
 from zeep.transports import Transport
-import os
 from dotenv import load_dotenv
 from requests import Session
 from datetime import datetime
@@ -37,6 +39,8 @@ from estado_factura import verificar_estado_factura
 import cuis
 from anulacion import anular_factura
 from reversion import enviar_solicitud_reversion, procesar_respuesta_reversion, obtener_cuf_por_numero_factura
+
+
 
 # Lista de códigos permitidos para gift cards
 gift_card_codes = [
@@ -162,218 +166,130 @@ def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_
     subtitulo = os.getenv('SUBTITULO')    # Generar el código QR si el CUF está disponible
 
 
-        # HTML con la estructura proporcionada y el fondo blanco añadido
     html_content = f"""
     <!DOCTYPE html>
     <html lang="es">
-    <style type="text/css">
-      body {{
-        background-color: white; /* Fondo blanco */
-        color: black;  /* Texto negro */
-      }}
-      .tg {{
-        border-collapse: collapse;
-        border-spacing: 0;
-        margin: 0px auto;
-        width: 8cm !important;
-        background-color: white;  /* Fondo blanco para la tabla */
-      }}
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Factura</title>
+        <style type="text/css">
+        .tg  {{border-collapse:collapse;border-spacing:0;margin:0px auto;}}
+        .tg td{{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+        overflow:hidden;padding:10px 5px;word-break:normal;}}
+        .tg th{{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+        font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}}
+        .tg .tg-4pi9{{background-color:#ffffff;border-color:#ffffff;font-family:"Lucida Console", Monaco, monospace !important;
+        font-size:12px;text-align:left;vertical-align:middle;word-break:break-all;}}
+        .tg .tg-tdlr{{background-color:#ffffff;border-color:#ffffff;font-size:12px;text-align:left;vertical-align:top;}}
+        .tg .tg-c01i{{background-color:#9b9b9b;border-color:#ffffff;font-family:"Lucida Console", Monaco, monospace !important;
+        font-size:12px;font-weight:bold;text-align:right;vertical-align:middle;}}
+        .tg .tg-n17z{{background-color:#ffffff;border-color:#ffffff;font-family:"Lucida Console", Monaco, monospace !important;
+        font-size:12px;text-align:center;vertical-align:middle;}}
+        .tg .tg-i6l2{{background-color:#ffffff;border-color:#ffffff;font-family:"Lucida Console", Monaco, monospace !important;
+        font-size:12px;text-align:right;vertical-align:middle;}}
+        .tg .tg-gayi{{background-color:#9b9b9b;border-color:#efefef;font-family:"Lucida Console", Monaco, monospace !important;
+        font-size:12px;font-weight:bold;text-align:center;vertical-align:middle;}}
+        .tg .tg-1kjo{{background-color:#c0c0c0c0;border-color:#efefef;font-family:"Lucida Console", Monaco, monospace !important;
+        font-size:12px;text-align:center;vertical-align:middle;}}
+        .tg .tg-tm6e{{background-color:#c0c0c0;border-color:#ffffff;font-family:"Lucida Console", Monaco, monospace !important;
+        font-size:12px;text-align:left;vertical-align:middle;}}
+        .tg .tg-q5sf{{background-color:#ffffff;border-color:#ffffff;font-family:"Lucida Console", Monaco, monospace !important;
+        font-size:9px;text-align:center;vertical-align:middle;}}
+        .tg .tg-e8cb{{background-color:#9b9b9b;border-color:#ffffff;font-family:"Lucida Console", Monaco, monospace !important;
+        font-size:12px;text-align:right;vertical-align:middle;}}
+        .tg .tg-6l70{{background-color:#9b9b9b;border-color:#ffffff;font-family:"Lucida Console", Monaco, monospace !important;
+        font-size:12px;text-align:center;vertical-align:middle;}}
+        </style>
+    </head>
+    <body>
+    <table class="tg"><tbody>
+    <tr>
+        <td class="tg-n17z" colspan="4"><span style="font-weight:bold">{razon_social}</span><br><span style="font-weight:bold">{nombre_sucursal}</span><br><span style="font-weight:bold">Punto de Venta:</span> {codigo_punto_venta}</td>
+        <td class="tg-n17z"></td>
+        <td class="tg-i6l2"><span style="font-weight:bold">NIT:</span><br><span style="font-weight:bold">Factura N°:</span></td>
+        <td class="tg-4pi9">{nit}<br>{numero_factura}</td>
+    </tr>
+    <tr>
+        <td class="tg-n17z" colspan="4">{direccion}<br><span style="font-weight:bold">{municipio}</span><br><span style="font-weight:bold">Teléfono:</span> {telefono_empresa}</td>
+        <td class="tg-n17z"></td>
+        <td class="tg-i6l2"><span style="font-weight:bold">Código de</span><br><span style="font-weight:bold">Autorización</span></td>
+        <td class="tg-4pi9">{{cuf}}</td>
+    </tr>
+    <tr>
+        <td class="tg-n17z" colspan="7"><span style="font-weight:bold">{tipo_factura}</span><br>{subtitulo}</td>
+    </tr>
+    <tr>
+        <td class="tg-n17z" colspan="4"><span style="font-weight:bold">Fecha/Hora:</span> {fecha_emision}<br><span style="font-weight:bold">Nombre/Razón Social:</span> {nombre_cliente}</td>
+        <td class="tg-n17z"></td>
+        <td class="tg-i6l2"><span style="font-weight:bold">NIT/CI/CEX:</span><br><span style="font-weight:bold">Cod. Cliente:</span></td>
+        <td class="tg-4pi9">{numero_documento}<br>{numero_documento}</td>
+    </tr>
+    <tr>
+        <td class="tg-tdlr" colspan="7"></td>
+    </tr>
+    <tr>
+        <td class="tg-gayi" width="10%">CODIGO</td>
+        <td class="tg-gayi" width="5%">CANTIDAD</td>
+        <td class="tg-gayi" width="10%">UNIDAD</td>
+        <td class="tg-gayi" width="35%">DESCRIPCIÓN</td>
+        <td class="tg-gayi" width="10%">PRECIO UNIT.</td>
+        <td class="tg-gayi" width="15%">DESCUENTO</td>
+        <td class="tg-gayi" width="15%">SUBTOTAL</td>
+    </tr>
+    """
 
-      .tg td, .tg th {{
-        border-color: white;
-        border-style: solid;
-        border-width: 1px;
-        font-family: "Lucida Console", Monaco, monospace !important;
-        font-size: 10px;
-        overflow: hidden;
-        padding: 5px 2px;
-        word-break: normal;
-        color: black;  /* Texto negro */
-      }}
-
-    
-
-      .tg-9k97 {{
-        border-color: #ffffff;
-        font-family: "Lucida Console", Monaco, monospace !important;
-        text-align: right;
-        vertical-align: top;
-        color: black;
-      }}
-
-      .tg-8jgo {{
-        border-color: #ffffff;
-        text-align: center;
-        vertical-align: top;
-        color: black;
-      }}
-
-      .tg-eavw {{
-        border-color: #ffffff;
-        font-family: "Lucida Console", Monaco, monospace !important;
-        text-align: center;
-        vertical-align: top;
-        color: black;
-      }}
-
-      .tg-sz8q {{
-        border-color: #ffffff;
-        font-family: "Lucida Console", Monaco, monospace !important;
-        text-align: left;
-        vertical-align: top;
-        color: black;
-      }}
-
-      .tg-02er {{
-        border-color: #ffffff;
-        font-family: "Lucida Console", Monaco, monospace !important;
-        font-weight: bold;
-        text-align: center;
-        vertical-align: top;
-        color: black;
-      }}
-
-      .separator {{
-        border: none;
-        height: 1px;
-        background: black;
-        margin: 10px 0;
-      }}
-
-      @media screen and (max-width: 8cm) {{
-        .tg {{
-          width: 100% !important;
-        }}
-
-        .tg-wrap {{
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
-          margin: auto 0px;
-        }}
-
-        .separator {{
-          background: #ccc;
-        }}
-      }}
-    </style>
-
-    <div class="tg-wrap">
-      <table class="tg">
-        <tbody>
-          <tr>
-            <td class="tg-eavw">
-              <strong>{tipo_factura}</strong><br>
-              <strong>{subtitulo}</strong>
-            </td>
-          </tr>
-          <tr>
-            <td class="tg-eavw">{razon_social}<br>{nombre_sucursal}<br>Punto de Venta: {codigo_punto_venta}</td>
-          </tr>
-          <tr>
-            <td class="tg-eavw">{direccion}<br>{municipio}<br>Tel. {telefono_empresa}</td>
-          </tr>
-
-          <tr><td class="separator"></td></tr>
-
-          <tr>
-            <td class="tg-eavw">
-              <span style="font-weight:bold">NIT</span><br>{nit}<br>
-              <span style="font-weight:bold">Factura N°</span><br>{numero_factura}
-            </td>
-          </tr>
-          <tr>
-            <td class="tg-eavw">
-              <span style="font-weight:bold">Código de Autorización</span><br>{{cuf}}
-            </td>
-          </tr>
-
-          <tr><td class="separator"></td></tr>
-
-          <tr>
-            <td class="tg-eavw">
-              <span style="font-weight:bold">Nombre/Razón Social:</span> {nombre_cliente}<br>
-              <span style="font-weight:bold">NIT/CI/CEX:</span> {numero_documento}<br>
-              <span style="font-weight:bold">Cod. Cliente:</span> {numero_documento}<br>
-              <span style="font-weight:bold">Fecha de Emisión: </span>{fecha_emision}
-            </td>
-          </tr>
-
-          <tr><td class="separator"></td></tr>
-        
-        
-          <tr>
-            <td class="tg-eavw"><span style="font-weight:bold">DETALLE</span></td>
-          </tr>
-        """
     for linea in lineas_productos:
-            html_content += f""" 
-                <tr>
-                    <td class="tg-sz8q">
-                    <table style="width: 100%;">
-                        <tr>
-                            <td colspan=2><strong>{linea["codigo"]} - {linea["nombre"]}</strong></td>
-                        </tr>
-                        <tr>
-                            <td colspan=2>Unidad de Medida: {linea["unidad"]}</td>
-                        </tr>
-                        <tr>
-                            <td>{linea["cantidad"]} x {linea["precio_venta"]} Bs</td>
-                            <td align="right">{linea["sub_total"]} Bs</td>
-                        </tr>
-                    </table>
-                    </td>
-                </tr>
-            """
+        html_content += f"""
+        <tr>
+            <td class="tg-1kjo">{linea["codigo"]}</td>
+            <td class="tg-1kjo">{linea["cantidad"]}</td>
+            <td class="tg-1kjo">{linea["unidad"]}</td>
+            <td class="tg-1kjo">{linea["nombre"]}</td>
+            <td class="tg-1kjo">{linea["precio_venta"]}</td>
+            <td class="tg-1kjo">{linea.get("montoDescuento", 0)}</td>
+            <td class="tg-1kjo">{linea["sub_total"]}</td>
+        </tr>
+        """
+
     html_content += f"""
-          <tr><td class="separator"></td></tr>
-
-          <tr>
-            <td class="tg-9k97">Sub Total: {subtotal:.2f}</td>
-          </tr>
-          <tr>
-            <td class="tg-9k97">Descuento: {descuento_adicional:.2f}</td>
-          </tr>
-          <tr>
-            <td class="tg-9k97">Total: {total:.2f}</td>
-          </tr>
-          <tr>
-            <td class="tg-9k97">Gift Card: {monto_giftcard:.2f}</td>
-          </tr>
-          <tr>
-            <td class="tg-9k97">
-              <span style="font-weight:bold">Monto a Pagar:</span> {total_final:.2f}
-            </td>
-          </tr>
-          <tr>
-            <td class="tg-9k97">
-              <span style="font-weight:bold">Imp. Base Cred. Fiscal:</span> {monto_total_sujeto_iva:.2f}
-            </td>
-          </tr>
-          <tr>
-            <td class="tg-sz8q">Son: {total_en_palabras}.</td>
-          </tr>
-
-          <tr><td class="separator"></td></tr>
-
-          <tr>
-            <td class="tg-eavw">
-              ESTA FACTURA CONTRIBUYE AL DESARROLLO DEL PAÍS, EL USO ILÍCITO SERÁ SANCIONADO PENALMENTE DE ACUERDO A LEY.
-            </td>
-          </tr>
-          <tr>
-            <td class="tg-eavw">{leyenda}</td>
-          </tr>
-          <tr>
-            <td class="tg-eavw">
-              “Este documento es la Representación Gráfica de un Documento Fiscal Digital emitido en una modalidad de facturación en línea”
-            </td>
-          </tr>
-          <tr>
-            <td class="tg-8jgo">{{codigo_qr}}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <tr>
+        <td class="tg-n17z" colspan="5"></td>
+        <td class="tg-c01i">Sub Total:</td>
+        <td class="tg-tm6e"><span style="font-weight:bold">{subtotal:.2f}</span></td>
+    </tr>
+    <tr>
+        <td class="tg-q5sf" colspan="5"></td>
+        <td class="tg-c01i">Descuento:</td>
+        <td class="tg-tm6e"><span style="font-weight:bold">{descuento_adicional:.2f}</span></td>
+    </tr>
+    <tr>
+        <td class="tg-n17z" colspan="5"><span style="font-weight:bold">Son: {total_en_palabras}</span></td>
+        <td class="tg-e8cb"><span style="font-weight:bold">Total:</span></td>
+        <td class="tg-tm6e"><span style="font-weight:bold">{total:.2f}</span></td>
+    </tr>
+    <tr>
+        <td class="tg-q5sf" colspan="5"></td>
+        <td class="tg-e8cb"><span style="font-weight:bold">Gift Card:</span></td>
+        <td class="tg-tm6e"><span style="font-weight:bold">{monto_giftcard:.2f}</span></td>
+    </tr>
+    <tr>
+        <td class="tg-q5sf" colspan="5"></td>
+        <td class="tg-e8cb"><span style="font-weight:bold">Monto a Pagar:</span></td>
+        <td class="tg-tm6e"><span style="font-weight:bold">{total_final:.2f}</span></td>
+    </tr>
+    <tr>
+        <td class="tg-q5sf" colspan="5"></td>
+        <td class="tg-6l70"><span style="font-weight:bold">Imp. Base Cred. Fiscal:</span></td>
+        <td class="tg-tm6e"><span style="font-weight:bold">{monto_total_sujeto_iva:.2f}</span></td>
+    </tr>
+    <tr>
+        <td class="tg-n17z" colspan="5"><span class="tg-q5sf">ESTA FACTURA CONTRIBUYE AL DESARROLLO DEL PAÍS, EL USO ILÍCITO SERÁ SANCIONADO PENALMENTE DE ACUERDO A LEY</span><br><br><span style="font-weight:bold">{leyenda}</span><br><br><span class="tg-q5sf">“Este documento es la Representación Gráfica de un Documento Fiscal Digital emitido en una modalidad de facturación en línea”</span></td>
+        <td class="tg-n17z" colspan="2">{{codigo_qr}}</td>
+    </tr>
+    </tbody></table>
+    </body>
+    </html>
     """
     return html_content
 
@@ -417,7 +333,7 @@ def save_or_fetch_client_data(codigo_cliente, codigo_tipo_documento_identidad, c
     if error:
         session = SessionLocal()
         try:
-            nuevo_cliente = models.Cliente(
+            nuevo_cliente = Cliente(
                 codigo_cliente=numero_documento,  # Set codigo_cliente to numero_documento
                 codigo_tipo_documento_identidad=codigo_tipo_documento_identidad,
                 complemento=complemento,
@@ -444,7 +360,7 @@ def save_or_fetch_client_data(codigo_cliente, codigo_tipo_documento_identidad, c
 def get_cufd():
     session = SessionLocal()
     try:
-        cufd_record = session.query(models.Cufd).filter(models.Cufd.vigente == 1).first()
+        cufd_record = session.query(Cufd).filter(Cufd.vigente == 1).first()
         if cufd_record:
             return cufd_record.codigo
         else:
@@ -457,7 +373,7 @@ def get_cufd():
 def verificar_y_obtener_cufd(message_placeholder):
     session = SessionLocal()
     try:
-        cufd_record = session.query(models.Cufd).filter(models.Cufd.vigente == 1).first()
+        cufd_record = session.query(Cufd).filter(Cufd.vigente == 1).first()
         if cufd_record and cufd_record.fecha_vigencia > datetime.now():
             return cufd_record.codigo
         else:
@@ -1111,21 +1027,14 @@ def main():
                                                         mime='application/pdf'
                                                     )
 
-
+                                            nit_emisor = factura_cabecera_data.get('nitEmisor')
+                                            cuf = factura_cabecera_data.get('cuf')
+                                            numero_factura = factura_cabecera_data.get('numeroFactura')
                                             with col3:
-                                                enlace = generate_invoice_link(factura_cabecera_data['nitEmisor'], factura_cabecera_data['cuf'], factura_cabecera_data['numeroFactura'])
-                                                if st.button('Consultar factura'):
-                                                     st.write(f"[Visitar enlace]({enlace})")
-                                                
-                                                #st.markdown(f"[Consultar factura](<{enlace}>)", unsafe_allow_html=True)
-                                                #st.image(f"data:image/png;base64,{qr_base64}", width=150)
-                                                # Crear el botón
-                                                # Crear el botón
-                                                #if st.button("Consultar factura"):
-                                                    # Redirigir al usuario al enlace de la factura usando JavaScript
-                                                    #js = f"window.open('{enlace}');"
-                                                    #html = f'<img src onerror="{js}">'
-                                                   # st.write(html, unsafe_allow_html=True)
+                                                if nit_emisor and cuf and numero_factura:
+                                                    enlace = generate_invoice_link(nit_emisor, cuf, numero_factura)
+                                                    if st.button('Consultar factura'):
+                                                            st.markdown(f"[Consultar factura](<{enlace}>)", unsafe_allow_html=True)
 
                                         else:
                                             mensajes_list = respuesta_servicio.find('mensajesList')
@@ -1164,3 +1073,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
+
+
+

@@ -1,5 +1,5 @@
 import pdfkit
-from business_logic import generate_qr
+from business_logic import generate_qr, generate_file_name
 import os
 
 def imprimir_recibo(html_content, cuf, nit, numero_factura):
@@ -13,7 +13,9 @@ def imprimir_recibo(html_content, cuf, nit, numero_factura):
         f.write(html_content)
     print("HTML final guardado en final_factura_test.html")
 
-    file_path = os.path.join("pdfs", f"factura_{cuf}.pdf")
+    # Usar la nueva función para generar el nombre del archivo
+    file_name = generate_file_name(numero_factura, cuf, "pdf")
+    file_path = os.path.join("pdfs", file_name)
     guardar_recibo_como_pdf(html_content, file_path)
     
     return file_path, qr_base64
@@ -27,4 +29,3 @@ def guardar_recibo_como_pdf(html_content, file_path):
         print(f"Factura guardada exitosamente como {file_path}")
     except Exception as e:
         print(f"Error al guardar la factura como PDF: {e}")
-

@@ -3,7 +3,7 @@ import requests
 import xml.etree.ElementTree as ET
 from dotenv import load_dotenv
 from database import SessionLocal
-from models import FacturaCabecera
+from facturador.models import FacturaCabecera
 from datetime import datetime
 
 load_dotenv()

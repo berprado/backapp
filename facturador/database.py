@@ -16,10 +16,12 @@ Base = declarative_base()
 
 def init_db():
     # Import all models here so that Base can recognize them before creating tables
-   
     Base.metadata.create_all(bind=engine)
-    
-   
+
+def clear_metadata():
+    # Clear all metadata
+    Base.metadata.clear()
+
 def get_db():
     db = SessionLocal()
     try:
@@ -29,6 +31,7 @@ def get_db():
 
 # Call init_db to create tables if they do not exist
 if __name__ == "__main__":
+    clear_metadata()  # Descomenta esta línea si deseas limpiar el metadata antes de inicializar la base de datos
     init_db()
 
 

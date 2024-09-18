@@ -1,9 +1,11 @@
 import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import requests
 import xml.etree.ElementTree as ET
 from dotenv import load_dotenv
 from database import SessionLocal
-from models import FacturaCabecera
+from facturador.models import FacturaCabecera
 from datetime import datetime
 from data_access import obtener_mensaje_por_codigo
 
