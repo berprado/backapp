@@ -37,7 +37,7 @@ def fetch_comandas():
     except requests.exceptions.RequestException as e:
         return [], f"Error al obtener los id_comanda: {e}"
 
-@st.cache_resource
+@st.cache_data
 def fetch_metodos_pago():
     session = SessionLocal()
     try:
@@ -50,7 +50,7 @@ def fetch_metodos_pago():
     finally:
         session.close()
 
-@st.cache_resource
+@st.cache_data
 def fetch_tipos_documento():
     session = SessionLocal()
     try:

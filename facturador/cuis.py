@@ -4,7 +4,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import streamlit as st
 from datetime import datetime
 from sqlalchemy.orm import Session
-from facturador.database import get_db
+from facturador.database import get_db, init_db
 from facturador.data_access import solicitar_cuis, insertar_cuis_manual
 from facturador.models import Cuis, PuntoVenta
 from dotenv import load_dotenv
@@ -41,7 +41,9 @@ def solicitar_nuevo_cuis(db: Session, codigo_punto_venta: int):
         st.error(f"No se pudo solicitar un nuevo CUIS: {resultado['message']}")
 
 def main():
-    #st.title("Gestión de CUIS")
+    # Inicializar la base de datos
+    init_db()
+    
 
     # Obtener la sesión de la base de datos
     db = next(get_db())

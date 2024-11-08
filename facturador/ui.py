@@ -1,13 +1,25 @@
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import streamlit as st
 import streamlit.components.v1 as components
 from data_access import (
-    fetch_comandas, fetch_metodos_pago, fetch_tipos_documento, fetch_cliente, 
-    fetch_random_leyenda, guardar_factura_cabecera, guardar_factura_detalle, obtener_nombre_unidad_medida, obtener_motivos_anulacion
+    fetch_comandas,
+    fetch_metodos_pago,
+    fetch_tipos_documento,
+    fetch_cliente,
+    fetch_random_leyenda,
+    guardar_factura_cabecera,
+    guardar_factura_detalle,
+    obtener_nombre_unidad_medida,
+    obtener_motivos_anulacion,
 )
-from business_logic import calculate_totals, collect_product_lines, generate_invoice_link, generate_qr
+from business_logic import (
+    calculate_totals,
+    collect_product_lines,
+    generate_invoice_link,
+    generate_qr,
+)
 from invoice_xml_generator import generate_xml_invoice
 from num2words import num2words
 from database import SessionLocal
@@ -33,22 +45,98 @@ from decimal import Decimal
 import logging
 import traceback
 import xml.etree.ElementTree as ET
-from export import imprimir_recibo
+
 import verifica_stream
 from estado_factura import verificar_estado_factura
 import cuis
 from anulacion import anular_factura
-from reversion import enviar_solicitud_reversion, procesar_respuesta_reversion, obtener_cuf_por_numero_factura
-
+from reversion import (
+    enviar_solicitud_reversion,
+    procesar_respuesta_reversion,
+    obtener_cuf_por_numero_factura,
+)
+from export import (
+    imprimir_recibo,
+    imprimir_recibo1,
+)  # Importar la función `imprimir_recibo`
+from invoice_templates import (
+    generate_compact_html_invoice,
+)  # Importar la generación del HTML
 
 
 # Lista de códigos permitidos para gift cards
 gift_card_codes = [
-    102, 109, 115, 120, 124, 128, 129, 130, 138, 146, 153, 159, 164, 168,
-    172, 173, 174, 182, 189, 195, 200, 204, 208, 209, 210, 217, 221, 222,
-    223, 224, 225, 226, 228, 232, 241, 246, 250, 254, 255, 256, 261, 265,
-    269, 270, 271, 275, 279, 280, 281, 285, 286, 287, 291, 292, 293, 30,
-    304, 35, 40, 49, 53, 60, 64, 68, 72, 76, 77, 78, 86, 94, 27
+    102,
+    109,
+    115,
+    120,
+    124,
+    128,
+    129,
+    130,
+    138,
+    146,
+    153,
+    159,
+    164,
+    168,
+    172,
+    173,
+    174,
+    182,
+    189,
+    195,
+    200,
+    204,
+    208,
+    209,
+    210,
+    217,
+    221,
+    222,
+    223,
+    224,
+    225,
+    226,
+    228,
+    232,
+    241,
+    246,
+    250,
+    254,
+    255,
+    256,
+    261,
+    265,
+    269,
+    270,
+    271,
+    275,
+    279,
+    280,
+    281,
+    285,
+    286,
+    287,
+    291,
+    292,
+    293,
+    30,
+    304,
+    35,
+    40,
+    49,
+    53,
+    60,
+    64,
+    68,
+    72,
+    76,
+    77,
+    78,
+    86,
+    94,
+    27,
 ]
 
 # Configurar logging
@@ -58,9 +146,9 @@ logger.setLevel(logging.DEBUG)
 if not logger.handlers:
     logging.basicConfig(
         level=logging.DEBUG,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        filename='firma_log.txt',
-        filemode='w'
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        filename="firma_log.txt",
+        filemode="w",
     )
 
 
@@ -68,31 +156,36 @@ def es_email_valido(email, message_placeholder):
     patron = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
     return re.match(patron, email) is not None
 
+
 def es_telefono_valido(telefono):
     return telefono.isdigit()
+
 
 load_dotenv()
 
 session = Session()
-session.headers.update({'apikey': os.getenv('API_KEY')})
+session.headers.update({"apikey": os.getenv("API_KEY")})
 
-wsdl_url = os.getenv('WSDL_URL_CODIGOS')
+wsdl_url = os.getenv("WSDL_URL_CODIGOS")
 client = Client(wsdl_url, transport=Transport(session=session))
 
+
 def verificar_nit(nit):
-    
+
     solicitud_verificar_nit = {
-        'codigoAmbiente': os.getenv('CODIGO_AMBIENTE'),
-        'codigoModalidad': os.getenv('CODIGO_MODALIDAD'),
-        'codigoSistema': os.getenv('CODIGO_SISTEMA'),
-        'codigoSucursal': os.getenv('CODIGO_SUCURSAL'),
-        'cuis': os.getenv('CUIS'),
-        'nit': os.getenv('NIT'),
-        'nitParaVerificacion': nit
+        "codigoAmbiente": os.getenv("CODIGO_AMBIENTE"),
+        "codigoModalidad": os.getenv("CODIGO_MODALIDAD"),
+        "codigoSistema": os.getenv("CODIGO_SISTEMA"),
+        "codigoSucursal": os.getenv("CODIGO_SUCURSAL"),
+        "cuis": os.getenv("CUIS"),
+        "nit": os.getenv("NIT"),
+        "nitParaVerificacion": nit,
     }
 
     try:
-        response = client.service.verificarNit(SolicitudVerificarNit=solicitud_verificar_nit)
+        response = client.service.verificarNit(
+            SolicitudVerificarNit=solicitud_verificar_nit
+        )
         if response.transaccion:
             return True, response.mensajesList[0].descripcion
         else:
@@ -100,71 +193,123 @@ def verificar_nit(nit):
     except Exception as e:
         return False, f"Ocurrió un error: {str(e)}"
 
+
 def validar_factura_cabecera(factura_cabecera_data):
     required_fields = [
-        'nitEmisor', 'razonSocialEmisor', 'municipio', 'numeroFactura', 'cuf', 'cufd', 
-        'codigoSucursal', 'direccion', 'fechaEmision', 'codigoTipoDocumentoIdentidad', 
-        'numeroDocumento', 'codigoCliente', 'codigoMetodoPago', 'montoTotal', 'montoTotalSujetoIva', 
-        'codigoMoneda', 'tipoCambio', 'montoTotalMoneda', 'leyenda', 'usuario', 'codigoDocumentoSector'
+        "nitEmisor",
+        "razonSocialEmisor",
+        "municipio",
+        "numeroFactura",
+        "cuf",
+        "cufd",
+        "codigoSucursal",
+        "direccion",
+        "fechaEmision",
+        "codigoTipoDocumentoIdentidad",
+        "numeroDocumento",
+        "codigoCliente",
+        "codigoMetodoPago",
+        "montoTotal",
+        "montoTotalSujetoIva",
+        "codigoMoneda",
+        "tipoCambio",
+        "montoTotalMoneda",
+        "leyenda",
+        "usuario",
+        "codigoDocumentoSector",
     ]
-    
+
     for field in required_fields:
-        if factura_cabecera_data.get(field) is None or factura_cabecera_data.get(field) == '':
+        if (
+            factura_cabecera_data.get(field) is None
+            or factura_cabecera_data.get(field) == ""
+        ):
             return False, f"El campo {field} es requerido y no puede estar vacío."
-    
+
     return True, ""
+
 
 def validar_factura_detalle(factura_detalle_data):
     required_fields = [
-        'numeroFactura', 'actividadEconomica', 'codigoProductoSin', 'codigoProducto', 
-        'descripcion', 'cantidad', 'unidadMedida', 'precioUnitario', 'subTotal'
+        "numeroFactura",
+        "actividadEconomica",
+        "codigoProductoSin",
+        "codigoProducto",
+        "descripcion",
+        "cantidad",
+        "unidadMedida",
+        "precioUnitario",
+        "subTotal",
     ]
-    
+
     for field in required_fields:
-        if factura_detalle_data.get(field) is None or factura_detalle_data.get(field) == '':
+        if (
+            factura_detalle_data.get(field) is None
+            or factura_detalle_data.get(field) == ""
+        ):
             return False, f"El campo {field} es requerido y no puede estar vacío."
-    
+
     return True, ""
 
-def numero_a_palabras_con_decimales_como_fraccion(numero, lang='es'):
+
+def numero_a_palabras_con_decimales_como_fraccion(numero, lang="es"):
     if not numero:
         return ""
-    
+
     parte_entera = int(numero)
     parte_decimal = int(round((numero - parte_entera) * 100))
     parte_entera_palabras = num2words(parte_entera, lang=lang).capitalize()
-    
+
     if parte_decimal > 0:
         return f" {parte_entera_palabras} {parte_decimal:02d}/100 bolivianos."
     else:
         return f" {parte_entera_palabras} 00/100 bolivianos."
 
 
-
 @st.cache_data
-def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_productos, nombre_cliente, fecha_emision, numero_factura, metodo_de_pago=None, codigo_clasificador_metodo_pago=None, tipo_documento=None, codigo_clasificador_documento=None, numero_documento=None, complemento=None, email=None, telefono=None, ultimos_digitos_tarjeta=None):
+def generate_html_invoice(
+    subtotal,
+    descuento_adicional,
+    monto_giftcard,
+    lineas_productos,
+    nombre_cliente,
+    fecha_emision,
+    numero_factura,
+    metodo_de_pago=None,
+    codigo_clasificador_metodo_pago=None,
+    tipo_documento=None,
+    codigo_clasificador_documento=None,
+    numero_documento=None,
+    complemento=None,
+    email=None,
+    telefono=None,
+    ultimos_digitos_tarjeta=None,
+):
     total = subtotal - descuento_adicional
     total_final = total - monto_giftcard
-    
+
     if codigo_clasificador_metodo_pago in gift_card_codes:
         monto_total_sujeto_iva = total - monto_giftcard
     else:
         monto_total_sujeto_iva = total
 
-    total_en_palabras = numero_a_palabras_con_decimales_como_fraccion(total, lang='es') if total else ""
+    total_en_palabras = (
+        numero_a_palabras_con_decimales_como_fraccion(total, lang="es") if total else ""
+    )
 
     leyenda = fetch_random_leyenda()
-    
-    nit = os.getenv('NIT') # NIT del emisor
-    razon_social = os.getenv('RAZON_SOCIAL') # Razón social del emisor
-    nombre_sucursal = os.getenv('NOMBRE_SUCURSAL')  # Nombre de la sucursal
-    codigo_punto_venta = os.getenv('CODIGO_PUNTO_VENTA')  # Código del punto de venta
-    direccion = os.getenv('DIRECCION')  # Dirección de la empresa
-    municipio = os.getenv('MUNICIPIO')  # Municipio de la empresa
-    telefono_empresa = os.getenv('TELEFONO')  # Teléfono de la empresa
-    tipo_factura = os.getenv('DESCRIPCION_TIPO_FACTURA')  # Tipo de factura (original, copia, etc.)
-    subtitulo = os.getenv('SUBTITULO')    # Generar el código QR si el CUF está disponible
 
+    nit = os.getenv("NIT")  # NIT del emisor
+    razon_social = os.getenv("RAZON_SOCIAL")  # Razón social del emisor
+    nombre_sucursal = os.getenv("NOMBRE_SUCURSAL")  # Nombre de la sucursal
+    codigo_punto_venta = os.getenv("CODIGO_PUNTO_VENTA")  # Código del punto de venta
+    direccion = os.getenv("DIRECCION")  # Dirección de la empresa
+    municipio = os.getenv("MUNICIPIO")  # Municipio de la empresa
+    telefono_empresa = os.getenv("TELEFONO")  # Teléfono de la empresa
+    tipo_factura = os.getenv(
+        "DESCRIPCION_TIPO_FACTURA"
+    )  # Tipo de factura (original, copia, etc.)
+    subtitulo = os.getenv("SUBTITULO")  # Generar el código QR si el CUF está disponible
 
     html_content = f"""
     <!DOCTYPE html>
@@ -293,12 +438,15 @@ def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_
     """
     return html_content
 
+
 def get_next_invoice_number():
     try:
         with open("invoice_number.txt", "r") as file:
             numero_factura = int(file.read().strip())
     except FileNotFoundError:
-        logging.warning("Archivo 'invoice_number.txt' no encontrado. Se creará uno nuevo con el número de factura inicial 0.")
+        logging.warning(
+            "Archivo 'invoice_number.txt' no encontrado. Se creará uno nuevo con el número de factura inicial 0."
+        )
         numero_factura = 0
     except ValueError as e:
         logging.error(f"Error de formato en 'invoice_number.txt': {e}")
@@ -307,6 +455,7 @@ def get_next_invoice_number():
         logging.error(f"Error inesperado al leer 'invoice_number.txt': {e}")
         raise e
     return numero_factura + 1
+
 
 def increment_invoice_number(numero_factura):
     try:
@@ -547,10 +696,16 @@ with open('verifica_stream.py', 'r') as file:
     file_content = file.read()
 with open('cuis.py', 'r') as file:
     file_content += file.read()
+
+
 @st.cache_data
 def render_sidebar():
     # Toda la lógica relacionada con st.sidebar aquí
-    numero_documento = st.sidebar.text_input("Número de Documento:", key="numero_documento", help="Ingresa el número de documento del cliente.")
+    numero_documento = st.sidebar.text_input(
+        "Número de Documento:",
+        key="numero_documento",
+        help="Ingresa el número de documento del cliente.",
+    )
     nit_valido = False
     nombre_cliente = ""
     complemento = None
@@ -561,29 +716,50 @@ def render_sidebar():
     codigo_clasificador_metodo_pago = None
     ultimos_digitos_tarjeta = None
     codigo_cliente = None
-    
+
     # Resto de la lógica relacionada con la barra lateral
     # (fetch_cliente, selectboxes, etc.)
-    return numero_documento, nit_valido, nombre_cliente, complemento, email, telefono, seleccion_tipo_documento, codigo_clasificador_documento, codigo_clasificador_metodo_pago, ultimos_digitos_tarjeta, codigo_cliente
+    return (
+        numero_documento,
+        nit_valido,
+        nombre_cliente,
+        complemento,
+        email,
+        telefono,
+        seleccion_tipo_documento,
+        codigo_clasificador_documento,
+        codigo_clasificador_metodo_pago,
+        ultimos_digitos_tarjeta,
+        codigo_cliente,
+    )
+
 
 def main():
     message_placeholder = st.empty()
     # Definición de las pestañas
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
-        "🧾Facturar", "🔍Ver Facturas", "✅Validar NIT", "😏Clientes", 
-        "🔍Verificar Factura", "🔍Gestionar CUIS", "❌Anular Factura", "❌Revertir Anulacion"
-    ])
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(
+        [
+            "🧾Facturar",
+            "🔍Ver Facturas",
+            "✅Validar NIT",
+            "😏Clientes",
+            "🔍Verificar Factura",
+            "🔍Gestionar CUIS",
+            "❌Anular Factura",
+            "❌Revertir Anulacion",
+        ]
+    )
 
     # Pestaña 2: Ver Facturas Generadas
     with tab2:
         st.header("Facturas Generadas")
-        st.write("Aquí se mostrarán las facturas generadas.")   
-    
+        st.write("Aquí se mostrarán las facturas generadas.")
+
     # Pestaña 3: Validar NIT
     with tab3:
         st.header("Validar NIT")
         verifica_stream.main()
-        
+
     # Pestaña 4: Lista de Clientes
     with tab4:
         st.header("Lista de Clientes")
@@ -610,23 +786,27 @@ def main():
     # Pestaña 6: Gestionar CUIS
     with tab6:
         st.header("Gestionar CUIS")
-        #st.write("Aquí puedes gestionar los códigos CUIS.")
+        # st.write("Aquí puedes gestionar los códigos CUIS.")
         # Aquí podrías agregar la funcionalidad para gestionar CUIS
         cuis.main()
 
     # Pestaña 7: Anular Factura
     with tab7:
         st.header("Anular Factura")
-        
+
         # Entrada para el número de factura
-        numero_factura_anular = st.text_input("Ingrese el número de la factura a anular:")
-        
+        numero_factura_anular = st.text_input(
+            "Ingrese el número de la factura a anular:"
+        )
+
         # Obtener las opciones de motivos desde la base de datos
         opciones_motivos = obtener_motivos_anulacion()
-        
+
         # Verificar si hay motivos de anulación disponibles
         if opciones_motivos:
-            descripcion_motivo = st.selectbox("Seleccione el motivo de la anulación", opciones_motivos)
+            descripcion_motivo = st.selectbox(
+                "Seleccione el motivo de la anulación", opciones_motivos
+            )
         else:
             st.error("No se encontraron motivos de anulación disponibles.")
 
@@ -636,11 +816,15 @@ def main():
             message_placeholder.empty()
 
             if not numero_factura_anular or not descripcion_motivo:
-                message_placeholder.warning("Por favor, ingrese todos los datos requeridos.")
+                message_placeholder.warning(
+                    "Por favor, ingrese todos los datos requeridos."
+                )
             else:
                 # Llamar a la función anular_factura
-                exito, mensaje = anular_factura(numero_factura_anular, descripcion_motivo)
-                
+                exito, mensaje = anular_factura(
+                    numero_factura_anular, descripcion_motivo
+                )
+
                 if exito:
                     message_placeholder.success(mensaje)
                 else:
@@ -648,9 +832,11 @@ def main():
     # Pestaña 8: Revertir Anulación de Factura
     with tab8:
         st.header("Revertir Anulación de Factura")
-        
+
         # Entrada para el número de factura
-        numero_factura_revertir = st.text_input("Ingrese el número de la factura a revertir la anulación:")
+        numero_factura_revertir = st.text_input(
+            "Ingrese el número de la factura a revertir la anulación:"
+        )
 
         # Botón para iniciar la reversión de la anulación
         if st.button("Revertir Anulación"):
@@ -658,7 +844,9 @@ def main():
             message_placeholder.empty()
 
             if not numero_factura_revertir:
-                message_placeholder.warning("Por favor, ingrese el número de la factura.")
+                message_placeholder.warning(
+                    "Por favor, ingrese el número de la factura."
+                )
             else:
                 cuf, factura = obtener_cuf_por_numero_factura(numero_factura_revertir)
                 if not cuf:
@@ -666,15 +854,17 @@ def main():
                 else:
                     exito, respuesta = enviar_solicitud_reversion(cuf)
                     if exito:
-                        exito_reversion, mensaje_reversion = procesar_respuesta_reversion(respuesta, factura)
+                        exito_reversion, mensaje_reversion = (
+                            procesar_respuesta_reversion(respuesta, factura)
+                        )
                         if exito_reversion:
                             message_placeholder.success(mensaje_reversion)
                         else:
                             message_placeholder.error(mensaje_reversion)
                     else:
                         message_placeholder.error(respuesta)
-    
-    if 'processed_comandas' not in st.session_state:
+
+    if "processed_comandas" not in st.session_state:
         st.session_state.processed_comandas = []
 
     comandas, mensaje_error = fetch_comandas()
@@ -689,10 +879,11 @@ def main():
     if error_documentos:
         st.error(error_documentos)
 
-
-
-    
-    numero_documento = st.sidebar.text_input("Número de Documento:", key="numero_documento", help="Ingresa el número de documento del cliente.")
+    numero_documento = st.sidebar.text_input(
+        "Número de Documento:",
+        key="numero_documento",
+        help="Ingresa el número de documento del cliente.",
+    )
     nit_valido = False
 
     nombre_cliente = ""
@@ -703,43 +894,85 @@ def main():
     codigo_clasificador_documento = None
     codigo_clasificador_metodo_pago = None
     ultimos_digitos_tarjeta = None
-    codigo_cliente = None   
+    codigo_cliente = None
 
     if numero_documento:
         cliente_data, error = fetch_cliente(numero_documento)
         if cliente_data:
-            tipo_documento_cliente = next((doc for doc in tipos_documento if doc["codigoClasificador"] == cliente_data["codigo_tipo_documento_identidad"]), None)
+            tipo_documento_cliente = next(
+                (
+                    doc
+                    for doc in tipos_documento
+                    if doc["codigoClasificador"]
+                    == cliente_data["codigo_tipo_documento_identidad"]
+                ),
+                None,
+            )
             if tipo_documento_cliente:
                 seleccion_tipo_documento = tipo_documento_cliente["descripcion"]
-                codigo_clasificador_documento = tipo_documento_cliente["codigoClasificador"]
-                st.sidebar.text_input("Tipo de Documento:", value=tipo_documento_cliente["descripcion"], disabled=True)
-            if cliente_data["codigo_tipo_documento_identidad"] == '2':
-                complemento = st.sidebar.text_input("Complemento:", value=cliente_data['complemento'], disabled=True)
-            nombre_cliente = st.sidebar.text_input("Razón Social:", value=cliente_data['nombre_razon_social'], disabled=True)
+                codigo_clasificador_documento = tipo_documento_cliente[
+                    "codigoClasificador"
+                ]
+                st.sidebar.text_input(
+                    "Tipo de Documento:",
+                    value=tipo_documento_cliente["descripcion"],
+                    disabled=True,
+                )
+            if cliente_data["codigo_tipo_documento_identidad"] == "2":
+                complemento = st.sidebar.text_input(
+                    "Complemento:", value=cliente_data["complemento"], disabled=True
+                )
+            nombre_cliente = st.sidebar.text_input(
+                "Razón Social:",
+                value=cliente_data["nombre_razon_social"],
+                disabled=True,
+            )
 
             # Mostrar el campo email solo si no es None o está vacío
-            if cliente_data['email']:
-                email = st.sidebar.text_input("Email:", value=cliente_data['email'], disabled=True)
+            if cliente_data["email"]:
+                email = st.sidebar.text_input(
+                    "Email:", value=cliente_data["email"], disabled=True
+                )
 
             # Mostrar el campo teléfono solo si no es None o está vacío
-            if cliente_data['telefono']:
-                telefono = st.sidebar.text_input("Teléfono:", value=cliente_data['telefono'], disabled=True)
-            
-            codigo_cliente = cliente_data['codigo_cliente']
+            if cliente_data["telefono"]:
+                telefono = st.sidebar.text_input(
+                    "Teléfono:", value=cliente_data["telefono"], disabled=True
+                )
+
+            codigo_cliente = cliente_data["codigo_cliente"]
 
         else:
             opciones_tipos_documento = [doc["descripcion"] for doc in tipos_documento]
-            seleccion_tipo_documento = st.sidebar.selectbox("Tipo de Documento:", opciones_tipos_documento, index=2)
-            tipo_documento_seleccionado = next((doc for doc in tipos_documento if doc["descripcion"] == seleccion_tipo_documento), None)
+            seleccion_tipo_documento = st.sidebar.selectbox(
+                "Tipo de Documento:", opciones_tipos_documento, index=2
+            )
+            tipo_documento_seleccionado = next(
+                (
+                    doc
+                    for doc in tipos_documento
+                    if doc["descripcion"] == seleccion_tipo_documento
+                ),
+                None,
+            )
             if tipo_documento_seleccionado:
-                codigo_clasificador_documento = tipo_documento_seleccionado["codigoClasificador"]
-                if tipo_documento_seleccionado['codigoClasificador'] == '2':
-                    complemento = st.sidebar.text_input("Complemento:", key="complemento")
-                nombre_cliente = st.sidebar.text_input("Razón Social:", placeholder="Sin Nombre", key="nombre_cliente")
+                codigo_clasificador_documento = tipo_documento_seleccionado[
+                    "codigoClasificador"
+                ]
+                if tipo_documento_seleccionado["codigoClasificador"] == "2":
+                    complemento = st.sidebar.text_input(
+                        "Complemento:", key="complemento"
+                    )
+                nombre_cliente = st.sidebar.text_input(
+                    "Razón Social:", placeholder="Sin Nombre", key="nombre_cliente"
+                )
                 email = st.sidebar.text_input("Email:", key="email")
                 telefono = st.sidebar.text_input("Teléfono:", key="telefono")
 
-                if seleccion_tipo_documento == "NIT - NÚMERO DE IDENTIFICACIÓN TRIBUTARIA":
+                if (
+                    seleccion_tipo_documento
+                    == "NIT - NÚMERO DE IDENTIFICACIÓN TRIBUTARIA"
+                ):
                     valido, mensaje = verificar_nit(numero_documento)
                     if valido:
                         message_placeholder.success(f"✔️ NIT válido: {mensaje}")
@@ -748,42 +981,98 @@ def main():
                         message_placeholder.error(mensaje, icon="❌")
                         nit_valido = False
 
-                guardar_cliente_button = st.sidebar.button("Guardar Cliente", key="guardar_cliente", disabled=(not nit_valido and seleccion_tipo_documento == "NIT - NÚMERO DE IDENTIFICACIÓN TRIBUTARIA"))
+                guardar_cliente_button = st.sidebar.button(
+                    "Guardar Cliente",
+                    key="guardar_cliente",
+                    disabled=(
+                        not nit_valido
+                        and seleccion_tipo_documento
+                        == "NIT - NÚMERO DE IDENTIFICACIÓN TRIBUTARIA"
+                    ),
+                )
                 if guardar_cliente_button:
                     if tipo_documento_seleccionado:
-                        cliente_data = save_or_fetch_client_data(numero_documento, tipo_documento_seleccionado['codigoClasificador'], complemento, email, nombre_cliente, numero_documento, telefono, message_placeholder)
+                        cliente_data = save_or_fetch_client_data(
+                            numero_documento,
+                            tipo_documento_seleccionado["codigoClasificador"],
+                            complemento,
+                            email,
+                            nombre_cliente,
+                            numero_documento,
+                            telefono,
+                            message_placeholder,
+                        )
                         if cliente_data:
-                            message_placeholder.success("✔️ Datos del cliente guardados correctamente.")
+                            message_placeholder.success(
+                                "✔️ Datos del cliente guardados correctamente."
+                            )
                             codigo_cliente = numero_documento  # Set codigo_cliente to numero_documento for new client
                     else:
-                             message_placeholder.error("Por favor selecciona un tipo de documento válido")
-    
+                        message_placeholder.error(
+                            "Por favor selecciona un tipo de documento válido"
+                        )
+
     id_comanda_set = set(comanda["id_comanda"] for comanda in comandas)
-    available_comandas = [comanda for comanda in id_comanda_set if comanda not in st.session_state.processed_comandas]
+    available_comandas = [
+        comanda
+        for comanda in id_comanda_set
+        if comanda not in st.session_state.processed_comandas
+    ]
 
-    selected_id_comanda = st.sidebar.multiselect("Selecciona las comandas", available_comandas, key="selected_comandas", placeholder="Comandas Generadas", help="Selecciona las comandas que componen la factura.")
-
+    selected_id_comanda = st.sidebar.multiselect(
+        "Selecciona las comandas",
+        available_comandas,
+        key="selected_comandas",
+        placeholder="Comandas Generadas",
+        help="Selecciona las comandas que componen la factura.",
+    )
 
     opciones_metodos_pago = [metodo["descripcion"] for metodo in metodos_pago]
 
-    indice_metodo_pago_predeterminado = next((i for i, metodo in enumerate(metodos_pago) if metodo["codigoClasificador"] == 1), 0)
+    indice_metodo_pago_predeterminado = next(
+        (
+            i
+            for i, metodo in enumerate(metodos_pago)
+            if metodo["codigoClasificador"] == 1
+        ),
+        0,
+    )
 
-    #logging.debug(f"Opciones de métodos de pago: {opciones_metodos_pago}")
-    logging.debug(f"Índice del método de pago predeterminado: {indice_metodo_pago_predeterminado}")
+    # logging.debug(f"Opciones de métodos de pago: {opciones_metodos_pago}")
+    logging.debug(
+        f"Índice del método de pago predeterminado: {indice_metodo_pago_predeterminado}"
+    )
 
-    seleccion_metodo_pago = st.sidebar.selectbox("Tipo de Pago:", opciones_metodos_pago, index=66, key="metodo_pago")
+    seleccion_metodo_pago = st.sidebar.selectbox(
+        "Tipo de Pago:", opciones_metodos_pago, index=66, key="metodo_pago"
+    )
 
     logging.debug(f"Método de pago seleccionado: {seleccion_metodo_pago}")
 
-    metodo_pago_seleccionado = next((metodo for metodo in metodos_pago if metodo["descripcion"] == seleccion_metodo_pago), None)
+    metodo_pago_seleccionado = next(
+        (
+            metodo
+            for metodo in metodos_pago
+            if metodo["descripcion"] == seleccion_metodo_pago
+        ),
+        None,
+    )
 
     codigo_clasificador_metodo_pago = None
     if metodo_pago_seleccionado:
-        codigo_clasificador_metodo_pago = int(metodo_pago_seleccionado["codigoClasificador"])
-        logging.info(f"Código clasificador del método de pago seleccionado: {codigo_clasificador_metodo_pago} ({type(codigo_clasificador_metodo_pago)})")
+        codigo_clasificador_metodo_pago = int(
+            metodo_pago_seleccionado["codigoClasificador"]
+        )
+        logging.info(
+            f"Código clasificador del método de pago seleccionado: {codigo_clasificador_metodo_pago} ({type(codigo_clasificador_metodo_pago)})"
+        )
 
     if seleccion_metodo_pago == "TARJETA":
-        ultimos_digitos_tarjeta = st.sidebar.text_input("Ingresa los últimos 4 dígitos de la tarjeta:", max_chars=4, key="ultimos_digitos_tarjeta")
+        ultimos_digitos_tarjeta = st.sidebar.text_input(
+            "Ingresa los últimos 4 dígitos de la tarjeta:",
+            max_chars=4,
+            key="ultimos_digitos_tarjeta",
+        )
 
     on = st.sidebar.checkbox("Aplicar Descuento")
 
@@ -793,7 +1082,9 @@ def main():
     logging.debug(f"Aplicar Descuento: {on}")
 
     if on:
-        descuento_adicional = st.sidebar.number_input("Descuento Adicional:", min_value=0, step=5, key="descuento_adicional")
+        descuento_adicional = st.sidebar.number_input(
+            "Descuento Adicional:", min_value=0, step=5, key="descuento_adicional"
+        )
         if descuento_adicional is None:
             descuento_adicional = Decimal(0.00)
         else:
@@ -801,9 +1092,13 @@ def main():
         logging.debug(f"Descuento adicional ingresado: {descuento_adicional}")
 
     if codigo_clasificador_metodo_pago is not None:
-        logging.info(f"Verificando si el código clasificador {codigo_clasificador_metodo_pago} ({type(codigo_clasificador_metodo_pago)}) está en la lista de códigos de gift card: {gift_card_codes}")
+        logging.info(
+            f"Verificando si el código clasificador {codigo_clasificador_metodo_pago} ({type(codigo_clasificador_metodo_pago)}) está en la lista de códigos de gift card: {gift_card_codes}"
+        )
         if codigo_clasificador_metodo_pago in gift_card_codes:
-            monto_giftcard = st.sidebar.number_input("Gift Card:", min_value=0, step=5, key="monto_giftcard")
+            monto_giftcard = st.sidebar.number_input(
+                "Gift Card:", min_value=0, step=5, key="monto_giftcard"
+            )
             if monto_giftcard is None:
                 monto_giftcard = Decimal(0.00)
             else:
@@ -813,19 +1108,30 @@ def main():
             monto_giftcard = Decimal(0.00)
     else:
         monto_giftcard = Decimal(0.00)
-    
+
     logging.debug(f"Descuento Adicional Final: {descuento_adicional}")
     logging.debug(f"Monto Gift Card Final: {monto_giftcard}")
     numero_factura = get_next_invoice_number()
     logging.debug(f"Factura #: {numero_factura - 1}")
     if selected_id_comanda:
-        comandas_seleccionadas = [comanda for comanda in comandas if comanda["id_comanda"] in selected_id_comanda]
-        subtotal, descuento_aplicado, monto_giftcard, total, monto_total_sujeto_iva, monto_total_moneda = calculate_totals(
-            comandas_seleccionadas, 
-            descuento_adicional, 
-            monto_giftcard, 
+        comandas_seleccionadas = [
+            comanda
+            for comanda in comandas
+            if comanda["id_comanda"] in selected_id_comanda
+        ]
+        (
+            subtotal,
+            descuento_aplicado,
+            monto_giftcard,
+            total,
+            monto_total_sujeto_iva,
+            monto_total_moneda,
+        ) = calculate_totals(
+            comandas_seleccionadas,
+            descuento_adicional,
+            monto_giftcard,
             codigo_clasificador_metodo_pago,
-            tipo_cambio=1
+            tipo_cambio=1,
         )
         db = SessionLocal()
         try:
@@ -834,246 +1140,181 @@ def main():
             db.close()
     else:
         comandas_seleccionadas = []
-        subtotal, descuento_aplicado, monto_giftcard, total, monto_total_sujeto_iva, monto_total_moneda = 0, 0, 0, 0, 0, 0
+        (
+            subtotal,
+            descuento_aplicado,
+            monto_giftcard,
+            total,
+            monto_total_sujeto_iva,
+            monto_total_moneda,
+        ) = (0, 0, 0, 0, 0, 0)
         lineas_productos = []
 
     fecha_emision = datetime.now()
     fecha_emision_str = fecha_emision.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
     numero_factura = get_next_invoice_number()
 
-    ACTIVIDAD_ECONOMICA = os.getenv('ACTIVIDAD_ECONOMICA')
-    CODIGO_PRODUCTO_SIN = os.getenv('CODIGO_PRODUCTO_SIN')
-    
-    
+    ACTIVIDAD_ECONOMICA = os.getenv("ACTIVIDAD_ECONOMICA")
+    CODIGO_PRODUCTO_SIN = os.getenv("CODIGO_PRODUCTO_SIN")
 
     with tab1:
-     
-           
-        
+
         html_invoice = generate_html_invoice(
-            subtotal, 
-            descuento_adicional, 
-            monto_giftcard, 
-            lineas_productos, 
-            nombre_cliente, 
-            fecha_emision_str, 
-            numero_factura, 
-            seleccion_metodo_pago, 
-            codigo_clasificador_metodo_pago, 
-            seleccion_tipo_documento, 
-            codigo_clasificador_documento, 
-            numero_documento, 
-            complemento, 
-            email, 
-            telefono, 
-            ultimos_digitos_tarjeta
+            subtotal,
+            descuento_adicional,
+            monto_giftcard,
+            lineas_productos,
+            nombre_cliente,
+            fecha_emision_str,
+            numero_factura,
+            seleccion_metodo_pago,
+            codigo_clasificador_metodo_pago,
+            seleccion_tipo_documento,
+            codigo_clasificador_documento,
+            numero_documento,
+            complemento,
+            email,
+            telefono,
+            ultimos_digitos_tarjeta,
         )
         components.html(html_invoice, height=700, scrolling=True)
 
-        
+        # Definir las columnas para los botones
         col1, col2, col3 = st.columns(3)
+
+        # Botón de "Facturar" en la primera columna
         with col1:
-         if st.button("Facturar", key="generar_xml", help="Generar la factura", disabled=not selected_id_comanda):
+            facturar_btn_clicked = st.button("Facturar", key="generar_xml", help="Generar la factura", disabled=not selected_id_comanda)
+
+        # Controlar si el botón de facturar ha sido presionado
+        if facturar_btn_clicked:
             if metodo_pago_seleccionado and seleccion_tipo_documento and numero_documento and selected_id_comanda:
                 try:
-                    tipo_documento_seleccionado = next((doc for doc in tipos_documento if doc["descripcion"] == seleccion_tipo_documento), None)
-                    nit_emisor = int(os.getenv('NIT'))
-                    razon_social_emisor = os.getenv('RAZON_SOCIAL')
-                    municipio = os.getenv('MUNICIPIO')
-                    telefono = os.getenv('TELEFONO')
+                    # Lógica de generación de factura y validaciones
+                    tipo_documento_seleccionado = next(
+                        (doc for doc in tipos_documento if doc["descripcion"] == seleccion_tipo_documento), None
+                    )
+                    nit_emisor = int(os.getenv("NIT"))
+                    razon_social_emisor = os.getenv("RAZON_SOCIAL")
+                    municipio = os.getenv("MUNICIPIO")
+                    telefono = os.getenv("TELEFONO")
                     cufd = verificar_y_obtener_cufd(message_placeholder)
-                    codigo_sucursal = int(os.getenv('CODIGO_SUCURSAL'))
-                    codigo_punto_venta = int(os.getenv('CODIGO_PUNTO_VENTA'))
-                    codigo_documento_sector = int(os.getenv('CODIGO_DOCUMENTO_SECTOR')) 
-                    direccion = os.getenv('DIRECCION')
+                    codigo_sucursal = int(os.getenv("CODIGO_SUCURSAL"))
+                    codigo_punto_venta = int(os.getenv("CODIGO_PUNTO_VENTA"))
+                    codigo_documento_sector = int(os.getenv("CODIGO_DOCUMENTO_SECTOR"))
+                    direccion = os.getenv("DIRECCION")
                     cuf = generate_cuf(
-                        nit_emisor, 
-                        fecha_emision, 
-                        codigo_sucursal, 
-                        int(os.getenv('CODIGO_MODALIDAD')),
-                        int(os.getenv('CODIGO_TIPO_EMISION')), 
-                        int(os.getenv('CODIGO_TIPO_FACTURA')),
-                        codigo_documento_sector, 
+                        nit_emisor,
+                        fecha_emision,
+                        codigo_sucursal,
+                        int(os.getenv("CODIGO_MODALIDAD")),
+                        int(os.getenv("CODIGO_TIPO_EMISION")),
+                        int(os.getenv("CODIGO_TIPO_FACTURA")),
+                        codigo_documento_sector,
                         numero_factura,
-                        codigo_punto_venta
+                        codigo_punto_venta,
                     )
                     fecha_emision_str = fecha_emision.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
 
-                    lineas_productos = collect_product_lines(comandas, selected_id_comanda, db) 
-                    
+                    lineas_productos = collect_product_lines(comandas, selected_id_comanda, db)
+
+                    # Generar el XML de la factura
                     xml_str, factura_cabecera_data, detalles_data = generate_xml_invoice(
-                        nit_emisor, 
-                        razon_social_emisor,
-                        municipio, 
-                        telefono, 
-                        numero_factura, 
-                        cuf, 
-                        cufd,
-                        codigo_sucursal, 
-                        direccion, 
-                        codigo_punto_venta, 
-                        fecha_emision_str, 
-                        nombre_cliente,
-                        tipo_documento_seleccionado['codigoClasificador'], 
-                        numero_documento,
-                        complemento, 
-                        numero_documento, 
-                        metodo_pago_seleccionado['codigoClasificador'], 
-                        ultimos_digitos_tarjeta,
-                        subtotal,
-                        total,
-                        1,
-                        1,
-                        total / 1,
-                        monto_giftcard, 
-                        descuento_adicional,
-                        "don_bercho", 
-                        codigo_documento_sector, 
-                        lineas_productos,
-                        ACTIVIDAD_ECONOMICA, 
-                        CODIGO_PRODUCTO_SIN
+                        nit_emisor, razon_social_emisor, municipio, telefono,
+                        numero_factura, cuf, cufd, codigo_sucursal, direccion,
+                        codigo_punto_venta, fecha_emision_str, nombre_cliente,
+                        tipo_documento_seleccionado["codigoClasificador"],
+                        numero_documento, complemento, numero_documento,
+                        metodo_pago_seleccionado["codigoClasificador"], ultimos_digitos_tarjeta,
+                        subtotal, total, 1, 1, total / 1, monto_giftcard,
+                        descuento_adicional, "don_bercho", codigo_documento_sector,
+                        lineas_productos, ACTIVIDAD_ECONOMICA, CODIGO_PRODUCTO_SIN
                     )
 
+                    # Firmar el XML generado
                     private_key_path = "xmls/llaves/private_key_ok.pem"
                     cert_path = "xmls/llaves/certificado_ok.pem"
-                    
                     signed_xml_str = sign_xml(xml_str, private_key_path, cert_path, cuf)
 
+                    # Guardar el XML firmado en un archivo
                     filename = f"xmls/factura_{numero_factura}_{cuf}_.xml"
-                    with open(filename, "w", encoding='utf-8') as signed_xml_file:
+                    with open(filename, "w", encoding="utf-8") as signed_xml_file:
                         signed_xml_file.write(signed_xml_str)
 
-                    xsd_main_path = 'xmls/schemas/facturaElectronicaCompraVenta.xsd'
+                    # Validar el XML y enviar la solicitud
+                    xsd_main_path = "xmls/schemas/facturaElectronicaCompraVenta.xsd"
                     if validar_xml(filename, xsd_main_path):
                         gzip_path = comprimir_xml(filename)
                         hash_archivo = obtener_hash(gzip_path)
                         response = enviar_solicitud(filename, xsd_main_path, fecha_emision_str, cufd)
 
+                        # Control de respuesta
                         if isinstance(response, dict) and response.get("error"):
                             message_placeholder.error(f"❌Error al enviar la factura: {response['error']}")
                         else:
-                            try:
-                                root = ET.fromstring(response.content)
-                                ns = {'soap': 'http://schemas.xmlsoap.org/soap/envelope/', 'ns2': 'https://siat.impuestos.gob.bo/'}
+                            root = ET.fromstring(response.content)
+                            respuesta_servicio = root.find(".//RespuestaServicioFacturacion")
 
-                                respuesta_servicio = root.find('.//RespuestaServicioFacturacion')
-                                
-                                if respuesta_servicio is not None:
-                                    codigo_descripcion = respuesta_servicio.find('codigoDescripcion')
-                                    codigo_estado = respuesta_servicio.find('codigoEstado')
-                                    codigo_recepcion = respuesta_servicio.find('codigoRecepcion')
-                                    transaccion = respuesta_servicio.find('transaccion')
-                                    
-                                    if all([codigo_descripcion is not None, codigo_estado is not None, 
-                                            codigo_recepcion is not None, transaccion is not None]):
-                                        
-                                        codigo_descripcion = codigo_descripcion.text
-                                        codigo_estado = codigo_estado.text
-                                        codigo_recepcion = codigo_recepcion.text
-                                        transaccion = transaccion.text.lower() == 'true'
-                                        
-                                        if transaccion:
-                                            message_placeholder.success(f""":heavy_check_mark: FACTURA {codigo_descripcion}""")
-
-                                            is_valid, error_message = validar_factura_cabecera(factura_cabecera_data)
-                                            if is_valid:
-                                                guardar_factura_cabecera(factura_cabecera_data)
-                                                increment_invoice_number(numero_factura)
-                                            else:
-                                                message_placeholder.error(error_message)
-                                                return
-
-                                            for detalle in detalles_data:
-                                                is_valid, error_message = validar_factura_detalle(detalle)
-                                                if is_valid:
-                                                    guardar_factura_detalle(detalle)
-                                                else:
-                                                    message_placeholder.error(error_message)
-                                                    return
-
-                                            # Generación directa del PDF utilizando imprimir_recibo
-                                            file_path, qr_base64 = imprimir_recibo(
-                                                generate_html_invoice(
-                                                    subtotal, 
-                                                    descuento_adicional, 
-                                                    monto_giftcard, 
-                                                    lineas_productos, 
-                                                    nombre_cliente, 
-                                                    fecha_emision_str, 
-                                                    numero_factura, 
-                                                    seleccion_metodo_pago, 
-                                                    codigo_clasificador_metodo_pago, 
-                                                    seleccion_tipo_documento, 
-                                                    codigo_clasificador_documento, 
-                                                    numero_documento, 
-                                                    complemento, 
-                                                    email, 
-                                                    telefono, 
-                                                    ultimos_digitos_tarjeta
-                                                ),
-                                                cuf, 
-                                                os.getenv('NIT'), 
-                                                numero_factura
-                                            )
-
-                                            # Lectura del PDF para la descarga
-                                            with col2:
-                                                with open(file_path, "rb") as pdf_file:
-                                                    PDFbyte = pdf_file.read()
-                                                    st.download_button(
-                                                        label="Imprimir Factura",
-                                                        data=PDFbyte,
-                                                        file_name=f"factura_{numero_factura}_{cuf}_.pdf",
-                                                        mime='application/pdf'
-                                                    )
-
-                                            nit_emisor = factura_cabecera_data.get('nitEmisor')
-                                            cuf = factura_cabecera_data.get('cuf')
-                                            numero_factura = factura_cabecera_data.get('numeroFactura')
-                                            with col3:
-                                                if nit_emisor and cuf and numero_factura:
-                                                    enlace = generate_invoice_link(nit_emisor, cuf, numero_factura)
-                                                    if st.button('Consultar factura'):
-                                                            st.markdown(f"[Consultar factura](<{enlace}>)", unsafe_allow_html=True)
-
-                                        else:
-                                            mensajes_list = respuesta_servicio.find('mensajesList')
-                                            error_message = "❌La factura no fue procesada correctamente."
-                                            if mensajes_list is not None:
-                                                for mensaje in mensajes_list:
-                                                    codigo = mensaje.find('codigo')
-                                                    descripcion = mensaje.find('descripcion')
-                                                    if codigo is not None and descripcion is not None:
-                                                        error_message += f"\nCódigo: {codigo.text}, Descripción: {descripcion.text}"
-                                                
-                                                message_placeholder.error(f"""{error_message}
-                                                    Código de recepción: {codigo_recepcion}\n
-                                                    Descripción: {codigo_descripcion}\n
-                                                    Estado: {codigo_estado}\n
-                                                """)
-                                            else:
-                                                message_placeholder.error("❌La respuesta del servicio no contiene todos los campos esperados.")
-                                                st.write("Contenido de la respuesta:", response.content)
-                                            
-                                    else:
-                                        message_placeholder.error("❌No se pudo encontrar RespuestaServicioFacturacion en la respuesta XML.")
-                                        st.write("Contenido de la respuesta:", response.content)
-                                        
-                            except ET.ParseError as e:
-                                message_placeholder.error(f"❌Error al parsear la respuesta XML: {str(e)}")
-                                st.write("Contenido de la respuesta:", response.content)
+                            if respuesta_servicio is not None:
+                                transaccion = respuesta_servicio.find('transaccion')
+                                if transaccion is not None and transaccion.text.lower() == 'true':
+                                    st.session_state['factura_generada'] = True
+                                    st.session_state['html_invoice'] = generate_compact_html_invoice(
+                                        subtotal, descuento_adicional, monto_giftcard, lineas_productos,
+                                        nombre_cliente, fecha_emision_str, numero_factura, seleccion_metodo_pago,
+                                        codigo_clasificador_metodo_pago, seleccion_tipo_documento, codigo_clasificador_documento,
+                                        numero_documento, complemento, email, telefono, ultimos_digitos_tarjeta
+                                    )
+                                    st.session_state['numero_factura'] = numero_factura
+                                    message_placeholder.success("Factura generada exitosamente")
+                                else:
+                                    message_placeholder.error("La transacción no fue exitosa")
+                            else:
+                                message_placeholder.error("No se encontró 'RespuestaServicioFacturacion' en la respuesta.")
 
                 except Exception as e:
-                    message_placeholder.error(f"❌Error inesperado al procesar la respuesta: {str(e)}")
-                    if 'response' in locals():
-                        st.write("Contenido de la respuesta:", response.content)
-            else:
-                message_placeholder.error("❌Por favor, selecciona un método de pago, un tipo de documento y un número de documento válido para generar la factura.")
+                    message_placeholder.error(f"❌Error inesperado al procesar la factura: {str(e)}")
+
+        # Mostrar los botones de imprimir y consultar solo si la factura fue generada
+        if 'factura_generada' in st.session_state and st.session_state['factura_generada']:
+            
+            tipo_documento_seleccionado = next(
+            (doc for doc in tipos_documento if doc["descripcion"] == seleccion_tipo_documento), None
+            )
+            nit_emisor = int(os.getenv("NIT"))
+            razon_social_emisor = os.getenv("RAZON_SOCIAL")
+            municipio = os.getenv("MUNICIPIO")
+            telefono = os.getenv("TELEFONO")
+            cufd = verificar_y_obtener_cufd(message_placeholder)
+            codigo_sucursal = int(os.getenv("CODIGO_SUCURSAL"))
+            codigo_punto_venta = int(os.getenv("CODIGO_PUNTO_VENTA"))
+            codigo_documento_sector = int(os.getenv("CODIGO_DOCUMENTO_SECTOR"))
+            direccion = os.getenv("DIRECCION")
+            cuf = generate_cuf(
+                nit_emisor,
+                fecha_emision,
+                codigo_sucursal,
+                int(os.getenv("CODIGO_MODALIDAD")),
+                int(os.getenv("CODIGO_TIPO_EMISION")),
+                int(os.getenv("CODIGO_TIPO_FACTURA")),
+                codigo_documento_sector,
+                numero_factura,
+                codigo_punto_venta,
+            )
+            fecha_emision_str = fecha_emision.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
+
+            lineas_productos = collect_product_lines(comandas, selected_id_comanda, db)
+            with col2:
+                if st.button("Imprimir Factura"):
+                    imprimir_recibo(st.session_state['html_invoice'], cuf, os.getenv('NIT'), st.session_state['numero_factura'])
+                    st.success("Factura enviada a la impresora con el formato del HTML.")
+
+            with col3:
+                if st.button("Consultar factura"):
+                    enlace = generate_invoice_link(os.getenv('NIT'), cuf, st.session_state['numero_factura'])
+                    st.markdown(f"[Consultar Factura]({enlace})", unsafe_allow_html=True)
+
 
 
 if __name__ == "__main__":
     main()
-    
-
-
-

@@ -39,6 +39,8 @@ from estado_factura import verificar_estado_factura
 import cuis
 from anulacion import anular_factura
 from reversion import enviar_solicitud_reversion, procesar_respuesta_reversion, obtener_cuf_por_numero_factura
+from export import imprimir_recibo, imprimir_recibo1  # Importar la función `imprimir_recibo`
+from invoice_templates import generate_compact_html_invoice  # Importar la generación del HTML
 
 
 
@@ -566,6 +568,8 @@ def render_sidebar():
     # (fetch_cliente, selectboxes, etc.)
     return numero_documento, nit_valido, nombre_cliente, complemento, email, telefono, seleccion_tipo_documento, codigo_clasificador_documento, codigo_clasificador_metodo_pago, ultimos_digitos_tarjeta, codigo_cliente
 
+
+
 def main():
     message_placeholder = st.empty()
     # Definición de las pestañas
@@ -689,9 +693,6 @@ def main():
     if error_documentos:
         st.error(error_documentos)
 
-
-
-    
     numero_documento = st.sidebar.text_input("Número de Documento:", key="numero_documento", help="Ingresa el número de documento del cliente.")
     nit_valido = False
 
@@ -990,10 +991,10 @@ def main():
                                                 else:
                                                     message_placeholder.error(error_message)
                                                     return
-
+                                            
                                             # Generación directa del PDF utilizando imprimir_recibo
-                                            file_path, qr_base64 = imprimir_recibo(
-                                                generate_html_invoice(
+                                            file_path, qr_base64 = imprimir_recibo1(
+                                                generate_compact_html_invoice(
                                                     subtotal, 
                                                     descuento_adicional, 
                                                     monto_giftcard, 
@@ -1016,26 +1017,23 @@ def main():
                                                 numero_factura
                                             )
 
-                                            # Lectura del PDF para la descarga
-                                            with col2:
-                                                with open(file_path, "rb") as pdf_file:
-                                                    PDFbyte = pdf_file.read()
-                                                    st.download_button(
-                                                        label="Imprimir Factura",
-                                                        data=PDFbyte,
-                                                        file_name=f"factura_{numero_factura}_{cuf}_.pdf",
-                                                        mime='application/pdf'
-                                                    )
+                                            
 
-                                            nit_emisor = factura_cabecera_data.get('nitEmisor')
-                                            cuf = factura_cabecera_data.get('cuf')
-                                            numero_factura = factura_cabecera_data.get('numeroFactura')
+                                           # Generar el contenido HTML de la factura usando la función adecuada
+                                            html_content = generate_compact_html_invoice(
+                                                subtotal, descuento_adicional, monto_giftcard, 
+                                                lineas_productos, nombre_cliente, fecha_emision, numero_factura, os.getenv('NIT'),
+                                            )
+                                                                                        # Botón de impresión para enviar la factura a la impresora
+                                            with col2:
+                                                if st.button("Imprimir Factura"):
+                                                    imprimir_recibo(html_content, cuf, os.getenv('NIT'), numero_factura)
+                                                    st.success("Factura enviada a la impresora con el formato del HTML.")
+                                            
                                             with col3:
                                                 if nit_emisor and cuf and numero_factura:
                                                     enlace = generate_invoice_link(nit_emisor, cuf, numero_factura)
-                                                    if st.button('Consultar factura'):
-                                                            st.markdown(f"[Consultar factura](<{enlace}>)", unsafe_allow_html=True)
-
+                                                    st.link_button("Consultar factura", enlace)
                                         else:
                                             mensajes_list = respuesta_servicio.find('mensajesList')
                                             error_message = "❌La factura no fue procesada correctamente."
