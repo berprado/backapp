@@ -1,6 +1,6 @@
 # main.py
 import streamlit as st 
-from ui_copy import main  # Asegúrate de que esto esté importando correctamente desde ui.py
+from ui import main  # Asegúrate de que esto esté importando correctamente desde ui.py
 
 st.set_page_config(page_title="BACKINVOICE", page_icon="💎", layout="wide", initial_sidebar_state="auto", menu_items={
     'Get Help': 'https://www.extremelycoolapp.com/help',
