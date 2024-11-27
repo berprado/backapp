@@ -33,7 +33,6 @@ from decimal import Decimal
 import logging
 import traceback
 import xml.etree.ElementTree as ET
-from export import imprimir_recibo
 import verifica_stream
 from estado_factura import verificar_estado_factura
 import cuis
