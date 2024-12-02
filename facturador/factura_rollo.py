@@ -1,10 +1,47 @@
 import streamlit as st
+import streamlit.components.v1 as components  # Importar el módulo components
+from invoice_templates import generate_compact_invoice_text
 import os
-
+from escpos.printer import Usb
 # Función para convertir número a palabras (puede mejorarse)
 def numero_a_palabras_con_decimales_como_fraccion(numero, lang='es'):
     return "Trescientos diez"
 
+# Datos de ejemplo para generar la factura
+subtotal = 90.00
+descuento_adicional = 0.00
+monto_giftcard = 0.00
+lineas_productos = [
+    {"codigo": "001", "nombre": "Producto A", "cantidad": 2, "precio_venta": 30.00, "sub_total": 60.00},
+    {"codigo": "002", "nombre": "Producto B", "cantidad": 1, "precio_venta": 30.00, "sub_total": 30.00}
+]
+nombre_cliente = "PRADO"
+fecha_emision = "05/08/2024 01:20 AM"
+numero_factura = "565"
+metodo_de_pago = "Efectivo"
+codigo_clasificador_metodo_pago = "1"
+tipo_documento = "CI"
+codigo_clasificador_documento = "1"
+numero_documento = "344096024"
+complemento = None
+email = "cliente@example.com"
+telefono = "65560514"
+ultimos_digitos_tarjeta = None
+# Generar el contenido de la factura en formato texto
+factura_texto = generate_compact_invoice_text(
+    subtotal, descuento_adicional, monto_giftcard, lineas_productos, nombre_cliente, fecha_emision, numero_factura,
+    metodo_de_pago, codigo_clasificador_metodo_pago, tipo_documento, codigo_clasificador_documento, numero_documento,
+    complemento, email, telefono, ultimos_digitos_tarjeta
+)
+
+# Mostrar la factura en formato texto
+print(factura_texto)
+
+st.write(factura_texto)
+    # Conectar a la impresora y enviar el texto a imprimir
+printer = Usb(0x04B8, 0x0E15, 0, out_ep=0x01)  # Conectar a la impresora Epson TM-T20II con Vendor ID y Product ID
+printer.text(factura_texto)
+printer.cut()
 # Función para generar la factura en HTML con el formato proporcionado
 def generate_html_invoice_80mm(subtotal, descuento_adicional, monto_giftcard, lineas_productos, nombre_cliente, fecha_emision, numero_factura, metodo_de_pago=None, codigo_clasificador_metodo_pago=None, tipo_documento=None, codigo_clasificador_documento=None, numero_documento=None, complemento=None, email=None, telefono=None, ultimos_digitos_tarjeta=None):
     total = subtotal - descuento_adicional
@@ -253,5 +290,9 @@ lineas_productos = [
 
 # Renderizar en Streamlit
 st.title("Vista previa de la Factura")
-html_factura = generate_html_invoice_80mm(90.00, 0.00, 0.00, lineas_productos, "PRADO", "05/08/2024 01:20 AM", "565", numero_documento="344096024")
-st.components.v1.html(html_factura, height=800, scrolling=True)
+factura_texto = generate_compact_invoice_text(
+    subtotal, descuento_adicional, monto_giftcard, lineas_productos, nombre_cliente, fecha_emision, numero_factura,
+    metodo_de_pago, codigo_clasificador_metodo_pago, tipo_documento, codigo_clasificador_documento, numero_documento,
+    complemento, email, telefono, ultimos_digitos_tarjeta
+)
+components.html(factura_texto, height=800, scrolling=True)

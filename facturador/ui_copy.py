@@ -1060,47 +1060,31 @@ def main():
                                                 lineas_productos, nombre_cliente, fecha_emision, numero_factura, os.getenv('NIT'),
                                             )
                                                                                         # Botón de impresión para enviar la factura a la impresora
-                                            html_file_path = "final_factura_test.html"
+                                            file_path = "final_factura_test.html"
                                             
                                             
                                             with col2:
                                                 if st.button("Imprimir Factura"):
                                                     try:
-                                                        # Verificar si el archivo HTML existe
-                                                        if not html_file_path:
-                                                            raise ValueError("No se ha generado el archivo HTML de la factura")
-
-                                                        # Verificar parámetros necesarios
-                                                        if not all([html_file_path, cuf, nit_emisor, numero_factura]):
-                                                            logging.error("Faltan parámetros necesarios para la impresión")
+                                                        # Verificar que tengamos todos los datos necesarios
+                                                        if not all([st.session_state['html_content'], 
+                                                                st.session_state['cuf'], 
+                                                                os.getenv('NIT'),
+                                                                numero_factura]):
                                                             raise ValueError("Faltan datos necesarios para la impresión")
-
-                                                        # Log de parámetros
-                                                        logging.info("=== Iniciando proceso de impresión ===")
-                                                        logging.info(f"Ruta del HTML: {html_file_path}")
-                                                        logging.info(f"CUF: {cuf}, NIT: {nit_emisor}, Número de Factura: {numero_factura}")
-
-                                                        # Llamar a la función de impresión modular
+                                                        
                                                         with st.spinner("Imprimiendo factura..."):
-                                                            resultado = imprimir_factura_html(html_file_path)
-
-                                                            if "✅" in resultado:
-                                                                st.success(resultado)
-                                                            else:
-                                                                raise Exception(resultado)
-
-                                                    except ValueError as e:
-                                                        error_msg = f"Error de validación: {str(e)}"
-                                                        logging.error(error_msg)
-                                                        st.error(f"❌ {error_msg}")
-
+                                                            file_path, qr_base64 = imprimir_recibo(
+                                                                st.session_state['html_content'],
+                                                                st.session_state['cuf'],
+                                                                os.getenv('NIT'),
+                                                                numero_factura
+                                                            )
+                                                            st.success("✅ Factura impresa y guardada correctamente")
+                                                            
                                                     except Exception as e:
-                                                        error_msg = f"Error durante la impresión: {str(e)}"
-                                                        logging.error(error_msg)
-                                                        st.error(f"❌ {error_msg}")
-
-                                                    finally:
-                                                        logging.info("=== Fin del proceso de impresión ===")
+                                                        logging.error(f"Error durante la impresión: {str(e)}")
+                                                        st.error(f"❌ Error al imprimir: {str(e)}")
                                                                                         
                                             with col3:
                                                 if nit_emisor and cuf and numero_factura:

@@ -1,6 +1,7 @@
 from escpos.printer import Usb
 from bs4 import BeautifulSoup
 import logging
+
 # Create a custom logger for printing
 printer_logger = logging.getLogger('printer')
 printer_logger.setLevel(logging.DEBUG)
@@ -29,7 +30,7 @@ def print_invoice_escpos(html_content, cuf, nit, numero_factura):
         numero_factura (str): Número de factura
     
     Returns:
-        bool: True si la impresión fue exitosa, False en caso contrario
+        bool: True si la impresión fue exitosa
     """
     try:
         logging.info(f"Iniciando impresión de factura #{numero_factura}")
@@ -41,20 +42,30 @@ def print_invoice_escpos(html_content, cuf, nit, numero_factura):
         
         # Add header info
         invoice_text = "\n".join([
-            "=" * 32,
+            "=" * 48,
             "FACTURA",
-            "=" * 32,
+            "=" * 48,
             invoice_text,
-            "-" * 32,
+            "-" * 48,
             f"CUF: {cuf}",
             f"NIT: {nit}",
             f"Factura No: {numero_factura}",
-            "=" * 32
+            "=" * 48
         ])
         
         # Initialize printer
         logging.info("Inicializando conexión con la impresora")
         printer = Usb(0x04B8, 0x0E15, 0, out_ep=0x01)
+        
+        # Configurar impresora para papel de 80mm
+        printer.set(
+            font='a',
+            height=1,
+            width=1,
+            density=8,
+            smooth=True,
+            align='center'
+        )
         
         # Print content
         logging.info("Enviando datos a la impresora")
@@ -65,49 +76,105 @@ def print_invoice_escpos(html_content, cuf, nit, numero_factura):
         return True
         
     except Exception as e:
-        logging.error(f"Error durante la impresión: {str(e)}")
-        raise Exception(f"Error al imprimir: {str(e)}")
-        
-        # Final separator and cut
-        printer.text("\n" + "-" * 32 + "\n")
-        printer.cut()
-        
-        logging.info("Factura impresa exitosamente")
-        return True
-        
-    except Exception as e:
         error_msg = f"Error al imprimir la factura: {str(e)}"
         logging.error(error_msg)
         raise Exception(error_msg)
 
 def html_to_escpos_text(html_content):
     """
-    Convierte el contenido HTML de la factura en formato de texto para impresora térmica.
+    Convierte el contenido HTML en formato de texto para impresora térmica de 80mm
+    (aproximadamente 48 caracteres por línea)
     """
     try:
         soup = BeautifulSoup(html_content, 'html.parser')
-        invoice_text = ""
+        printer_text = []
         
-        # Process table rows
-        for row in soup.find_all("tr"):
-            cells = row.find_all("td")
+        # Constantes de formato
+        LINE_WIDTH = 48
+        SEPARATOR = "=" * LINE_WIDTH
+        
+        # Encabezado centrado y en negrita
+        printer_text.append("\x1b\x61\x01")  # Centrar texto
+        printer_text.append("\x1b\x45\x01")  # Iniciar negrita
+        printer_text.append("FACTURA")
+        printer_text.append("(CON DERECHO A CREDITO FISCAL)")
+        printer_text.append(SEPARATOR)
+        printer_text.append("\x1b\x45\x00")  # Finalizar negrita
+        
+        # Información de la empresa
+        printer_text.append("BOLIVIAN FOODS & DRINKS S.R.L.")
+        printer_text.append("CASA MATRIZ")
+        printer_text.append("Punttito de Venta: 0")
+        printer_text.append(SEPARATOR)
+        
+        # Dirección y contacto - Ajustado para 48 caracteres
+        printer_text.append("\x1b\x61\x00")  # Alinear a la izquierda
+        printer_text.append("AVENIDA MONTENEGRO NRO. SN EDIF.: ARACELY PISO: PB")
+        printer_text.append("DEPTO.: BLOQUE E7")
+        printer_text.append("ZONA/BARRIO: SAN MIGUEL")
+        printer_text.append("LA PAZ")
+        printer_text.append("Tel. 65560514")
+        printer_text.append(SEPARATOR)
+        
+        # Información fiscal con formato ajustado
+        nit_section = soup.find('td', text=lambda t: t and 'NIT' in t)
+        if nit_section:
+            printer_text.append("\x1b\x45\x01NIT:\x1b\x45\x00 ".ljust(15) + 
+                              nit_section.find_next('td').get_text().strip())
             
-            # Skip empty rows
-            if not cells:
-                continue
+        factura_section = soup.find('td', text=lambda t: t and 'Factura N°' in t)
+        if factura_section:
+            printer_text.append("\x1b\x45\x01Factura N°:\x1b\x45\x00 ".ljust(15) + 
+                              factura_section.find_next('td').get_text().strip())
+        
+        printer_text.append(SEPARATOR)
+        
+        # Detalles de productos con formato tabular
+        printer_text.append("\x1b\x45\x01DETALLE DE PRODUCTOS\x1b\x45\x00")
+        productos = soup.find_all('tr', {'class': 'tg-1kjo'})
+        for producto in productos:
+            cells = producto.find_all('td')
+            if len(cells) >= 7:
+                # Formato para productos ajustado a 48 caracteres
+                cod_prod = cells[0].get_text().strip()
+                desc_prod = cells[3].get_text().strip()
+                cant = cells[1].get_text().strip()
+                precio = cells[4].get_text().strip()
+                total = cells[6].get_text().strip()
                 
-            # Process each cell in the row
-            row_text = ""
-            for cell in cells:
-                cell_text = cell.get_text().strip()
-                if cell_text:  # Only add non-empty cells
-                    row_text += f"{cell_text}  "
-            
-            if row_text:  # Only add non-empty rows
-                invoice_text += f"{row_text.strip()}\n"
-                
-        return invoice_text
+                printer_text.append(f"\x1b\x45\x01{cod_prod} - {desc_prod}\x1b\x45\x00")
+                printer_text.append(f"Cant: {cant}  Precio: {precio}  Total: {total}")
+                printer_text.append("-" * LINE_WIDTH)
+        
+        # Totales alineados a la derecha
+        printer_text.append("\x1b\x61\x02")  # Alinear a la derecha
+        for total_label in ['Sub Total:', 'Descuento:', 'Total:', 'Gift Card:', 'Monto a Pagar:', 
+                          'Imp. Base Cred. Fiscal:']:
+            total_element = soup.find('td', text=total_label)
+            if total_element:
+                valor = total_element.find_next('td').get_text().strip()
+                printer_text.append(f"{total_label.ljust(20)} {valor.rjust(10)}")
+        
+        printer_text.append(SEPARATOR)
+        
+        # Pie de factura centrado
+        printer_text.append("\x1b\x61\x01")  # Centrar texto
+        printer_text.append("ESTA FACTURA CONTRIBUYE AL DESARROLLO DEL PAÍS,")
+        printer_text.append("EL USO ILÍCITO SERÁ SANCIONADO PENALMENTE DE")
+        printer_text.append("ACUERDO A LEY")
+        printer_text.append(SEPARATOR)
+        
+        # Ley y aviso final
+        leyenda = soup.find('span', text=lambda t: t and 'Ley N°' in t)
+        if leyenda:
+            printer_text.append(leyenda.get_text())
+        
+        printer_text.append('"Este documento es la Representación Gráfica de un')
+        printer_text.append('Documento Fiscal Digital emitido en una modalidad')
+        printer_text.append('de facturación en línea"')
+        
+        return "\n".join(printer_text)
         
     except Exception as e:
-        logging.error(f"Error al convertir HTML a texto: {str(e)}")
-        raise Exception(f"Error al procesar el contenido HTML: {str(e)}")
+        logging.error(f"Error al convertir HTML a texto ESC/POS: {str(e)}")
+        raise
