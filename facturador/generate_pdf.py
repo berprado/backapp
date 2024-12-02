@@ -1,6 +1,6 @@
 # generate_pdf.py
 import pdfkit
-from ui import generate_html_invoice  # Importar desde donde esté definida
+from ui_copy import generate_html_invoice  # Importar desde donde esté definida
 
 def generate_pdf_from_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_productos, nombre_cliente, fecha_emision, numero_factura, metodo_de_pago=None, codigo_clasificador_metodo_pago=None, tipo_documento=None, codigo_clasificador_documento=None, numero_documento=None, complemento=None, email=None, telefono=None, ultimos_digitos_tarjeta=None):
     # Generar el HTML utilizando la función existente

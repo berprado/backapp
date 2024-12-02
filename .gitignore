@@ -1,5 +1,30 @@
+# Archivos de entorno
 .env
+
+# Archivos de certificados y claves privadas
 *.pem
+
+# Archivos comprimidos
+*.gz
+
+# Archivos de texto temporales o de respaldo
 *.txt
+
+# Directorios de entornos virtuales
 /backapp
+
+# Archivos de respaldo y copias
 * - Copy.py
+
+# Archivos PDF generados automáticamente
+*.pdf
+
+# Archivos de log
+*.log
+
+# Directorios de caché y compilación
+__pycache__/
+facturador/__pycache__/
+
+# Directorios de configuración del editor
+.vscode/

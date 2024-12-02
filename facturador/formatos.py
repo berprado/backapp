@@ -1,7 +1,7 @@
 import os
-from ui import fetch_random_leyenda
-from ui import numero_a_palabras_con_decimales_como_fraccion
-from ui import gift_card_codes
+from ui_copy import fetch_random_leyenda
+from ui_copy import numero_a_palabras_con_decimales_como_fraccion
+from ui_copy import gift_card_codes
 
 
 

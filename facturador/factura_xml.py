@@ -79,7 +79,7 @@ def generate_invoice_escpos(data):
 
     # Iniciar la impresora
     # Configuración de la impresora (debes ajustar los valores de vendor_id y product_id según tu impresora)
-    printer = Usb(0x04b8, 0x0202)  # Ejemplo para impresora Epson. Cambia los valores según tu impresora
+    printer = Usb(0x04B8, 0x0E15)  # Ejemplo para impresora Epson. Cambia los valores según tu impresora
 
     # Encabezado
     printer.set(align="center", bold=True, font="a")

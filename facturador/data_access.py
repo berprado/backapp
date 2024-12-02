@@ -21,7 +21,7 @@ from zeep import Client
 
 logging.basicConfig(level=logging.DEBUG, 
                     format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
-                    filename='invoice_log.txt')
+                    filename='invoice_log.log')
 load_dotenv()
 metadata = MetaData()
 engine = create_engine(URL_DATABASE)

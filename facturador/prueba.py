@@ -1,9 +1,21 @@
 import os
 import streamlit as st
-from export import imprimir_recibo  # Función de impresión desde `export.py`
 from invoice_templates import generate_compact_html_invoice  # Función para generar el HTML de la factura
 from data_access import fetch_cliente, fetch_random_leyenda  # Funciones de acceso a datos
 from database import SessionLocal  # Sesión de base de datos
+# Imports at the top of prueba.py
+from printer_utils import print_invoice_escpos  # Add this import
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("printer_debug.log"),
+        logging.StreamHandler()
+    ]
+)
 
 # Inicializar el estado de la aplicación para manejar el HTML y el CUF de la factura
 if 'html_content' not in st.session_state:
@@ -70,9 +82,26 @@ with col1:
 with col2:
     if st.session_state['html_content'] is not None:
         if st.button("Imprimir Factura", key="imprimir_factura"):
-            # Usar el HTML y CUF almacenados en `session_state`
-            imprimir_recibo(st.session_state['html_content'], st.session_state['cuf'], nit, numero_factura)
-            st.success("Factura enviada a la impresora con el formato del HTML generado con datos reales.")
+            try:
+                # Asegurarse de que todos los parámetros estén disponibles
+                if not all([st.session_state['html_content'], 
+                          st.session_state['cuf'], 
+                          nit, 
+                          numero_factura]):
+                    raise ValueError("Faltan datos necesarios para la impresión")
+                    
+                # Intentar imprimir
+                print_invoice_escpos(
+                    html_content=st.session_state['html_content'],
+                    cuf=st.session_state['cuf'],
+                    nit=nit,
+                    numero_factura=numero_factura
+                )
+                st.success("✅ Factura impresa correctamente")
+                
+            except Exception as e:
+                logging.error(f"Error durante la impresión: {str(e)}")
+                st.error(f"❌ Error al imprimir: {str(e)}")
 
 # Botón de prueba para verificar la visibilidad de `col3`
 with col3:

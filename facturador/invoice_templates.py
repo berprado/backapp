@@ -314,7 +314,7 @@ def generate_compact_html_invoice(subtotal, descuento_adicional, monto_giftcard,
             </td>
           </tr>
           <tr>
-            <td class="tg-eavw">{razon_social}<br>{nombre_sucursal}<br>Punto de Venta: {codigo_punto_venta}</td>
+            <td class="tg-eavw">{razon_social}<br>{nombre_sucursal}<br>Punttito de Venta: {codigo_punto_venta}</td>
           </tr>
           <tr>
             <td class="tg-eavw">{direccion}<br>{municipio}<br>Tel. {telefono_empresa}</td>

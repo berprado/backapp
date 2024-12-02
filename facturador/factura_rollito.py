@@ -1,95 +1,74 @@
 from escpos.printer import Usb
-from num2words import num2words
-from string import Template
 
-def numero_a_palabras_con_decimales(numero):
-    parte_entera = int(numero)
-    parte_decimal = int(round((numero - parte_entera) * 100))
-    parte_entera_palabras = num2words(parte_entera, lang='es').capitalize()
-    return f"{parte_entera_palabras} {parte_decimal:02d}/100 bolivianos."
+def print_invoice_with_format(data):
+    """
+    Imprime la factura con formato basado en la estructura del HTML usando comandos ESC/POS.
+    
+    Args:
+    - data: Diccionario con los datos de la factura (razón social, NIT, detalles de productos, etc.).
+    """
 
-def generate_invoice_text(data):
-    template_str = '''
-    ${tipo_factura}
-    ${subtitulo}
-    ${razon_social}
-    Sucursal: ${sucursal}
-    Punto de Venta: ${punto_venta}
-    Dirección: ${direccion}
-    Municipio: ${municipio}
-    Tel: ${telefono}
-    -----------------------------
-    NIT: ${nit}
-    Factura N°: ${numero_factura}
-    Fecha de Emisión: ${fecha_emision}
-    -----------------------------
-    DETALLE
-    -----------------------------
-    $items
-    -----------------------------
-    Sub Total: ${sub_total} Bs
-    Descuento: ${descuento} Bs
-    Total: ${monto_total} Bs
-    Son: ${total_en_palabras}
-    -----------------------------
-    ${leyenda}
-    -----------------------------
-    '''
-    # Generar detalles de los productos
-    items_str = ''
+    # Generar el texto con estructura similar al HTML
+    invoice_text = f"""
+\x1b\x45\x01{data['tipo_factura']}\x1b\x45\x00
+\x1b\x45\x01{data['subtitulo']}\x1b\x45\x00
+\x1b\x45\x01{data['razon_social']}\x1b\x45\x00
+Sucursal: {data['sucursal']}
+Punto de Venta: {data['punto_venta']}
+Dirección: {data['direccion']}
+Municipio: {data['municipio']}
+Tel: {data['telefono']}
+-----------------------------
+\x1b\x45\x01NIT: {data['nit']}\x1b\x45\x00
+Factura N°: {data['numero_factura']}
+Fecha de Emisión: {data['fecha_emision']}
+-----------------------------
+\x1b\x45\x01DETALLE\x1b\x45\x00
+-----------------------------
+"""
+    # Recorrer los items de la factura y formatear cada uno
     for item in data['items']:
-        items_str += f"{item['descripcion']}\n"
-        items_str += f"{item['cantidad']} x {item['precio_unitario']} Bs\n"
-        items_str += f"Subtotal: {item['sub_total']} Bs\n"
-        items_str += "-----------------------------\n"
+        invoice_text += f"{item['descripcion']}\n{item['cantidad']} x {item['precio_unitario']} Bs\nSubtotal: {item['sub_total']} Bs\n-----------------------------\n"
 
-    template = Template(template_str)
-    invoice_text = template.substitute(
-        tipo_factura=data.get('tipo_factura', 'FACTURA'),
-        subtitulo=data.get('subtitulo', 'CON DERECHO A CRÉDITO FISCAL'),
-        razon_social=data['razon_social'],
-        sucursal=data.get('sucursal', 'CASA MATRIZ'),
-        punto_venta=data.get('punto_venta', 'N/A'),
-        direccion=data.get('direccion', 'Dirección no disponible'),
-        municipio=data.get('municipio', 'Municipio no disponible'),
-        telefono=data.get('telefono', 'Teléfono no disponible'),
-        nit=data['nit'],
-        numero_factura=data['numero_factura'],
-        fecha_emision=data['fecha_emision'],
-        items=items_str,
-        sub_total=f"{data['monto_total']:.2f}",
-        descuento="0.00",
-        monto_total=f"{data['monto_total']:.2f}",
-        total_en_palabras=numero_a_palabras_con_decimales(data['monto_total']),
-        leyenda=data.get('leyenda', '')
-    )
-    return invoice_text
+    # Añadir totales y leyenda
+    invoice_text += f"""
+Sub Total: {data['monto_total']:.2f} Bs
+Descuento: {data['descuento']:.2f} Bs
+Total: {data['monto_total'] - data['descuento']:.2f} Bs
+Son: {data['total_en_palabras']}
+-----------------------------
+\x1b\x45\x01{data['leyenda']}\x1b\x45\x00
+-----------------------------
+“Este documento es la Representación Gráfica de un Documento Fiscal Digital emitido en una modalidad de facturación en línea”
+"""
 
-def print_invoice(data):
-    invoice_text = generate_invoice_text(data)
-    printer = Usb(0x04B8, 0x0E15, 0, out_ep=0x01)
+    # Conectar a la impresora y enviar el texto a imprimir
+    printer = Usb(0x04B8, 0x0E15, 0, out_ep=0x01)  # Conectar a la impresora Epson TM-T20II con Vendor ID y Product ID
     printer.text(invoice_text)
     printer.cut()
 
-# Datos de ejemplo
+# Definir los datos de la factura en el mismo formato de `generate_compact_html_invoice`
 data = {
+    'tipo_factura': 'FACTURA',
+    'subtitulo': 'CON DERECHO A CRÉDITO FISCAL',
     'razon_social': 'Mi Empresa S.A.',
-    'nit': '123456789',
-    'numero_factura': '001',
-    'fecha_emision': '01/01/2023 12:00 PM',
-    'monto_total': 100.00,
+    'sucursal': 'CASA MATRIZ',
+    'direccion': 'Av. Principal #123',
+    'municipio': 'Ciudad',
+    'telefono': '555-1234',
+    'nit': '344096024',
+    'numero_factura': '237',
+    'fecha_emision': '2023-09-28',
     'items': [
         {'descripcion': 'Producto A', 'cantidad': '2', 'precio_unitario': '20.00', 'sub_total': '40.00'},
         {'descripcion': 'Producto B', 'cantidad': '3', 'precio_unitario': '20.00', 'sub_total': '60.00'},
     ],
-    'punto_venta': '001',
+    'monto_total': 100.00,
+    'descuento': 0.00,
+    'total_en_palabras': 'CIEN 00/100 BOLIVIANOS',
     'leyenda': 'Gracias por su compra.',
-    'tipo_factura': 'FACTURA',
-    'subtitulo': 'CON DERECHO A CRÉDITO FISCAL',
-    'sucursal': 'CASA MATRIZ',
-    'direccion': 'Av. Principal #123',
-    'municipio': 'Ciudad',
-    'telefono': '555-1234'
+    'punto_venta': '001'
 }
 
-print_invoice(data)
+# Ejecutar la impresión con el formato ajustado
+print_invoice_with_format(data)

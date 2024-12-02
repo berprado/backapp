@@ -55,7 +55,7 @@ from reversion import (
     procesar_respuesta_reversion,
     obtener_cuf_por_numero_factura,
 )
-from export import (
+from facturador.export1 import (
     imprimir_recibo,
     imprimir_recibo1,
 )  # Importar la función `imprimir_recibo`
