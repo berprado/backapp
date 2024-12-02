@@ -13,6 +13,9 @@
 # Directorios de entornos virtuales
 /backapp
 
+# Directorios de facturas generadas
+/xmls
+
 # Archivos de respaldo y copias
 * - Copy.py
 
