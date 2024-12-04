@@ -1,244 +1,278 @@
-# thermal_printer.py
-import logging
 from escpos.printer import Usb
 from bs4 import BeautifulSoup
-import qrcode
-from PIL import Image
-import io
+import logging
 import re
-import usb.core
-import usb.util
-
-
-# Configure logging
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler("printer_debug.log"),
-        logging.StreamHandler()
-    ]
-)
 
 class ThermalPrinter:
-    def __init__(self, vendor_id=0x04b8, product_id=0x0e15):
-        """
-        Inicializa la impresora Epson TM-T20II
-        vendor_id y product_id son específicos para la Epson TM-T20II
-        """
+    def __init__(self, vendor_id=0x04B8, product_id=0x0E15):
+        self.printer = None
+        self.vendor_id = vendor_id
+        self.product_id = product_id
+        self.line_width = 57  # Ajustado para papel de 88mm
+        self.logger = self._setup_logger()
+        
+    def _setup_logger(self):
+        logger = logging.getLogger('thermal_printer')
+        logger.setLevel(logging.DEBUG)
+        
+        if not logger.handlers:
+            # Crear manejador de archivo
+            fh = logging.FileHandler('thermal_printer.log')
+            fh.setLevel(logging.DEBUG)
+            
+            # Crear manejador de consola
+            ch = logging.StreamHandler()
+            ch.setLevel(logging.INFO)
+            
+            # Crear formato
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            fh.setFormatter(formatter)
+            ch.setFormatter(formatter)
+            
+            # Agregar manejadores al logger
+            logger.addHandler(fh)
+            logger.addHandler(ch)
+        
+        return logger
+
+    def _connect_printer(self):
         try:
-            self.printer = Usb(vendor_id, product_id)
-            logging.info("Impresora inicializada correctamente")
+            self.printer = Usb(self.vendor_id, self.product_id)
+            self.logger.info("Impresora conectada exitosamente")
         except Exception as e:
-            logging.error(f"Error al inicializar la impresora: {e}")
+            self.logger.error(f"Error al conectar con la impresora: {str(e)}")
             raise
 
-    def _clean_text(self, text):
-        """Limpia el texto de caracteres especiales y ajusta el ancho"""
-        if text is None:
-            return ""
-        # Eliminar caracteres especiales y HTML
-        clean = re.sub(r'<[^>]+>', '', str(text))
-        clean = clean.replace('&nbsp;', ' ').strip()
-        return clean
-
-    def _format_line(self, text, width=32):
-        """Formatea una línea de texto al ancho especificado"""
-        text = self._clean_text(text)
+    def _format_line(self, text, width=None):
+        """Formatea una línea de texto para el ancho del papel"""
+        if width is None:
+            width = self.line_width
         if len(text) > width:
             return text[:width-3] + '...'
-        return text
+        return text.ljust(width)
 
-    def _print_header(self, soup):
-        """Imprime el encabezado de la factura"""
-        self.printer.set(align='center', font='a', width=2, height=2)
-        self.printer.text("FACTURA\n")
-        self.printer.set(align='center', font='a', width=1, height=1)
-        self.printer.text("CON DERECHO A CREDITO FISCAL\n\n")
-
+    def _extract_header_info(self, soup):
+        """Extrae la información del encabezado"""
+        header_info = []
+        
         # Información de la empresa
-        self.printer.set(align='center')
-        company_info = soup.find_all('td', limit=4)
-        for info in company_info:
-            self.printer.text(self._format_line(info.text) + "\n")
-        self.printer.text("\n")
-
-    def _print_invoice_details(self, soup):
-        """Imprime los detalles de la factura"""
-        self.printer.set(align='left')
+        empresa_info = soup.find('td', {'class': 'tg-n17z', 'colspan': '4'})
+        if empresa_info:
+            for line in empresa_info.stripped_strings:
+                header_info.append(line)
         
-        # NIT y número de factura
-        nit_section = soup.find('td', text=re.compile('NIT', re.IGNORECASE))
-        if nit_section:
-            self.printer.text(f"NIT: {self._clean_text(nit_section.find_next('td').text)}\n")
-        
-        factura_section = soup.find('td', text=re.compile('Factura N°', re.IGNORECASE))
-        if factura_section:
-            self.printer.text(f"Factura N°: {self._clean_text(factura_section.find_next('td').text)}\n")
+        return header_info
 
+    def _extract_customer_info(self, soup):
+        """Extrae la información del cliente"""
+        customer_info = []
+        
         # Información del cliente
-        cliente_section = soup.find('td', text=re.compile('Nombre/Razón Social:', re.IGNORECASE))
-        if cliente_section:
-            self.printer.text(f"Cliente: {self._clean_text(cliente_section.find_next('td').text)}\n")
+        cliente_cell = soup.find('td', string=re.compile('Nombre/Razón Social'))
+        if cliente_cell:
+            cliente_text = cliente_cell.get_text()
+            nombre = cliente_text.split(':')[1].strip() if ':' in cliente_text else cliente_text
+            customer_info.append(f"Cliente: {nombre}")
 
-        self.printer.text("\n")
+        # NIT/CI/CEX
+        doc_cell = soup.find('td', string=re.compile('NIT/CI/CEX'))
+        if doc_cell:
+            doc = doc_cell.find_next('td').get_text().strip()
+            customer_info.append(f"Doc. Identidad: {doc}")
 
-    def _print_products(self, soup):
-        """Imprime la lista de productos"""
-        self.printer.set(align='left')
-        self.printer.text("DETALLE DE PRODUCTOS\n")
-        self.printer.text("-" * 32 + "\n")
-
-        products_section = soup.find_all('tr')
-        for product in products_section:
-            if "Producto" in product.text:
-                name = self._format_line(product.find_all('td')[0].text)
-                price = self._format_line(product.find_all('td')[1].text)
-                self.printer.text(f"{name}\n")
-                self.printer.text(f"Precio: {price}\n")
-                self.printer.text("-" * 32 + "\n")
-
-    def _print_totals(self, soup):
-        """Imprime los totales"""
-        self.printer.set(align='right')
+        # Fecha de emisión
+        fecha_cell = soup.find('td', string=re.compile('Fecha'))
+        if fecha_cell:
+            fecha = fecha_cell.get_text().split(':')[1].strip()
+            customer_info.append(f"Fecha: {fecha}")
         
-        # Buscar y imprimir subtotal, descuento y total
-        totals = {
-            'Sub Total': None,
-            'Descuento': None,
-            'Total': None,
-            'Gift Card': None,
-            'Monto a Pagar': None
-        }
+        return customer_info
 
-        for label in totals.keys():
-            section = soup.find('td', text=re.compile(label, re.IGNORECASE))
-            if section:
-                value = self._clean_text(section.find_next('td').text)
-                totals[label] = value
-                self.printer.text(f"{label}: {value}\n")
-
-    def _print_qr(self, cuf):
-        """Genera e imprime el código QR"""
-        qr = qrcode.QRCode(version=1, box_size=10, border=4)
-        qr.add_data(cuf)
-        qr.make(fit=True)
-        qr_image = qr.make_image(fill_color="black", back_color="white")
-        
-        # Convertir la imagen QR a un formato que la impresora pueda manejar
-        qr_buffer = io.BytesIO()
-        qr_image.save(qr_buffer, format='PNG')
-        self.printer.image(Image.open(qr_buffer))
-
-    def _print_footer(self, soup):
-        """Imprime el pie de página"""
-        self.printer.set(align='center')
-        self.printer.text("\n")
-        footer_text = "GRACIAS POR SU COMPRA\n"
-        self.printer.text(footer_text)
-        self.printer.text("-" * 32 + "\n")
-
-    def _validate_html_structure(self, soup):
-        """
-        Validates if the HTML has all required elements for printing.
-        Raises ValueError if critical elements are missing.
-        
-        Args:
-            soup: BeautifulSoup object of the HTML content
-        """
-        validation_results = {
-            'header': bool(soup.find_all('td', limit=4)),
-            'nit': bool(soup.find('td', text=re.compile('NIT', re.IGNORECASE))),
-            'factura': bool(soup.find('td', text=re.compile('Factura N°', re.IGNORECASE))),
-            'cliente': bool(soup.find('td', text=re.compile('Nombre/Razón Social:', re.IGNORECASE))),
-            'productos': bool(soup.find_all('tr')),  # Verify product rows exist
-            'totales': bool(soup.find('td', text=re.compile('Total:', re.IGNORECASE)))
-        }
-        
-        # Log the validation results for debugging
-        for element, found in validation_results.items():
-            logging.debug(f"Elemento '{element}' encontrado: {found}")
-        
-        # Check for missing elements
-        missing_elements = [k for k, v in validation_results.items() if not v]
-        if missing_elements:
-            error_msg = f"Elementos requeridos faltantes en el HTML: {', '.join(missing_elements)}"
-            logging.error(error_msg)
-            raise ValueError(error_msg)
-
-    def print_invoice(self, html_content, cuf):
-        """
-        Imprime la factura completa con validación mejorada y manejo de errores.
-        
-        Args:
-            html_content (str): Contenido HTML de la factura
-            cuf (str): Código CUF para el QR
-        """
+    def _extract_products(self, soup):
+        """Extrae los productos del HTML"""
+        products = []
         try:
-            # Parse HTML and validate structure
+            # Buscar la tabla de productos
+            product_rows = soup.find_all('tr', {'class': 'tg-1kjo'})
+            for row in product_rows:
+                cells = row.find_all('td')
+                if len(cells) >= 7:
+                    product = {
+                        'codigo': cells[0].get_text().strip(),
+                        'cantidad': float(cells[1].get_text().strip()),
+                        'unidad': cells[2].get_text().strip(),
+                        'descripcion': cells[3].get_text().strip(),
+                        'precio_unit': float(cells[4].get_text().strip()),
+                        'descuento': float(cells[5].get_text().strip() or '0'),
+                        'subtotal': float(cells[6].get_text().strip())
+                    }
+                    products.append(product)
+            
+            return products
+        except Exception as e:
+            self.logger.error(f"Error extrayendo productos: {str(e)}")
+            return []
+
+    def _extract_totals(self, soup):
+        """Extrae y formatea los totales"""
+        totals = []
+        labels = [
+            'Sub Total:', 'Descuento:', 'Total:', 
+            'Gift Card:', 'Monto a Pagar:', 'Imp. Base Cred. Fiscal:'
+        ]
+        
+        for label in labels:
+            cell = soup.find('td', string=re.compile(label))
+            if cell and cell.find_next('td'):
+                value = cell.find_next('td').get_text().strip()
+                formatted = f"{label.ljust(25)}{value.rjust(self.line_width - 25)}"
+                totals.append(formatted)
+        
+        return totals
+
+    def _print_header(self):
+        """Imprime el encabezado"""
+        self.printer.set(align='center', font='a')
+        header = [
+            "=" * self.line_width,
+            "FACTURA",
+            "(CON DERECHO A CREDITO FISCAL)",
+            "=" * self.line_width
+        ]
+        self.printer.text("\n".join(header) + "\n\n")
+
+    def _print_product_line(self, product):
+        """Formatea una línea de producto"""
+        self.printer.set(align='left')
+        
+        # Descripción del producto
+        desc_line = f"{product['codigo']} - {product['descripcion']}"
+        self.printer.text(self._format_line(desc_line) + "\n")
+        
+        # Cantidad y precio
+        qty_price = f"{product['cantidad']} x {product['precio_unit']:,.2f}"
+        subtotal = f"= {product['subtotal']:,.2f}"
+        space = self.line_width - len(qty_price) - len(subtotal)
+        self.printer.text(f"{qty_price}{' ' * space}{subtotal}\n")
+        
+        # Unidad de medida
+        self.printer.text(f"Unidad: {product['unidad']}\n")
+        
+        if product['descuento'] > 0:
+            self.printer.text(f"Descuento: {product['descuento']:,.2f}\n")
+        
+        self.printer.text("-" * self.line_width + "\n")
+
+    def _extract_cuf(self, soup):
+        """Extrae el CUF del HTML"""
+        cuf_element = soup.find('td', string=re.compile('Código de Autorización', re.IGNORECASE))
+        if cuf_element and cuf_element.find_next('td'):
+            return cuf_element.find_next('td').get_text().strip()
+        return ""
+
+    def _extract_nit(self, soup):
+        """Extrae el NIT del HTML"""
+        nit_element = soup.find('td', class_='tg-i6l2', string=re.compile('NIT', re.IGNORECASE))
+        if nit_element and nit_element.find_next('td'):
+            return nit_element.find_next('td').get_text().strip()
+        return ""
+
+    def _extract_invoice_number(self, soup):
+        """Extrae el número de factura del HTML"""
+        invoice_element = soup.find('td', string=re.compile('Factura N°', re.IGNORECASE))
+        if invoice_element and invoice_element.find_next('td'):
+            return invoice_element.find_next('td').get_text().strip()
+        return ""
+
+    def print_invoice(self, html_content):
+        """Método principal para imprimir la factura"""
+        try:
+            self.logger.info("Iniciando impresión")
             soup = BeautifulSoup(html_content, 'html.parser')
-            logging.info("HTML parseado correctamente")
+            self._connect_printer()
             
-            # Validate HTML structure before printing
-            self._validate_html_structure(soup)
+            # Encabezado
+            self._print_header()
             
-            # Test printer connection
-            logging.info("Probando conexión con la impresora...")
-            self.printer.text("Test de conexión\n")
+            # Información de la empresa
+            self.printer.set(align='center')
+            empresa_info = self._extract_header_info(soup)
+            for line in empresa_info:
+                self.printer.text(self._format_line(line) + "\n")
+            
+            self.printer.text("-" * self.line_width + "\n")
+            
+            # Información de documento
+            self.printer.set(align='left')
+            self.printer.text(f"NIT: {self._extract_nit(soup)}\n")
+            self.printer.text(f"Factura N°: {self._extract_invoice_number(soup)}\n")
+            
+            # Información del cliente
+            self.printer.text("\n")
+            cliente_info = self._extract_customer_info(soup)
+            for line in cliente_info:
+                self.printer.text(self._format_line(line) + "\n")
+            
+            # Detalle de productos
+            self.printer.text("\nDETALLE DE PRODUCTOS\n")
+            self.printer.text("-" * self.line_width + "\n")
+            
+            productos = self._extract_products(soup)
+            for producto in productos:
+                self._print_product_line(producto)
+            
+            # Totales
+            self.printer.set(align='right')
+            totales = self._extract_totals(soup)
+            self.printer.text("\n")
+            for total in totales:
+                self.printer.text(self._format_line(total) + "\n")
+            
+            # Son (en palabras)
+            son_element = soup.find('td', string=re.compile('Son:', re.IGNORECASE))
+            if son_element:
+                self.printer.set(align='left')
+                self.printer.text("\n" + self._format_line(son_element.get_text().strip()) + "\n")
+            
+            # Mensaje legal y pie
+            self.printer.set(align='center')
+            footer = [
+                "",
+                "ESTA FACTURA CONTRIBUYE AL DESARROLLO DEL PAÍS,",
+                "EL USO ILÍCITO SERÁ SANCIONADO PENALMENTE",
+                "DE ACUERDO A LEY",
+                "",
+                f"CUF: {self._extract_cuf(soup)}",
+                f"NIT: {self._extract_nit(soup)}",
+                f"Factura No: {self._extract_invoice_number(soup)}",
+                "=" * self.line_width
+            ]
+            self.printer.text("\n".join(footer))
+            
+            # Cortar papel
             self.printer.cut()
-            logging.info("Prueba de conexión exitosa")
             
-            # Continue with regular printing
-            self._print_header(soup)
-            self._print_invoice_details(soup)
-            self._print_products(soup)
-            self._print_totals(soup)
-            self._print_qr(cuf)
-            self._print_footer(soup)
-            
-            # Cut paper at the end
-            self.printer.cut()
-            
-            logging.info("Factura impresa correctamente")
+            self.logger.info("Impresión completada exitosamente")
             return True
             
         except Exception as e:
-            logging.error(f"Error detallado en print_invoice: {str(e)}")
-            logging.error(f"Primeros 200 caracteres del HTML recibido: {html_content[:200]}...")
+            self.logger.error(f"Error durante la impresión: {str(e)}")
             raise
 
 def print_invoice_thermal(html_content, cuf, nit, numero_factura):
     """
-    Función principal para imprimir la factura con manejo mejorado de errores.
-    
+    Función principal para imprimir la factura térmica
     Args:
         html_content (str): Contenido HTML de la factura
         cuf (str): Código CUF para el QR
         nit (str): NIT de la empresa
         numero_factura (str): Número de factura
+    Returns:
+        bool: True si la impresión fue exitosa
     """
     try:
-        # Log basic information
-        logging.info(f"Iniciando impresión de factura #{numero_factura}")
-        logging.debug(f"NIT: {nit}, CUF: {cuf}")
-        
-        # Initialize printer
         printer = ThermalPrinter()
-        
-        # Attempt to print
-        result = printer.print_invoice(html_content, cuf)
-        
-        if result:
-            logging.info(f"Factura #{numero_factura} impresa exitosamente")
-            return True
-        return False
-        
-    except usb.core.USBError as e:
-        logging.error(f"Error de conexión USB: {str(e)}")
-        raise Exception(f"Error de conexión con la impresora: {str(e)}")
-    except ValueError as e:
-        logging.error(f"Error de validación: {str(e)}")
-        raise Exception(f"Error en el formato de la factura: {str(e)}")
+        return printer.print_invoice(html_content)
     except Exception as e:
-        logging.error(f"Error inesperado en la impresión: {str(e)}")
-        raise Exception(f"Error al imprimir la factura: {str(e)}")
+        logging.error(f"Error al imprimir factura: {str(e)}")
+        raise

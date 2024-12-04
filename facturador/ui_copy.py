@@ -38,12 +38,17 @@ from estado_factura import verificar_estado_factura
 import cuis
 from anulacion import anular_factura
 from reversion import enviar_solicitud_reversion, procesar_respuesta_reversion, obtener_cuf_por_numero_factura
-from facturador.export import imprimir_recibo, imprimir_recibo1  # Importar la función `imprimir_recibo`
+from facturador.export import imprimir_recibo # Importar la función `imprimir_recibo`
 from invoice_templates import generate_compact_html_invoice  # Importar la generación del HTML
 from printer_utils import print_invoice_escpos
 import threading
 from facturador.thermal_printer import print_invoice_thermal
-from print_invoice import imprimir_factura_html  # Importa la función modular de impresión
+from printer_utils import (
+    verificar_impresora,
+    guardar_factura_actual,
+    obtener_factura_actual,
+    marcar_factura_impresa
+)
 
 # Create a custom logger for printing
 printer_logger = logging.getLogger('printer')
@@ -584,22 +589,24 @@ def render_sidebar():
     # (fetch_cliente, selectboxes, etc.)
     return numero_documento, nit_valido, nombre_cliente, complemento, email, telefono, seleccion_tipo_documento, codigo_clasificador_documento, codigo_clasificador_metodo_pago, ultimos_digitos_tarjeta, codigo_cliente
 
+# Reemplazar la función imprimir_en_hilo existente:
 def imprimir_en_hilo(html_content, cuf, nit, numero_factura):
     """
     Función que maneja la impresión en un hilo separado
-    Args:
-        html_content (str): Contenido HTML de la factura
-        cuf (str): Código CUF para el QR
-        nit (str): NIT de la empresa
-        numero_factura (str): Número de factura
     """
     def imprimir():
         try:
+            if not verificar_impresora():
+                return
+            
             print_invoice_thermal(html_content, cuf, nit, numero_factura)
+            marcar_factura_impresa()
             st.success("✅ Factura impresa correctamente")
+            
         except Exception as e:
-            logging.exception(f"Error en el hilo de impresión: {e}")
-            st.error(f"❌ Error al imprimir: {str(e)}")
+            error_msg = f"Error en el hilo de impresión: {str(e)}"
+            logging.exception(error_msg)
+            st.error(f"❌ Error al imprimir: {error_msg}")
 
     # Crear y iniciar el hilo
     hilo = threading.Thread(target=imprimir)
@@ -1028,7 +1035,7 @@ def main():
                                                     return
                                             
                                             # Generación directa del PDF utilizando imprimir_recibo
-                                            file_path, qr_base64 = imprimir_recibo1(
+                                            file_path = imprimir_recibo(
                                                 generate_compact_html_invoice(
                                                     subtotal, 
                                                     descuento_adicional, 
@@ -1063,28 +1070,73 @@ def main():
                                             file_path = "final_factura_test.html"
                                             
                                             
+                                           # En la sección col2 de ui_copy.py
+                                            # Dentro del bloque de código donde se procesa la factura exitosamente
+                                            
                                             with col2:
                                                 if st.button("Imprimir Factura"):
                                                     try:
-                                                        # Verificar que tengamos todos los datos necesarios
-                                                        if not all([st.session_state['html_content'], 
-                                                                st.session_state['cuf'], 
-                                                                os.getenv('NIT'),
-                                                                numero_factura]):
-                                                            raise ValueError("Faltan datos necesarios para la impresión")
+                                                        # Verificar que todos los datos necesarios estén disponibles
+                                                        if not all([
+                                                            st.session_state.get('html_content'),
+                                                            st.session_state.get('cuf'), 
+                                                            os.getenv('NIT'),
+                                                            numero_factura
+                                                        ]):
+                                                            logging.error("Faltan datos necesarios para la impresión")
+                                                            raise ValueError("No se puede imprimir: faltan datos necesarios")
+                                                            
+                                                        # Registrar el inicio del proceso
+                                                        logging.info(f"""
+                                                        Iniciando proceso de impresión:
+                                                        - Número de factura: {numero_factura}
+                                                        - CUF: {st.session_state['cuf']}
+                                                        - NIT: {os.getenv('NIT')}
+                                                        """)
                                                         
+                                                        # Mostrar indicador de progreso
                                                         with st.spinner("Imprimiendo factura..."):
-                                                            file_path, qr_base64 = imprimir_recibo(
-                                                                st.session_state['html_content'],
+                                                            # Obtener el HTML compacto para impresión térmica
+                                                            html_content = generate_compact_html_invoice(
+                                                                subtotal,
+                                                                descuento_adicional,
+                                                                monto_giftcard,
+                                                                lineas_productos,
+                                                                nombre_cliente,
+                                                                fecha_emision_str,
+                                                                numero_factura,
+                                                                seleccion_metodo_pago,
+                                                                codigo_clasificador_metodo_pago,
+                                                                seleccion_tipo_documento,
+                                                                codigo_clasificador_documento,
+                                                                numero_documento,
+                                                                complemento,
+                                                                email,
+                                                                telefono,
+                                                                ultimos_digitos_tarjeta
+                                                            )
+                                                            
+                                                            # Intentar imprimir
+                                                            file_path = imprimir_recibo(
+                                                                html_content,
                                                                 st.session_state['cuf'],
                                                                 os.getenv('NIT'),
                                                                 numero_factura
                                                             )
-                                                            st.success("✅ Factura impresa y guardada correctamente")
                                                             
+                                                            # Mostrar mensaje de éxito
+                                                            st.success("✅ Factura impresa correctamente")
+                                                            logging.info(f"Impresión completada. PDF guardado en: {file_path}")
+                                                            
+                                                    except ValueError as e:
+                                                        error_msg = str(e)
+                                                        logging.error(f"Error de validación: {error_msg}")
+                                                        st.error(f"❌ {error_msg}")
+                                                        
                                                     except Exception as e:
-                                                        logging.error(f"Error durante la impresión: {str(e)}")
-                                                        st.error(f"❌ Error al imprimir: {str(e)}")
+                                                        error_msg = f"Error durante la impresión: {str(e)}"
+                                                        logging.error(error_msg)
+                                                        st.error(f"❌ {error_msg}")
                                                                                         
                                             with col3:
                                                 if nit_emisor and cuf and numero_factura:
