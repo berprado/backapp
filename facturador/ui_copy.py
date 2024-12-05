@@ -43,13 +43,8 @@ from invoice_templates import generate_compact_html_invoice  # Importar la gener
 from printer_utils import print_invoice_escpos
 from facturador.thermal_printer import ThermalPrinter
 import threading
-#from thermal_printer import print_invoice1
-from printer_utils import (
-    verificar_impresora,
-    guardar_factura_actual,
-    obtener_factura_actual,
-    marcar_factura_impresa
-)
+
+
 
 # Create a custom logger for printing
 printer_logger = logging.getLogger('printer')
@@ -893,301 +888,209 @@ def main():
 
     ACTIVIDAD_ECONOMICA = os.getenv('ACTIVIDAD_ECONOMICA')
     CODIGO_PRODUCTO_SIN = os.getenv('CODIGO_PRODUCTO_SIN')
-    
+
     
 
     with tab1:
-     
-           
-        
         html_invoice = generate_html_invoice(
-            subtotal, 
-            descuento_adicional, 
-            monto_giftcard, 
-            lineas_productos, 
-            nombre_cliente, 
-            fecha_emision_str, 
-            numero_factura, 
-            seleccion_metodo_pago, 
-            codigo_clasificador_metodo_pago, 
-            seleccion_tipo_documento, 
-            codigo_clasificador_documento, 
-            numero_documento, 
-            complemento, 
-            email, 
-            telefono, 
-            ultimos_digitos_tarjeta
+            subtotal, descuento_adicional, monto_giftcard, lineas_productos,
+            nombre_cliente, fecha_emision_str, numero_factura, seleccion_metodo_pago,
+            codigo_clasificador_metodo_pago, seleccion_tipo_documento,
+            codigo_clasificador_documento, numero_documento, complemento,
+            email, telefono, ultimos_digitos_tarjeta
         )
         components.html(html_invoice, height=700, scrolling=True)
 
-        
         col1, col2, col3 = st.columns(3)
+
         with col1:
-         if st.button("Facturar", key="generar_xml", help="Generar la factura", disabled=not selected_id_comanda):
-            if metodo_pago_seleccionado and seleccion_tipo_documento and numero_documento and selected_id_comanda:
-                try:
-                    tipo_documento_seleccionado = next((doc for doc in tipos_documento if doc["descripcion"] == seleccion_tipo_documento), None)
-                    nit_emisor = int(os.getenv('NIT'))
-                    razon_social_emisor = os.getenv('RAZON_SOCIAL')
-                    municipio = os.getenv('MUNICIPIO')
-                    telefono = os.getenv('TELEFONO')
-                    cufd = verificar_y_obtener_cufd(message_placeholder)
-                    codigo_sucursal = int(os.getenv('CODIGO_SUCURSAL'))
-                    codigo_punto_venta = int(os.getenv('CODIGO_PUNTO_VENTA'))
-                    codigo_documento_sector = int(os.getenv('CODIGO_DOCUMENTO_SECTOR')) 
-                    direccion = os.getenv('DIRECCION')
-                    cuf = generate_cuf(
-                        nit_emisor, 
-                        fecha_emision, 
-                        codigo_sucursal, 
-                        int(os.getenv('CODIGO_MODALIDAD')),
-                        int(os.getenv('CODIGO_TIPO_EMISION')), 
-                        int(os.getenv('CODIGO_TIPO_FACTURA')),
-                        codigo_documento_sector, 
-                        numero_factura,
-                        codigo_punto_venta
-                    )
-                    fecha_emision_str = fecha_emision.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
+            if st.button("Facturar", key="generar_xml", help="Generar la factura", disabled=not selected_id_comanda):
+                if metodo_pago_seleccionado and seleccion_tipo_documento and numero_documento and selected_id_comanda:
+                    try:
+                        # Configuración inicial
+                        tipo_documento_seleccionado = next((doc for doc in tipos_documento if doc["descripcion"] == seleccion_tipo_documento), None)
+                        nit_emisor = int(os.getenv('NIT'))
+                        razon_social_emisor = os.getenv('RAZON_SOCIAL')
+                        municipio = os.getenv('MUNICIPIO')
+                        telefono = os.getenv('TELEFONO')
+                        cufd = verificar_y_obtener_cufd(message_placeholder)
+                        codigo_sucursal = int(os.getenv('CODIGO_SUCURSAL'))
+                        codigo_punto_venta = int(os.getenv('CODIGO_PUNTO_VENTA'))
+                        codigo_documento_sector = int(os.getenv('CODIGO_DOCUMENTO_SECTOR')) 
+                        direccion = os.getenv('DIRECCION')
 
-                    lineas_productos = collect_product_lines(comandas, selected_id_comanda, db) 
-                    
-                    xml_str, factura_cabecera_data, detalles_data = generate_xml_invoice(
-                        nit_emisor, 
-                        razon_social_emisor,
-                        municipio, 
-                        telefono, 
-                        numero_factura, 
-                        cuf, 
-                        cufd,
-                        codigo_sucursal, 
-                        direccion, 
-                        codigo_punto_venta, 
-                        fecha_emision_str, 
-                        nombre_cliente,
-                        tipo_documento_seleccionado['codigoClasificador'], 
-                        numero_documento,
-                        complemento, 
-                        numero_documento, 
-                        metodo_pago_seleccionado['codigoClasificador'], 
-                        ultimos_digitos_tarjeta,
-                        subtotal,
-                        total,
-                        1,
-                        1,
-                        total / 1,
-                        monto_giftcard, 
-                        descuento_adicional,
-                        "don_bercho", 
-                        codigo_documento_sector, 
-                        lineas_productos,
-                        ACTIVIDAD_ECONOMICA, 
-                        CODIGO_PRODUCTO_SIN
-                    )
+                        # Generar CUF
+                        cuf = generate_cuf(
+                            nit_emisor, 
+                            fecha_emision, 
+                            codigo_sucursal, 
+                            int(os.getenv('CODIGO_MODALIDAD')),
+                            int(os.getenv('CODIGO_TIPO_EMISION')), 
+                            int(os.getenv('CODIGO_TIPO_FACTURA')),
+                            codigo_documento_sector, 
+                            numero_factura,
+                            codigo_punto_venta
+                        )
 
-                    private_key_path = "xmls/llaves/private_key_ok.pem"
-                    cert_path = "xmls/llaves/certificado_ok.pem"
-                    
-                    signed_xml_str = sign_xml(xml_str, private_key_path, cert_path, cuf)
+                        # Generar XML
+                        xml_str, factura_cabecera_data, detalles_data = generate_xml_invoice(
+                            nit_emisor, razon_social_emisor, municipio, telefono, numero_factura,
+                            cuf, cufd, codigo_sucursal, direccion, codigo_punto_venta,
+                            fecha_emision_str, nombre_cliente, tipo_documento_seleccionado['codigoClasificador'],
+                            numero_documento, complemento, numero_documento,
+                            metodo_pago_seleccionado['codigoClasificador'], ultimos_digitos_tarjeta,
+                            subtotal, total, 1, 1, total / 1, monto_giftcard, descuento_adicional,
+                            "don_bercho", codigo_documento_sector, lineas_productos,
+                            os.getenv('ACTIVIDAD_ECONOMICA'), os.getenv('CODIGO_PRODUCTO_SIN')
+                        )
 
-                    filename = f"xmls/factura_{numero_factura}_{cuf}_.xml"
-                    with open(filename, "w", encoding='utf-8') as signed_xml_file:
-                        signed_xml_file.write(signed_xml_str)
+                        # Firmar y validar XML
+                        private_key_path = "xmls/llaves/private_key_ok.pem"
+                        cert_path = "xmls/llaves/certificado_ok.pem"
+                        signed_xml_str = sign_xml(xml_str, private_key_path, cert_path, cuf)
 
-                    xsd_main_path = 'xmls/schemas/facturaElectronicaCompraVenta.xsd'
-                    if validar_xml(filename, xsd_main_path):
-                        gzip_path = comprimir_xml(filename)
-                        hash_archivo = obtener_hash(gzip_path)
-                        response = enviar_solicitud(filename, xsd_main_path, fecha_emision_str, cufd)
+                        # Guardar XML firmado
+                        filename = f"xmls/factura_{numero_factura}_{cuf}_.xml"
+                        with open(filename, "w", encoding='utf-8') as signed_xml_file:
+                            signed_xml_file.write(signed_xml_str)
 
-                        if isinstance(response, dict) and response.get("error"):
-                            message_placeholder.error(f"❌Error al enviar la factura: {response['error']}")
-                        else:
-                            try:
-                                root = ET.fromstring(response.content)
-                                ns = {'soap': 'http://schemas.xmlsoap.org/soap/envelope/', 'ns2': 'https://siat.impuestos.gob.bo/'}
+                        # Validar y enviar
+                        xsd_main_path = 'xmls/schemas/facturaElectronicaCompraVenta.xsd'
+                        if validar_xml(filename, xsd_main_path):
+                            gzip_path = comprimir_xml(filename)
+                            hash_archivo = obtener_hash(gzip_path)
+                            response = enviar_solicitud(filename, xsd_main_path, fecha_emision_str, cufd)
 
-                                respuesta_servicio = root.find('.//RespuestaServicioFacturacion')
-                                
-                                if respuesta_servicio is not None:
-                                    codigo_descripcion = respuesta_servicio.find('codigoDescripcion')
-                                    codigo_estado = respuesta_servicio.find('codigoEstado')
-                                    codigo_recepcion = respuesta_servicio.find('codigoRecepcion')
-                                    transaccion = respuesta_servicio.find('transaccion')
+                            if isinstance(response, dict) and response.get("error"):
+                                message_placeholder.error(f"❌Error al enviar la factura: {response['error']}")
+                            else:
+                                try:
+                                    root = ET.fromstring(response.content)
+                                    ns = {'soap': 'http://schemas.xmlsoap.org/soap/envelope/', 'ns2': 'https://siat.impuestos.gob.bo/'}
+                                    respuesta_servicio = root.find('.//RespuestaServicioFacturacion')
                                     
-                                    if all([codigo_descripcion is not None, codigo_estado is not None, 
-                                            codigo_recepcion is not None, transaccion is not None]):
+                                    if respuesta_servicio is not None:
+                                        codigo_descripcion = respuesta_servicio.find('codigoDescripcion')
+                                        codigo_estado = respuesta_servicio.find('codigoEstado')
+                                        codigo_recepcion = respuesta_servicio.find('codigoRecepcion')
+                                        transaccion = respuesta_servicio.find('transaccion')
                                         
-                                        codigo_descripcion = codigo_descripcion.text
-                                        codigo_estado = codigo_estado.text
-                                        codigo_recepcion = codigo_recepcion.text
-                                        transaccion = transaccion.text.lower() == 'true'
-                                        
-                                        if transaccion:
-                                            message_placeholder.success(f""":heavy_check_mark: FACTURA {codigo_descripcion}""")
+                                        if all([codigo_descripcion is not None, codigo_estado is not None, 
+                                                codigo_recepcion is not None, transaccion is not None]):
+                                            
+                                            codigo_descripcion = codigo_descripcion.text
+                                            codigo_estado = codigo_estado.text
+                                            codigo_recepcion = codigo_recepcion.text
+                                            transaccion = transaccion.text.lower() == 'true'
+                                            
+                                            if transaccion:
+                                                message_placeholder.success(f""":heavy_check_mark: FACTURA {codigo_descripcion}""")
+                                                
+                                                # Almacenar datos en session_state
+                                                st.session_state['cuf'] = cuf
+                                                st.session_state['ultima_factura'] = numero_factura
+                                                st.session_state['factura_validada'] = True
+                                                st.session_state['datos_impresion'] = {
+                                                    'subtotal': subtotal,
+                                                    'descuento_adicional': descuento_adicional,
+                                                    'monto_giftcard': monto_giftcard,
+                                                    'lineas_productos': lineas_productos,
+                                                    'nombre_cliente': nombre_cliente,
+                                                    'fecha_emision_str': fecha_emision_str,
+                                                    'seleccion_metodo_pago': seleccion_metodo_pago,
+                                                    'codigo_clasificador_metodo_pago': codigo_clasificador_metodo_pago,
+                                                    'seleccion_tipo_documento': seleccion_tipo_documento,
+                                                    'codigo_clasificador_documento': codigo_clasificador_documento,
+                                                    'numero_documento': numero_documento,
+                                                    'complemento': complemento,
+                                                    'email': email,
+                                                    'telefono': telefono,
+                                                    'ultimos_digitos_tarjeta': ultimos_digitos_tarjeta
+                                                }
 
-                                            is_valid, error_message = validar_factura_cabecera(factura_cabecera_data)
-                                            if is_valid:
-                                                guardar_factura_cabecera(factura_cabecera_data)
-                                                increment_invoice_number(numero_factura)
-                                            else:
-                                                message_placeholder.error(error_message)
-                                                return
-
-                                            for detalle in detalles_data:
-                                                is_valid, error_message = validar_factura_detalle(detalle)
+                                                # Guardar factura en base de datos
+                                                is_valid, error_message = validar_factura_cabecera(factura_cabecera_data)
                                                 if is_valid:
-                                                    guardar_factura_detalle(detalle)
+                                                    guardar_factura_cabecera(factura_cabecera_data)
+                                                    increment_invoice_number(numero_factura)
                                                 else:
                                                     message_placeholder.error(error_message)
                                                     return
-                                            
-                                            # Generación directa del PDF utilizando imprimir_recibo
-                                            file_path = imprimir_recibo(
-                                                generate_compact_html_invoice(
-                                                    subtotal, 
-                                                    descuento_adicional, 
-                                                    monto_giftcard, 
-                                                    lineas_productos, 
-                                                    nombre_cliente, 
-                                                    fecha_emision_str, 
-                                                    numero_factura, 
-                                                    seleccion_metodo_pago, 
-                                                    codigo_clasificador_metodo_pago, 
-                                                    seleccion_tipo_documento, 
-                                                    codigo_clasificador_documento, 
-                                                    numero_documento, 
-                                                    complemento, 
-                                                    email, 
-                                                    telefono, 
-                                                    ultimos_digitos_tarjeta
-                                                ),
-                                                cuf, 
-                                                os.getenv('NIT'), 
-                                                numero_factura
-                                            )
 
-                                            
-
-                                           # Generar el contenido HTML de la factura usando la función adecuada
-                                            html_content = generate_compact_html_invoice(
-                                                subtotal, descuento_adicional, monto_giftcard, 
-                                                lineas_productos, nombre_cliente, fecha_emision, numero_factura, os.getenv('NIT'),
-                                            )
-                                                                                        # Botón de impresión para enviar la factura a la impresora
-                                            file_path = "final_factura_test.html"
-                                            
-                                            
-                                           # En la sección col2 de ui_copy.py
-                                            # Dentro del bloque de código donde se procesa la factura exitosamente
-                                            
-                                            with col2:
-                                                if st.button("Imprimir Factura"):
-                                                    try:
-                                                        # Verificar que todos los datos necesarios estén disponibles
-                                                        if not all([
-                                                            subtotal,
-                                                            descuento_adicional,
-                                                            monto_giftcard,
-                                                            lineas_productos,
-                                                            nombre_cliente,
-                                                            fecha_emision_str,
-                                                            numero_factura,
-                                                            seleccion_metodo_pago,
-                                                            codigo_clasificador_metodo_pago,
-                                                            seleccion_tipo_documento,
-                                                            codigo_clasificador_documento,
-                                                            numero_documento,
-                                                            complemento,
-                                                            email,
-                                                            telefono,
-                                                            st.session_state.get('cuf'),
-                                                            os.getenv('NIT')
-                                                        ]):
-                                                            logging.error("Faltan datos necesarios para la impresión")
-                                                            raise ValueError("No se puede imprimir: faltan datos necesarios")
-
-                                                        # Registrar el inicio del proceso
-                                                        logging.info(f"""
-                                                        Iniciando proceso de impresión:
-                                                        - Número de factura: {numero_factura}
-                                                        - CUF: {st.session_state['cuf']}
-                                                        - NIT: {os.getenv('NIT')}
-                                                        """)
-
-                                                        # Mostrar indicador de progreso
-                                                        with st.spinner("Generando factura para impresión..."):
-                                                            # Generar el contenido HTML compacto para impresión térmica
-                                                            html_content = generate_compact_html_invoice(
-                                                                subtotal=subtotal,
-                                                                descuento_adicional=descuento_adicional,
-                                                                monto_giftcard=monto_giftcard,
-                                                                lineas_productos=lineas_productos,
-                                                                nombre_cliente=nombre_cliente,
-                                                                fecha_emision=fecha_emision_str,
-                                                                numero_factura=numero_factura,
-                                                                metodo_de_pago=seleccion_metodo_pago,
-                                                                codigo_clasificador_metodo_pago=codigo_clasificador_metodo_pago,
-                                                                tipo_documento=seleccion_tipo_documento,
-                                                                codigo_clasificador_documento=codigo_clasificador_documento,
-                                                                numero_documento=numero_documento,
-                                                                complemento=complemento,
-                                                                email=email,
-                                                                telefono=telefono,
-                                                                ultimos_digitos_tarjeta=ultimos_digitos_tarjeta,
-                                                            )
-
-                                                            # Iniciar el proceso de impresión en un hilo
-                                                            imprimir_en_hilo(html_content, st.session_state['cuf'], os.getenv('NIT'), numero_factura)
-
-                                                    except ValueError as ve:
-                                                        # Captura de errores específicos relacionados con datos faltantes
-                                                        st.error(f"❌ {str(ve)}")
-                                                        logging.error(str(ve))
-                                                    except Exception as e:
-                                                        # Captura de cualquier otro error
-                                                        error_msg = f"Error inesperado durante la impresión: {str(e)}"
-                                                        st.error(f"❌ {error_msg}")
-                                                        logging.exception(error_msg)
-
-
-                                                                                        
-                                            with col3:
-                                                if nit_emisor and cuf and numero_factura:
-                                                    enlace = generate_invoice_link(nit_emisor, cuf, numero_factura)
-                                                    st.link_button("Consultar factura", enlace)
-                                        else:
-                                            mensajes_list = respuesta_servicio.find('mensajesList')
-                                            error_message = "❌La factura no fue procesada correctamente."
-                                            if mensajes_list is not None:
-                                                for mensaje in mensajes_list:
-                                                    codigo = mensaje.find('codigo')
-                                                    descripcion = mensaje.find('descripcion')
-                                                    if codigo is not None and descripcion is not None:
-                                                        error_message += f"\nCódigo: {codigo.text}, Descripción: {descripcion.text}"
-                                                
-                                                message_placeholder.error(f"""{error_message}
-                                                    Código de recepción: {codigo_recepcion}\n
-                                                    Descripción: {codigo_descripcion}\n
-                                                    Estado: {codigo_estado}\n
-                                                """)
+                                                for detalle in detalles_data:
+                                                    is_valid, error_message = validar_factura_detalle(detalle)
+                                                    if is_valid:
+                                                        guardar_factura_detalle(detalle)
+                                                    else:
+                                                        message_placeholder.error(error_message)
+                                                        return
                                             else:
-                                                message_placeholder.error("❌La respuesta del servicio no contiene todos los campos esperados.")
-                                                st.write("Contenido de la respuesta:", response.content)
-                                            
+                                                mensajes_list = respuesta_servicio.find('mensajesList')
+                                                error_message = "❌La factura no fue procesada correctamente."
+                                                if mensajes_list is not None:
+                                                    for mensaje in mensajes_list:
+                                                        codigo = mensaje.find('codigo')
+                                                        descripcion = mensaje.find('descripcion')
+                                                        if codigo is not None and descripcion is not None:
+                                                            error_message += f"\nCódigo: {codigo.text}, Descripción: {descripcion.text}"
+                                                    
+                                                    message_placeholder.error(f"""{error_message}
+                                                        Código de recepción: {codigo_recepcion}\n
+                                                        Descripción: {codigo_descripcion}\n
+                                                        Estado: {codigo_estado}\n
+                                                    """)
+                                                else:
+                                                    message_placeholder.error("❌La respuesta del servicio no contiene todos los campos esperados.")
+                                                    st.write("Contenido de la respuesta:", response.content)
                                     else:
                                         message_placeholder.error("❌No se pudo encontrar RespuestaServicioFacturacion en la respuesta XML.")
                                         st.write("Contenido de la respuesta:", response.content)
-                                        
-                            except ET.ParseError as e:
-                                message_placeholder.error(f"❌Error al parsear la respuesta XML: {str(e)}")
-                                st.write("Contenido de la respuesta:", response.content)
+                                except ET.ParseError as e:
+                                    message_placeholder.error(f"❌Error al parsear la respuesta XML: {str(e)}")
+                                    st.write("Contenido de la respuesta:", response.content)
+                                except Exception as e:
+                                    message_placeholder.error(f"❌Error inesperado al procesar la respuesta: {str(e)}")
+                                    if 'response' in locals():
+                                        st.write("Contenido de la respuesta:", response.content)
+                    except Exception as e:
+                        message_placeholder.error(f"❌Error en el proceso de facturación: {str(e)}")
+                        logging.exception("Error en facturación")
+                else:
+                    message_placeholder.error("❌Por favor, complete todos los campos requeridos.")
 
-                except Exception as e:
-                    message_placeholder.error(f"❌Error inesperado al procesar la respuesta: {str(e)}")
-                    if 'response' in locals():
-                        st.write("Contenido de la respuesta:", response.content)
-            else:
-                message_placeholder.error("❌Por favor, selecciona un método de pago, un tipo de documento y un número de documento válido para generar la factura.")
+        with col2:
+            if st.session_state.get('factura_validada'):
+                if st.button("Imprimir Factura"):
+                    try:
+                        datos = st.session_state['datos_impresion']
+                        html_content = generate_compact_html_invoice(
+                            subtotal=datos['subtotal'],
+                            descuento_adicional=datos['descuento_adicional'],
+                            monto_giftcard=datos['monto_giftcard'],
+                            lineas_productos=datos['lineas_productos'],
+                            nombre_cliente=datos['nombre_cliente'],
+                            fecha_emision=datos['fecha_emision_str'],
+                            numero_factura=st.session_state['ultima_factura'],
+                            metodo_de_pago=datos['seleccion_metodo_pago'],
+                            codigo_clasificador_metodo_pago=datos['codigo_clasificador_metodo_pago'],
+                            tipo_documento=datos['seleccion_tipo_documento'],
+                            codigo_clasificador_documento=datos['codigo_clasificador_documento'],
+                            numero_documento=datos['numero_documento'],
+                            complemento=datos['complemento'],
+                            email=datos['email'],
+                            telefono=datos['telefono'],
+                            ultimos_digitos_tarjeta=datos['ultimos_digitos_tarjeta']
+                        )
+                        imprimir_en_hilo(html_content, st.session_state['cuf'], os.getenv('NIT'), st.session_state['ultima_factura'])
+                    except Exception as e:
+                        st.error(f"❌ Error durante la impresión: {str(e)}")
+                        logging.exception("Error en impresión")
+
+        with col3:
+            if st.session_state.get('factura_validada'):
+                nit_emisor = int(os.getenv('NIT'))
+                enlace = generate_invoice_link(nit_emisor, st.session_state['cuf'], st.session_state['ultima_factura'])
+                st.link_button("Consultar factura", enlace)
 
 
 if __name__ == "__main__":
