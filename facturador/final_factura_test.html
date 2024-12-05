@@ -5,99 +5,50 @@
         <meta charset="UTF-8">
         <title>Factura</title>
         <style type="text/css">
-      body {
-        background-color: white; /* Fondo blanco */
-        color: black;  /* Texto negro */
-        width: 80mm;
-        margin: 0;
-        font-size: 10px;
-      }
-      .tg {
-        border-collapse: collapse;
-        border-spacing: 0;
-        margin: 0px auto;
-        width: 80mm !important;
-        background-color: white;  /* Fondo blanco para la tabla */
-      }
-
-      .tg td, .tg th {
-        border-color: white;
-        border-style: solid;
-        border-width: 1px;
-        font-family: "Lucida Console", Monaco, monospace !important;
-        font-size: 10px;
-        overflow: hidden;
-        padding: 1px 1px;
-        word-break: break-word;
-        color: black;  /* Texto negro */
-      }
-
-    
-      .tg .tg-lboi{text-align:right;vertical-align:middle}
-      .tg .tg-7rv2{text-align:left;vertical-align:middle}
-      .tg-9k97 {
-        border-color: #ffffff;
-        font-family: "Lucida Console", Monaco, monospace !important;
-        text-align: right;
-        vertical-align: top;
-        color: black;
-      }
-
-      .tg-8jgo {
-        border-color: #ffffff;
-        text-align: center;
-        vertical-align: top;
-        color: black;
-      }
-
-      .tg-eavw {
-        border-color: #ffffff;
-        font-family: "Lucida Console", Monaco, monospace !important;
-        text-align: center;
-        vertical-align: middle;
-        color: black;
-      }
-
-      .tg-sz8q {
-        border-color: #ffffff;
-        font-family: "Lucida Console", Monaco, monospace !important;
-        text-align: left;
-        vertical-align: top;
-        color: black;
-      }
-
-      .tg-02er {
-        border-color: #ffffff;
-        font-family: "Lucida Console", Monaco, monospace !important;
-        font-weight: bold;
-        text-align: center;
-        vertical-align: top;
-        color: black;
-      }
-
-      .separator {
-        border: none;
-        height: 1px;
-        background: black;
-        margin: 1px 0;
-      }
-
-      @media screen and (max-width: 80mm) {
+        body {
+            background-color: white;
+            color: black;
+            width: 80mm;
+            margin: 0;
+            font-size: 10px;
+        }
         .tg {
-          width: 80mm !important;
+            border-collapse: collapse;
+            border-spacing: 0;
+            margin: 0px auto;
+            width: 80mm !important;
+            background-color: white;
         }
-
-        .tg-wrap {
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
-          margin: auto 0px;
+        .tg td, .tg th {
+            border-color: white;
+            border-style: solid;
+            border-width: 1px;
+            font-family: "Lucida Console", Monaco, monospace;
+            font-size: 10px;
+            overflow: hidden;
+            padding: 1px 1px;
+            word-break: break-word;
+            color: black;
         }
-
+        .tg .tg-eavw {
+            text-align: center;
+            vertical-align: middle;
+        }
+        .tg .tg-lboi {
+            text-align: right;
+            vertical-align: middle;
+        }
+        .tg .tg-7rv2 {
+            text-align: left;
+            vertical-align: middle;
+        }
         .separator {
-          background: #ccc;
+            border: none;
+            height: 1px;
+            background: black;
+            margin: 1px 0;
         }
-      }
-    </style>
+        </style>
     </head>
     <body>
     <div class="tg-wrap">
@@ -105,107 +56,102 @@
         <tbody>
           <tr>
             <td class="tg-eavw">
-              <strong>FACTURA</strong><br>
-              <strong>(CON DERECHO A CREDITO FISCAL)</strong>
+              <strong id="tipo_factura">FACTURA</strong><br>
+              <strong id="subtitulo">(CON DERECHO A CREDITO FISCAL)</strong>
             </td>
           </tr>
           <tr>
-            <td class="tg-eavw">BOLIVIAN FOODS & DRINKS S.R.L.<br>CASA MATRIZ<br>Punttito de Venta: 0</td>
+            <td class="tg-eavw" id="empresa_info">
+              <span id="razon_social">BOLIVIAN FOODS & DRINKS S.R.L.</span><br>
+              <span id="nombre_sucursal">CASA MATRIZ</span><br>
+              <span id="codigo_punto_venta">Punto de Venta: 0</span>
+            </td>
           </tr>
           <tr>
-            <td class="tg-eavw">AVENIDA MONTENEGRO NRO. SN EDIF.: ARACELY PISO: PB DEPTO.: BLOQUE E7 ZONA/BARRIO: SAN MIGUEL<br>LA PAZ<br>Tel. 65560514</td>
+            <td class="tg-eavw" id="direccion_info">
+              <span id="direccion">AVENIDA MONTENEGRO NRO. SN EDIF.: ARACELY PISO: PB DEPTO.: BLOQUE E7 ZONA/BARRIO: SAN MIGUEL</span><br>
+              <span id="municipio">LA PAZ</span><br>
+              Tel. <span id="telefono_empresa">65560514</span>
+            </td>
           </tr>
-
           <tr><td class="separator"></td></tr>
-
           <tr>
-            <td class="tg-eavw">
-              <span style="font-weight:bold">NIT</span><br>344096024<br>
-              <span style="font-weight:bold">Factura N°</span><br>346
+            <td class="tg-eavw" id="nit_factura">
+              <span style="font-weight:bold">NIT:</span> <span id="nit">344096024</span><br>
+              <span style="font-weight:bold">Factura N°:</span> <span id="numero_factura">351</span>
             </td>
           </tr>
           <tr>
-            <td class="tg-eavw">
-              <span style="font-weight:bold">Código de Autorización</span><br>178B43EFDB960BACE84CE3B011BDFD3B2E71AC74404ED63B155449E74
+            <td class="tg-eavw" id="codigo_autorizacion">
+              <span style="font-weight:bold">Código de Autorización:</span><br>178B43EFDB960BD5C7DCBFEE2661E7AB2CE4B41561291734F09449E74
             </td>
           </tr>
-
           <tr><td class="separator"></td></tr>
-
           <tr>
-            <td class="tg-eavw">
-              <span style="font-weight:bold">Nombre/Razón Social:</span>PRADO<br>
-              <span style="font-weight:bold">         NIT/CI/CEX:</span>344096024<br>
-              <span style="font-weight:bold">       Cod. Cliente:</span>344096024<br>
-              <span style="font-weight:bold">   Fecha de Emisión:</span>2024-12-03T23:23:00.476
+            <td class="tg-eavw" id="cliente_info">
+              <span id="nombre_razon_social">Nombre/Razón Social: PRADO</span><br>
+              <span id="nit_ci">NIT/CI/CEX: 344096024</span><br>
+              <span id="cod_cliente">Cod. Cliente: 344096024</span><br>
+              <span id="fecha_emision">Fecha de Emisión: 2024-12-04T06:13:09.263</span>
             </td>
           </tr>
-
           <tr><td class="separator"></td></tr>
-        
-        
           <tr>
             <td class="tg-eavw"><span style="font-weight:bold">DETALLE</span></td>
           </tr>
-         
-                <tr>
-                  <td>
-                   <table style="width: 100%;">
-                     <tr>
-                      <td class="tg-7rv2" style="width: 85%;"><span style="font-weight:bold">99 - V VODKA 1825</span><br>     Unidad de Medida: VASO<br>2x35.00 - 0</td>
-                      <td class="tg-lboi">70.00</td>
-                     </tr>
-                   </table>
-                   </td>
-                </tr>
-                
+    
+            <tr>
+                <td class="tg-7rv2" id="producto_160">
+                    <span style="font-weight:bold">160 - PACEÑA CHOPP 500ML</span><br>
+                    Unidad de Medida: CHOPP<br>
+                    2x40.00 - 0
+                </td>
+                <td class="tg-lboi" id="subtotal_producto_160">80.00</td>
+            </tr>
+        
+            <tr>
+                <td class="tg-7rv2" id="producto_99">
+                    <span style="font-weight:bold">99 - V VODKA 1825</span><br>
+                    Unidad de Medida: VASO<br>
+                    2x35.00 - 0
+                </td>
+                <td class="tg-lboi" id="subtotal_producto_99">70.00</td>
+            </tr>
+        
           <tr><td class="separator"></td></tr>
-
           <tr>
-            <td class="tg-9k97">Sub Total: 70.00</td>
+            <td class="tg-lboi" id="subtotal">Sub Total: 150.00</td>
           </tr>
           <tr>
-            <td class="tg-9k97">Descuento: 10.00</td>
+            <td class="tg-lboi" id="descuento">Descuento: 0.00</td>
           </tr>
           <tr>
-            <td class="tg-9k97">Total: 60.00</td>
+            <td class="tg-lboi" id="total">Total: 150.00</td>
           </tr>
           <tr>
-            <td class="tg-9k97">Gift Card: 0.00</td>
+            <td class="tg-lboi" id="giftcard">Gift Card: 0.00</td>
           </tr>
           <tr>
-            <td class="tg-9k97">
-              <span style="font-weight:bold">Monto a Pagar:</span> 60.00
-            </td>
+            <td class="tg-lboi" id="total_final">Monto a Pagar: 150.00</td>
           </tr>
           <tr>
-            <td class="tg-9k97">
-              <span style="font-weight:bold">Imp. Base Cred. Fiscal:</span> 60.00
-            </td>
+            <td class="tg-lboi" id="iva_base">Imp. Base Cred. Fiscal: 150.00</td>
           </tr>
           <tr>
-            <td class="tg-sz8q">Son:  Sesenta 00/100 bolivianos.</td>
+            <td class="tg-eavw" id="total_en_palabras">Son:  Ciento cincuenta 00/100 bolivianos.</td>
           </tr>
-
           <tr><td class="separator"></td></tr>
-
           <tr>
-            <td class="tg-eavw">
-              ESTA FACTURA CONTRIBUYE AL DESARROLLO DEL PAÍS, EL USO ILÍCITO SERÁ SANCIONADO PENALMENTE DE ACUERDO A LEY.
+            <td class="tg-eavw" id="leyenda">Ley N° 453: Los servicios deben suministrarse en condiciones de inocuidad, calidad y seguridad.</td>
+          </tr>
+          <tr>
+            <td class="tg-eavw" id="representacion_grafica">
+              Este documento es la representación gráfica de un Documento Fiscal Digital emitido en una modalidad de facturación en línea.
             </td>
-          </tr>
-          <tr>
-            <td class="tg-eavw"><br>Ley N° 453: En caso de incumplimiento a lo ofertado o convenido, el proveedor debe reparar o sustituir el servicio.<br></td>
-          </tr>
-          <tr>
-            <td class="tg-eavw">
-              “Este documento es la Representación Gráfica de un Documento Fiscal Digital emitido en una modalidad de facturación en línea”
-            </td>
-          </tr>
-          <tr>
-            <td class="tg-8jgo"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAeoAAAHqAQAAAADjFjCXAAAD5ElEQVR4nO2dTW6kMBCFXw1IvaSlHCBHgRvMmeZIuYE5Sg4wEixbovVmYZdteqRZAFGnh1cL1AY+OUilKtePHSN2yPhjDw0IFy5cuHDhwoULPxa3JG26O16BNJzTxcxa2DD7q8Nxsws/Gw6SJHqS5NSQAU0aho4E0NS/ODWsiPDS3y782fjs5qvnzaJxG3C3OOw/WzB0C2xANoJHzi78XHj7MLb+4wpiBty5XgF0Cwzd8bMLFw4AGN9JG3C3NO4WmF3vxlDufd3swk+FdyQDAIY4XKJLxWgXMkSHm56SXA6eXfi58BRNJGmIfvr3xV9VNCF8s8R1XSmLEbgZgVvlYX14N9avHjC78HPibusqD5tTJd2CaOGAJr6CPr9M2TrhmyWpDxAXciR9SRe9abeAnB6WdI20Tvgeca1rmIZTCSlSqjjqWlnX9ZStE75LSjSRbN3UuA+d0j0Xr02ETrUJ4bvEzdbiSzoArldJ4eIDToBsnfAj8MrD+mou12FjRXZZvQJf3MnWCd8uD/m6pGHua+vwYULUydICIK0Tvk2yt3S7VjLCXCq7Vj3NORRpnfBtkhTO03JVqm6dr/NolqtfL/3twp+Fr7LEOYbop6KOq8JrjiZk64TvkNVCzu8FANGlBuT0Sbd4Ii8+ldYJ3yrJV+YsXShpuYdEigcSqogJP9jWpfQJcww7AcXrpjqsKmLC94nbOngJFp4viWo2ASm4gFu9WJuV1gnfLFXSJACVrrkSuhT7pxhW+D4899c1BLrfLcf3pSWwtNZ/vNH66W1JmyfQ0AAYqh0UL/3twp+F1z0nVZF1Ala7EHO+eCplMdk64VvloTZREsTVvXIBkIfSOuFbpYomQt43AeTIobQF5KRxgGyd8APw8doQ6Hx7RGzynK3ejziaWamS2XDg7MJPhueek2zhvL+kxLDVMi/kAoU8rPDtsooXXP/qYlg+BSWu+nzLjrRO+F58tAvNzOLBJsnDxnXdPR57Evdj87MFf10Pnl34yfB1qFoMWd1V5xWxnEgp7cYv/e3Cn4X/3V/nK7z0NJb7c0oFqPqgpHXCtwnX4oUvoKTvSnCxMofSOuG78OqszpRDSX0AwHyJWRIb5vroziNnF35SPNfBUpPJfKGZtYj5uvE9b+iJvvZmqS3gW/zxwl8NrxrVPV7I267XHcT9+oE8rPDN8nhWJ8ahITC/LcDcgsAdBgBMp3ZOwPgzBxwv/e3Cvw/e3czsfYkHsWO0y8q5+vmJXzW78DPgj2ewe7tJvlTbY0v3p/J1wneJ18EA1MWwcsTTaj9syM3rytcJ3yym/14nXLhw4cKFCxf+X+B/AJnCfPMezZyhAAAAAElFTkSuQmCC" alt="QR Code" width="150"/></td>
           </tr>
         </tbody>
       </table>
     </div>
+    </body>
+    </html>
     

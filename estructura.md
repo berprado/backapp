@@ -1,4 +1,4 @@
-project_root/
+📁backapp/
 ├── 📁__pycache__/
 ├── .env
 ├── .gitignore
@@ -41,11 +41,11 @@ project_root/
         └── 📁schemas
             └── facturaElectronicaCompraVenta.xsd
             └── SignatureSchema.xsd
-        └── factura_100_178B43EFDB95D4FA28DE5E481F863735DBEA3516899BC5E8343209E74_.xml
+        └── factura_329_178B43EFDB960B42D297BB4F70F7E3F0D5269283A19C5839CBD349E74_.xml
     └── __init__.py
     └── analisis.py
     └── anulacion.py
-    └── business_logic - Copy.py
+    └── app.log
     └── business_logic.py
     └── config - Copy.py
     └── config.py
@@ -84,6 +84,7 @@ project_root/
     └── models - Copy.py
     └── models.py
     └── print_invoice.py
+    └── printer_debug.log
     └── **printer_utils.py**
     └── proceso_anulacion.py
     └── prueba - Copy.py
@@ -96,6 +97,7 @@ project_root/
     └── thermal_printer.py
     └── ui - Copy (2).py
     └── ui_con_plantila.py
+    └── ui_copy.log
     └── **ui_copy.py**
     └── ui.py
     └── uitest.py

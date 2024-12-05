@@ -177,7 +177,7 @@ def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_
     """
     return html_content
 
-def generate_compact_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_productos, nombre_cliente, fecha_emision, numero_factura, metodo_de_pago=None, codigo_clasificador_metodo_pago=None, tipo_documento=None, codigo_clasificador_documento=None, numero_documento=None, complemento=None, email=None, telefono=None, ultimos_digitos_tarjeta=None):
+def generate_compact_html_invoice_xx(subtotal, descuento_adicional, monto_giftcard, lineas_productos, nombre_cliente, fecha_emision, numero_factura, metodo_de_pago=None, codigo_clasificador_metodo_pago=None, tipo_documento=None, codigo_clasificador_documento=None, numero_documento=None, complemento=None, email=None, telefono=None, ultimos_digitos_tarjeta=None):
     total = subtotal - descuento_adicional
     total_final = total - monto_giftcard
     
@@ -420,6 +420,191 @@ def generate_compact_html_invoice(subtotal, descuento_adicional, monto_giftcard,
     """
     return html_content
 
+
+def generate_compact_html_invoice(
+    subtotal, descuento_adicional, monto_giftcard, lineas_productos,
+    nombre_cliente, fecha_emision, numero_factura, metodo_de_pago=None,
+    codigo_clasificador_metodo_pago=None, tipo_documento=None, codigo_clasificador_documento=None,
+    numero_documento=None, complemento=None, email=None, telefono=None, ultimos_digitos_tarjeta=None):
+    
+    total = subtotal - descuento_adicional
+    total_final = total - monto_giftcard
+    
+    if codigo_clasificador_metodo_pago in gift_card_codes:
+        monto_total_sujeto_iva = total - monto_giftcard
+    else:
+        monto_total_sujeto_iva = total
+
+    total_en_palabras = numero_a_palabras_con_decimales_como_fraccion(total, lang='es') if total else ""
+
+    leyenda = fetch_random_leyenda()
+    
+    nit = os.getenv('NIT')  # NIT del emisor
+    razon_social = os.getenv('RAZON_SOCIAL')  # Razón social del emisor
+    nombre_sucursal = os.getenv('NOMBRE_SUCURSAL')  # Nombre de la sucursal
+    codigo_punto_venta = os.getenv('CODIGO_PUNTO_VENTA')  # Código del punto de venta
+    direccion = os.getenv('DIRECCION')  # Dirección de la empresa
+    municipio = os.getenv('MUNICIPIO')  # Municipio de la empresa
+    telefono_empresa = os.getenv('TELEFONO')  # Teléfono de la empresa
+    tipo_factura = os.getenv('DESCRIPCION_TIPO_FACTURA')  # Tipo de factura (original, copia, etc.)
+    subtitulo = os.getenv('SUBTITULO')  # Subtítulo adicional
+
+    nombre_mayusculas = nombre_cliente.upper()
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <title>Factura</title>
+        <style type="text/css">
+        body {{
+            background-color: white;
+            color: black;
+            width: 80mm;
+            margin: 0;
+            font-size: 10px;
+        }}
+        .tg {{
+            border-collapse: collapse;
+            border-spacing: 0;
+            margin: 0px auto;
+            width: 80mm !important;
+            background-color: white;
+        }}
+        .tg td, .tg th {{
+            border-color: white;
+            border-style: solid;
+            border-width: 1px;
+            font-family: "Lucida Console", Monaco, monospace;
+            font-size: 10px;
+            overflow: hidden;
+            padding: 1px 1px;
+            word-break: break-word;
+            color: black;
+        }}
+        .tg .tg-eavw {{
+            text-align: center;
+            vertical-align: middle;
+        }}
+        .tg .tg-lboi {{
+            text-align: right;
+            vertical-align: middle;
+        }}
+        .tg .tg-7rv2 {{
+            text-align: left;
+            vertical-align: middle;
+        }}
+        .separator {{
+            border: none;
+            height: 1px;
+            background: black;
+            margin: 1px 0;
+        }}
+        </style>
+    </head>
+    <body>
+    <div class="tg-wrap">
+      <table class="tg" style="width: 100%;">
+        <tbody>
+          <tr>
+            <td class="tg-eavw">
+              <strong id="tipo_factura">{tipo_factura}</strong><br>
+              <strong id="subtitulo">{subtitulo}</strong>
+            </td>
+          </tr>
+          <tr>
+            <td class="tg-eavw" id="empresa_info">
+              <span id="razon_social">{razon_social}</span><br>
+              <span id="nombre_sucursal">{nombre_sucursal}</span><br>
+              <span id="codigo_punto_venta">Punto de Venta: {codigo_punto_venta}</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="tg-eavw" id="direccion_info">
+              <span id="direccion">{direccion}</span><br>
+              <span id="municipio">{municipio}</span><br>
+              Tel. <span id="telefono_empresa">{telefono_empresa}</span>
+            </td>
+          </tr>
+          <tr><td class="separator"></td></tr>
+          <tr>
+            <td class="tg-eavw" id="nit_factura">
+              <span style="font-weight:bold">NIT:</span> <span id="nit">{nit}</span><br>
+              <span style="font-weight:bold">Factura N°:</span> <span id="numero_factura">{numero_factura}</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="tg-eavw" id="codigo_autorizacion">
+              <span style="font-weight:bold">Código de Autorización:</span><br>{{cuf}}
+            </td>
+          </tr>
+          <tr><td class="separator"></td></tr>
+          <tr>
+            <td class="tg-eavw" id="cliente_info">
+              <span id="nombre_razon_social">Nombre/Razón Social: {nombre_mayusculas}</span><br>
+              <span id="nit_ci">NIT/CI/CEX: {numero_documento}</span><br>
+              <span id="cod_cliente">Cod. Cliente: {numero_documento}</span><br>
+              <span id="fecha_emision">Fecha de Emisión: {fecha_emision}</span>
+            </td>
+          </tr>
+          <tr><td class="separator"></td></tr>
+          <tr>
+            <td class="tg-eavw"><span style="font-weight:bold">DETALLE</span></td>
+          </tr>
+    """
+
+    for linea in lineas_productos:
+        html_content += f"""
+            <tr>
+                <td class="tg-7rv2" id="producto_{linea['codigo']}">
+                    <span style="font-weight:bold">{linea["codigo"]} - {linea["nombre"]}</span><br>
+                    Unidad de Medida: {linea["unidad"]}<br>
+                    {linea["cantidad"]}x{linea["precio_venta"]} - {linea.get("montoDescuento", 0)}
+                </td>
+                <td class="tg-lboi" id="subtotal_producto_{linea['codigo']}">{linea["sub_total"]:.2f}</td>
+            </tr>
+        """
+
+    html_content += f"""
+          <tr><td class="separator"></td></tr>
+          <tr>
+            <td class="tg-lboi" id="subtotal">Sub Total: {subtotal:.2f}</td>
+          </tr>
+          <tr>
+            <td class="tg-lboi" id="descuento">Descuento: {descuento_adicional:.2f}</td>
+          </tr>
+          <tr>
+            <td class="tg-lboi" id="total">Total: {total:.2f}</td>
+          </tr>
+          <tr>
+            <td class="tg-lboi" id="giftcard">Gift Card: {monto_giftcard:.2f}</td>
+          </tr>
+          <tr>
+            <td class="tg-lboi" id="total_final">Monto a Pagar: {total_final:.2f}</td>
+          </tr>
+          <tr>
+            <td class="tg-lboi" id="iva_base">Imp. Base Cred. Fiscal: {monto_total_sujeto_iva:.2f}</td>
+          </tr>
+          <tr>
+            <td class="tg-eavw" id="total_en_palabras">Son: {total_en_palabras}</td>
+          </tr>
+          <tr><td class="separator"></td></tr>
+          <tr>
+            <td class="tg-eavw" id="leyenda">{leyenda}</td>
+          </tr>
+          <tr>
+            <td class="tg-eavw" id="representacion_grafica">
+              Este documento es la representación gráfica de un Documento Fiscal Digital emitido en una modalidad de facturación en línea.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    </body>
+    </html>
+    """
+    return html_content
 
 
 

@@ -41,8 +41,9 @@ from reversion import enviar_solicitud_reversion, procesar_respuesta_reversion, 
 from facturador.export import imprimir_recibo # Importar la función `imprimir_recibo`
 from invoice_templates import generate_compact_html_invoice  # Importar la generación del HTML
 from printer_utils import print_invoice_escpos
+from facturador.thermal_printer import ThermalPrinter
 import threading
-from facturador.thermal_printer import print_invoice_thermal
+#from thermal_printer import print_invoice1
 from printer_utils import (
     verificar_impresora,
     guardar_factura_actual,
@@ -589,28 +590,34 @@ def render_sidebar():
     # (fetch_cliente, selectboxes, etc.)
     return numero_documento, nit_valido, nombre_cliente, complemento, email, telefono, seleccion_tipo_documento, codigo_clasificador_documento, codigo_clasificador_metodo_pago, ultimos_digitos_tarjeta, codigo_cliente
 
-# Reemplazar la función imprimir_en_hilo existente:
 def imprimir_en_hilo(html_content, cuf, nit, numero_factura):
     """
-    Función que maneja la impresión en un hilo separado
+    Imprime la factura en un hilo separado para evitar bloquear la interfaz.
     """
     def imprimir():
         try:
-            if not verificar_impresora():
-                return
+            logging.info("Iniciando impresión en hilo...")
             
-            print_invoice_thermal(html_content, cuf, nit, numero_factura)
-            marcar_factura_impresa()
-            st.success("✅ Factura impresa correctamente")
+            # Instanciar la impresora
+            printer = ThermalPrinter()
             
+            # Realizar la impresión
+            printer.print_invoice(html_content)
+            
+            # Actualizar estado en la interfaz
+            st.session_state['print_status'] = "✅ Factura impresa correctamente"
+            logging.info("Factura impresa con éxito.")
         except Exception as e:
-            error_msg = f"Error en el hilo de impresión: {str(e)}"
-            logging.exception(error_msg)
-            st.error(f"❌ Error al imprimir: {error_msg}")
+            # Manejo de errores durante la impresión
+            error_msg = f"Error durante la impresión: {str(e)}"
+            logging.error(error_msg)
+            st.session_state['print_status'] = f"❌ {error_msg}"
 
-    # Crear y iniciar el hilo
+    # Crear y ejecutar el hilo
     hilo = threading.Thread(target=imprimir)
     hilo.start()
+
+
 
 def main():
     message_placeholder = st.empty()
@@ -1078,14 +1085,27 @@ def main():
                                                     try:
                                                         # Verificar que todos los datos necesarios estén disponibles
                                                         if not all([
-                                                            st.session_state.get('html_content'),
-                                                            st.session_state.get('cuf'), 
-                                                            os.getenv('NIT'),
-                                                            numero_factura
+                                                            subtotal,
+                                                            descuento_adicional,
+                                                            monto_giftcard,
+                                                            lineas_productos,
+                                                            nombre_cliente,
+                                                            fecha_emision_str,
+                                                            numero_factura,
+                                                            seleccion_metodo_pago,
+                                                            codigo_clasificador_metodo_pago,
+                                                            seleccion_tipo_documento,
+                                                            codigo_clasificador_documento,
+                                                            numero_documento,
+                                                            complemento,
+                                                            email,
+                                                            telefono,
+                                                            st.session_state.get('cuf'),
+                                                            os.getenv('NIT')
                                                         ]):
                                                             logging.error("Faltan datos necesarios para la impresión")
                                                             raise ValueError("No se puede imprimir: faltan datos necesarios")
-                                                            
+
                                                         # Registrar el inicio del proceso
                                                         logging.info(f"""
                                                         Iniciando proceso de impresión:
@@ -1093,50 +1113,43 @@ def main():
                                                         - CUF: {st.session_state['cuf']}
                                                         - NIT: {os.getenv('NIT')}
                                                         """)
-                                                        
+
                                                         # Mostrar indicador de progreso
-                                                        with st.spinner("Imprimiendo factura..."):
-                                                            # Obtener el HTML compacto para impresión térmica
+                                                        with st.spinner("Generando factura para impresión..."):
+                                                            # Generar el contenido HTML compacto para impresión térmica
                                                             html_content = generate_compact_html_invoice(
-                                                                subtotal,
-                                                                descuento_adicional,
-                                                                monto_giftcard,
-                                                                lineas_productos,
-                                                                nombre_cliente,
-                                                                fecha_emision_str,
-                                                                numero_factura,
-                                                                seleccion_metodo_pago,
-                                                                codigo_clasificador_metodo_pago,
-                                                                seleccion_tipo_documento,
-                                                                codigo_clasificador_documento,
-                                                                numero_documento,
-                                                                complemento,
-                                                                email,
-                                                                telefono,
-                                                                ultimos_digitos_tarjeta
+                                                                subtotal=subtotal,
+                                                                descuento_adicional=descuento_adicional,
+                                                                monto_giftcard=monto_giftcard,
+                                                                lineas_productos=lineas_productos,
+                                                                nombre_cliente=nombre_cliente,
+                                                                fecha_emision=fecha_emision_str,
+                                                                numero_factura=numero_factura,
+                                                                metodo_de_pago=seleccion_metodo_pago,
+                                                                codigo_clasificador_metodo_pago=codigo_clasificador_metodo_pago,
+                                                                tipo_documento=seleccion_tipo_documento,
+                                                                codigo_clasificador_documento=codigo_clasificador_documento,
+                                                                numero_documento=numero_documento,
+                                                                complemento=complemento,
+                                                                email=email,
+                                                                telefono=telefono,
+                                                                ultimos_digitos_tarjeta=ultimos_digitos_tarjeta,
                                                             )
-                                                            
-                                                            # Intentar imprimir
-                                                            file_path = imprimir_recibo(
-                                                                html_content,
-                                                                st.session_state['cuf'],
-                                                                os.getenv('NIT'),
-                                                                numero_factura
-                                                            )
-                                                            
-                                                            # Mostrar mensaje de éxito
-                                                            st.success("✅ Factura impresa correctamente")
-                                                            logging.info(f"Impresión completada. PDF guardado en: {file_path}")
-                                                            
-                                                    except ValueError as e:
-                                                        error_msg = str(e)
-                                                        logging.error(f"Error de validación: {error_msg}")
-                                                        st.error(f"❌ {error_msg}")
-                                                        
+
+                                                            # Iniciar el proceso de impresión en un hilo
+                                                            imprimir_en_hilo(html_content, st.session_state['cuf'], os.getenv('NIT'), numero_factura)
+
+                                                    except ValueError as ve:
+                                                        # Captura de errores específicos relacionados con datos faltantes
+                                                        st.error(f"❌ {str(ve)}")
+                                                        logging.error(str(ve))
                                                     except Exception as e:
-                                                        error_msg = f"Error durante la impresión: {str(e)}"
-                                                        logging.error(error_msg)
+                                                        # Captura de cualquier otro error
+                                                        error_msg = f"Error inesperado durante la impresión: {str(e)}"
                                                         st.error(f"❌ {error_msg}")
+                                                        logging.exception(error_msg)
+
+
                                                                                         
                                             with col3:
                                                 if nit_emisor and cuf and numero_factura:

@@ -28,6 +28,12 @@
 # Directorios de caché y compilación
 __pycache__/
 facturador/__pycache__/
+facturador/logs/
+facturador/pages/__pycache__/
 
 # Directorios de configuración del editor
 .vscode/
+
+.tmp.driveupload/
+
+estructura.md
