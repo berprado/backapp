@@ -34,9 +34,9 @@ class ThermalPrinter:
     def _print_header(self, soup):
         # Encabezado
         tipo_factura = soup.find(id="tipo_factura").get_text(strip=True)
-        empresa_info = soup.find(id="empresa_info").get_text(strip=True)
-        direccion_info = soup.find(id="direccion_info").get_text(strip=True)
-        codigo_autorizacion = soup.find(id="codigo_autorizacion").get_text(strip=True)
+        empresa_info = soup.find(id="razon_social").get_text(strip=True)
+        direccion_info = soup.find(id="direccion").get_text(strip=True)
+        codigo_autorizacion = soup.find(id="cuf").get_text(strip=True)
 
         self.printer.set(align='center', font='b', width=1, height=1)
         self.printer.text(f"{tipo_factura}\n")
