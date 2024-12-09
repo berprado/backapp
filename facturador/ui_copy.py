@@ -1,6 +1,7 @@
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import time
 import streamlit as st
 import streamlit.components.v1 as components
 from data_access import (
@@ -25,7 +26,7 @@ from lxml import etree
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography import x509
-from cryptography.hazmat.backends import default_backend
+#from cryptography.hazmat.backends import default_backend
 import base64
 import hashlib
 from zeeper import validar_xml, comprimir_xml, obtener_hash, enviar_solicitud
@@ -40,8 +41,10 @@ from anulacion import anular_factura
 from reversion import enviar_solicitud_reversion, procesar_respuesta_reversion, obtener_cuf_por_numero_factura
 from facturador.export import imprimir_recibo # Importar la función `imprimir_recibo`
 from invoice_templates import generate_compact_html_invoice  # Importar la generación del HTML
-from printer_utils import print_invoice_escpos
+#from printer_utils import print_invoice_escpos
 from facturador.thermal_printer import ThermalPrinter
+#from export import guardar_recibo_como_pdf, generate_file_name
+from invoice_exporter import InvoiceExporter
 import threading
 
 
@@ -62,6 +65,19 @@ console_handler.setFormatter(logging.Formatter(log_format))
 # Add handlers to the logger
 printer_logger.addHandler(file_handler)
 printer_logger.addHandler(console_handler)
+
+# Agregar al inicio del script o en la configuración inicial
+if not os.path.exists('pdfs'):
+    os.makedirs('pdfs')
+    
+# Agregar al inicio del script
+try:
+    if not os.access('pdfs', os.W_OK):
+        logging.error("No hay permisos de escritura en la carpeta pdfs")
+        raise PermissionError("No hay permisos de escritura en la carpeta pdfs")
+except Exception as e:
+    logging.error(f"Error al verificar permisos: {str(e)}")
+
 # Lista de códigos permitidos para gift cards
 gift_card_codes = [
     102, 109, 115, 120, 124, 128, 129, 130, 138, 146, 153, 159, 164, 168,
@@ -585,34 +601,44 @@ def render_sidebar():
     # (fetch_cliente, selectboxes, etc.)
     return numero_documento, nit_valido, nombre_cliente, complemento, email, telefono, seleccion_tipo_documento, codigo_clasificador_documento, codigo_clasificador_metodo_pago, ultimos_digitos_tarjeta, codigo_cliente
 
-def imprimir_en_hilo(html_content, cuf, nit, numero_factura):
-    """
-    Imprime la factura en un hilo separado para evitar bloquear la interfaz.
-    """
+def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
     def imprimir():
         try:
-            logging.info("Iniciando impresión en hilo...")
+            logging.info(f"Iniciando proceso de impresión para factura {numero_factura}")
             
-            # Instanciar la impresora
+            # Actualizar HTML con CUF
+            html_content = html_content_orig.replace("{cuf}", cuf)
+            
+            # Guardar HTML para debug
+            debug_path = f"debug_factura_{numero_factura}.html"
+            with open(debug_path, "w", encoding="utf-8") as f:
+                f.write(html_content)
+            logging.info(f"HTML guardado en {debug_path}")
+            
+            # Imprimir usando ThermalPrinter
             printer = ThermalPrinter()
+            success = printer.print_invoice(html_content, nit, cuf, numero_factura)
             
-            # Realizar la impresión
-            printer.print_invoice(html_content)
-            
-            # Actualizar estado en la interfaz
-            st.session_state['print_status'] = "✅ Factura impresa correctamente"
-            logging.info("Factura impresa con éxito.")
+            if success:
+                logging.info("Impresión térmica completada exitosamente")
+                st.session_state['print_status'] = "✅ Impresión completada exitosamente"
+            else:
+                error_msg = "❌ Error durante la impresión térmica"
+                logging.error(error_msg)
+                st.session_state['print_status'] = error_msg
+                
         except Exception as e:
-            # Manejo de errores durante la impresión
-            error_msg = f"Error durante la impresión: {str(e)}"
-            logging.error(error_msg)
-            st.session_state['print_status'] = f"❌ {error_msg}"
-
+            error_msg = f"❌ Error: {str(e)}"
+            logging.error(f"Error durante el proceso: {str(e)}")
+            logging.error(traceback.format_exc())
+            st.session_state['print_status'] = error_msg
+            
     # Crear y ejecutar el hilo
-    hilo = threading.Thread(target=imprimir)
+    hilo = threading.Thread(target=imprimir, name=f"impresion_factura_{numero_factura}")
+    hilo.daemon = True
     hilo.start()
-
-
+    return hilo
+    
 
 def main():
     message_placeholder = st.empty()
@@ -1058,33 +1084,81 @@ def main():
                 else:
                     message_placeholder.error("❌Por favor, complete todos los campos requeridos.")
 
+                
         with col2:
             if st.session_state.get('factura_validada'):
                 if st.button("Imprimir Factura"):
                     try:
+                        # Verificaciones iniciales
+                        if not all(key in st.session_state for key in ['datos_impresion', 'cuf', 'ultima_factura']):
+                            st.error("❌ Faltan datos necesarios para la impresión")
+                            logging.error("Faltan claves requeridas en session_state")
+                            return
+
                         datos = st.session_state['datos_impresion']
+                        
+                        # Generar HTML con CUF incluido
                         html_content = generate_compact_html_invoice(
-                            subtotal=datos['subtotal'],
+                            subtotal=datos['subtotal'],  
                             descuento_adicional=datos['descuento_adicional'],
                             monto_giftcard=datos['monto_giftcard'],
                             lineas_productos=datos['lineas_productos'],
                             nombre_cliente=datos['nombre_cliente'],
                             fecha_emision=datos['fecha_emision_str'],
                             numero_factura=st.session_state['ultima_factura'],
-                            metodo_de_pago=datos['seleccion_metodo_pago'],
-                            codigo_clasificador_metodo_pago=datos['codigo_clasificador_metodo_pago'],
-                            tipo_documento=datos['seleccion_tipo_documento'],
-                            codigo_clasificador_documento=datos['codigo_clasificador_documento'],
-                            numero_documento=datos['numero_documento'],
-                            complemento=datos['complemento'],
-                            email=datos['email'],
-                            telefono=datos['telefono'],
-                            ultimos_digitos_tarjeta=datos['ultimos_digitos_tarjeta']
+                            metodo_de_pago=datos.get('seleccion_metodo_pago'),
+                            codigo_clasificador_metodo_pago=datos.get('codigo_clasificador_metodo_pago'),
+                            tipo_documento=datos.get('seleccion_tipo_documento'),
+                            codigo_clasificador_documento=datos.get('codigo_clasificador_documento'),
+                            numero_documento=datos.get('numero_documento'),
+                            complemento=datos.get('complemento'),
+                            email=datos.get('email'),
+                            telefono=datos.get('telefono'),
+                            ultimos_digitos_tarjeta=datos.get('ultimos_digitos_tarjeta'),
+                            cuf=st.session_state['cuf']
                         )
-                        imprimir_en_hilo(html_content, st.session_state['cuf'], os.getenv('NIT'), st.session_state['ultima_factura'])
+
+                        # Mostrar estado del proceso
+                        status_placeholder = st.empty()
+                        status_placeholder.info("⏳ Iniciando proceso de impresión...")
+
+                        # Iniciar proceso en segundo plano
+                        hilo_impresion = imprimir_en_hilo(
+                            html_content,
+                            st.session_state['cuf'],
+                            os.getenv('NIT'),
+                            st.session_state['ultima_factura']
+                        )
+
+                        # Monitor de progreso con mejor feedback
+                        timeout = 30
+                        start_time = time.time()
+                        
+                        while hilo_impresion.is_alive():
+                            if time.time() - start_time > timeout:
+                                status_placeholder.error("❌ Tiempo de espera excedido")
+                                return
+                            
+                            # Verificar estado del proceso
+                            if 'print_status' in st.session_state:
+                                status_placeholder.info(f"⏳ {st.session_state['print_status']}")
+                            else:
+                                elapsed = int(time.time() - start_time)
+                                status_placeholder.info(f"⏳ Procesando... ({elapsed}s)")
+                            
+                            time.sleep(0.5)
+
+                        if 'print_status' in st.session_state:
+                            if "✅" in st.session_state['print_status']:
+                                status_placeholder.success(st.session_state['print_status'])
+                            elif "❌" in st.session_state['print_status']:
+                                status_placeholder.error(st.session_state['print_status'])
+                        else:
+                            status_placeholder.success("✅ Proceso completado")
+                        
                     except Exception as e:
-                        st.error(f"❌ Error durante la impresión: {str(e)}")
-                        logging.exception("Error en impresión")
+                        st.error(f"❌ Error: {str(e)}")
+                        logging.exception("Error en proceso de impresión")
 
         with col3:
             if st.session_state.get('factura_validada'):

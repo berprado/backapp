@@ -1,78 +1,76 @@
-import base64
+import xml.etree.ElementTree as ET
 import os
-from io import BytesIO
-from PIL import Image
-import qrcode
+import streamlit as st
 
-def generate_qr(nit, cuf, numero_factura):
-    # Generar un código QR válido
-    qr_data = f"NIT: {nit}, CUF: {cuf}, Número de Factura: {numero_factura}"
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=10,
-        border=4,
-    )
-    qr.add_data(qr_data)
-    qr.make(fit=True)
-    img = qr.make_image(fill='black', back_color='white')
-    
-    # Guardar la imagen en un buffer
-    buffered = BytesIO()
-    img.save(buffered, format="PNG")
-    
-    # Convertir la imagen a base64
-    qr_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
-    return qr_base64
-
-def guardar_recibo_como_pdf(html_content, file_path):
-    # Esta función debe guardar el contenido HTML como un archivo PDF
-    # Aquí deberías implementar la lógica para guardar el PDF
-    pass
-
-def imprimir_recibo(html_content, cuf, nit, numero_factura):
+def parse_xml_and_save(factura_numero, xml_dir="xmls"):
     """
-    Genera un archivo PDF a partir del contenido HTML proporcionado, agrega el QR, y lo guarda en el sistema.
-    También genera un archivo PNG del código QR.
+    Parsea un archivo XML de factura y guarda la información en un archivo de texto.
+
+    Args:
+        factura_numero: El número de factura a buscar.
+        xml_dir: El directorio donde se encuentran los archivos XML.
     """
-    # Generar el código QR en base64
-    qr_base64 = generate_qr(nit, cuf, numero_factura)
 
-    # Incluir el código QR en el contenido HTML
-    html_content = html_content.replace("{{codigo_qr}}", f'<img src="data:image/png;base64,{qr_base64}" alt="QR Code" />')
-    
-    # Guardar el HTML en un archivo para verificación
-    html_file_path = "factura_test.html"
-    with open(html_file_path, "w", encoding="utf-8") as f:
-        f.write(html_content)
-    print(f"HTML guardado en {html_file_path}")
+    matching_files = [
+        filename for filename in os.listdir(xml_dir)
+        if filename.startswith(f"factura_{factura_numero}_") and filename.endswith(".xml")
+    ]
 
-    # Verificar si el archivo HTML se ha creado
-    if os.path.exists(html_file_path):
-        print(f"Archivo HTML creado correctamente en {html_file_path}")
+    if not matching_files:
+        st.error(f"No se encontró ningún archivo XML para la factura {factura_numero}.")
+        return
+
+    xml_file = os.path.join(xml_dir, matching_files[0])  # Toma el primer archivo coincidente
+
+    try:
+        tree = ET.parse(xml_file)
+        root = tree.getroot()
+
+        cabecera_data = {}
+        detalle_data = []
+
+        for cabecera_element in root.find("cabecera"):
+            cabecera_data[cabecera_element.tag] = cabecera_element.text
+
+        for detalle_element in root.findall("detalle"):
+             detalle_item = {}
+             for element in detalle_element:
+                 detalle_item[element.tag] = element.text
+             detalle_data.append(detalle_item)
+
+
+        output_filename = f"factura_{factura_numero}_.txt"
+        with open(output_filename, "w", encoding="utf-8") as f:
+            f.write("Cabecera:\n")
+            for key, value in cabecera_data.items():
+                f.write(f"{key}: {value}\n")
+
+            f.write("\nDetalle:\n")
+            for item in detalle_data:
+                for key, value in item.items():
+                     f.write(f"  {key}: {value}\n")
+                f.write("\n")  # Separador entre items de detalle
+
+
+        st.success(f"Información de la factura {factura_numero} guardada en {output_filename}")
+        with open(output_filename, 'r', encoding='utf-8') as f:
+            file_contents = f.read()
+            st.text_area("Contenido del archivo de texto:", value=file_contents, height=400)
+
+
+    except ET.ParseError as e:
+        st.error(f"Error al parsear el archivo XML: {e}")
+    except Exception as e:
+        st.error(f"Ocurrió un error: {e}")
+
+
+# Interfaz Streamlit
+st.title("Parser de Facturas XML")
+
+factura_numero = st.text_input("Ingrese el número de factura:", "")
+
+if st.button("Procesar"):
+    if factura_numero:
+       parse_xml_and_save(factura_numero)
     else:
-        print(f"Error al crear el archivo HTML en {html_file_path}")
-
-    # Decodificar el base64 y guardar la imagen como un archivo PNG
-    qr_data = base64.b64decode(qr_base64)
-    qr_image = Image.open(BytesIO(qr_data))
-    qr_file_path = f"qr_{cuf}.png"
-    qr_image.save(qr_file_path)
-    print(f"QR guardado en {qr_file_path}")
-
-    # Verificar si el archivo PNG se ha creado
-    if os.path.exists(qr_file_path):
-        print(f"Archivo PNG creado correctamente en {qr_file_path}")
-    else:
-        print(f"Error al crear el archivo PNG en {qr_file_path}")
-
-    file_path = os.path.join("pdfs", f"factura_{cuf}.pdf")
-    guardar_recibo_como_pdf(html_content, file_path)
-    return file_path
-
-# Ejemplo de uso
-html_content = "<html><body><h1>Factura</h1><div>{{codigo_qr}}</div></body></html>"
-cuf = "1234567890"
-nit = "123456789"
-numero_factura = "001"
-imprimir_recibo(html_content, cuf, nit, numero_factura)
+        st.warning("Por favor, ingrese un número de factura.")

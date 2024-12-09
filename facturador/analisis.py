@@ -2,7 +2,7 @@
 import os
 
 # Define the directory where the files are stored
-directory = "/mnt/data/"
+directory = ""
 
 # List of files to analyze
 files = [
