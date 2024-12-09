@@ -1,47 +1,51 @@
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
+from escpos.printer import Usb
+import logging
 
-def generar_factura_pdf(datos_factura, archivo_salida):
-    c = canvas.Canvas(archivo_salida, pagesize=letter)
-    
-    # Título de la factura
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(100, 750, "Factura")
+class ThermalPrinter:
+    def __init__(self, vendor_id=0x04B8, product_id=0x0E15):
+        self.vendor_id = vendor_id
+        self.line_width = 57  # Ancho ajustado para fuente pequeña
+        self.logger = logging.getLogger(__name__)
+        logging.basicConfig(level=logging.INFO)
+        self.line_width = 57  # Ancho ajustado para fuente pequeña
+# Configura la impresora
+    def printer_connection(self):
+        """Contexto seguro para manejar la conexión de la impresora"""
+        try:
+            self._printer = Usb(self.vendor_id, self.product_id)
+            self.logger.info("Impresora conectada exitosamente")
+            yield self._printer
+        except Exception as e:
+            self.logger.error(f"Error al conectar con la impresora: {str(e)}")
+            raise
+        finally:
+            if self._printer:
+                try:
+                    self._printer.close()
+                except:
+                    pass
+p = Usb(0x04b8, 0x0202)
+# Texto principal de la factura
+p.set(align="center", font="a", width=2, height=2)  # Tamaño y alineación del texto
+p.text("PACENA CHOPP 500ML\n")
+p.text("---------------------\n")
 
-    # Información básica
-    c.setFont("Helvetica", 12)
-    c.drawString(50, 720, f"Cliente: {datos_factura['cliente']}")
-    c.drawString(50, 700, f"Fecha: {datos_factura['fecha']}")
-    c.drawString(50, 680, f"Número de factura: {datos_factura['numero_factura']}")
+# Texto detallado
+p.set(align="left", font="a", width=1, height=1)
+p.text("Detalle\n")
+p.text("PACENA CHOPP 500ML     80.00\n")
+p.text("VODKA 1825            70.00\n")
+p.text("---------------------\n")
+p.text("Sub Total:           150.00\n")
+p.text("Descuento:            0.00\n")
+p.text("Total:               150.00\n")
+p.text("Gift Card:            0.00\n")
+p.text("Monto a Pagar:       150.00\n")
+p.text("Imp. Base Cred. Fiscal: 150.00\n")
+p.text("\n")
+p.text("Son: Ciento cincuenta 00/100 bolivianos.\n")
+p.text("---------------------\n")
+p.text("Nota: La interrupción del servicio...\n")
 
-    # Detalles del pedido
-    y = 650
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(50, y, "Detalles del pedido:")
-    y -= 20
-    c.setFont("Helvetica", 10)
-
-    for item in datos_factura['items']:
-        c.drawString(60, y, f"{item['cantidad']} x {item['producto']} @ {item['precio']} = {item['total']}")
-        y -= 20
-    
-    # Total
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(50, y, f"Total: {datos_factura['total']}")
-
-    # Guardar archivo
-    c.save()
-
-# Datos de ejemplo
-datos = {
-    "cliente": "Juan Pérez",
-    "fecha": "2024-12-04",
-    "numero_factura": "000123",
-    "items": [
-        {"producto": "Producto A", "cantidad": 2, "precio": 50.00, "total": 100.00},
-        {"producto": "Producto B", "cantidad": 1, "precio": 75.00, "total": 75.00},
-    ],
-    "total": 175.00
-}
-
-generar_factura_pdf(datos, "factura_ejemplo.pdf")
+# Corta el papel
+p.cut()
