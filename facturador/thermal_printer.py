@@ -7,7 +7,7 @@ class ThermalPrinter:
     def __init__(self, vendor_id=0x04B8, product_id=0x0E15):
         self.vendor_id = vendor_id
         self.product_id = product_id
-        self.line_width = 48  # Ancho ajustado para fuente pequeña
+        self.line_width = 64  # Ancho ajustado para fuente pequeña
         self.logger = self._setup_logger()
 
     def _setup_logger(self):
@@ -42,22 +42,40 @@ class ThermalPrinter:
                 except:
                     pass
 
-    def _print_line(self, printer, text, align='left', font='a', width=1, height=1, bold=True):
+    def _print_line(self, printer, text, align='left', font='b', width=1, height=1, bold=False):
         """Imprime una línea de texto con los atributos especificados"""
         printer.set(align=align, font=font, width=width, height=height, bold=bold)
         printer.text(f"{text}\n")
 
     def _print_separator(self, printer, char='-'):
         """Imprime una línea separadora"""
-        self._print_line(printer, char * self.line_width, font='a')
+        self._print_line(printer, char * self.line_width, font='b')
 
     def _print_qr(self, printer, nit, cuf, numero_factura, size=4):
         """Imprime el código QR de la factura"""
-        try: 
-            url = f'https://pilotosiat.impuestos.gob.bo/consulta/QR?nit={nit}&cuf={cuf}&numero={numero_factura}'
+        try:
+            # Usar BeautifulSoup para limpiar los valores de etiquetas HTML
+            soup_nit = BeautifulSoup(str(nit), 'html.parser')
+            soup_cuf = BeautifulSoup(str(cuf), 'html.parser')
+            soup_numero = BeautifulSoup(str(numero_factura), 'html.parser')
+            
+            # Extraer solo el texto
+            nit_clean = soup_nit.get_text().strip()
+            cuf_clean = soup_cuf.get_text().strip()
+            numero_factura_clean = soup_numero.get_text().strip()
+            
+            self.logger.debug(f"Valores limpios - NIT: {nit_clean}, CUF: {cuf_clean}, Número: {numero_factura_clean}")
+            
+            # Construir la URL del QR
+            url = f'https://pilotosiat.impuestos.gob.bo/consulta/QR?nit={nit_clean}&cuf={cuf_clean}&numero={numero_factura_clean}'
+            self.logger.info(f"Generando QR con URL: {url}")
+            
+            # Imprimir el QR
             printer.set(align='center')
             printer.qr(url, size=size, native=True)
             printer.text("\n")
+            
+            self.logger.info("QR generado e impreso exitosamente")
         except Exception as e:
             self.logger.error(f"Error al imprimir código QR: {str(e)}")
             raise
@@ -72,9 +90,9 @@ class ThermalPrinter:
                 tipo_factura = soup.find(id='tipo_factura_text')
                 subtitulo = soup.find(id='subtitulo_text')
                 if tipo_factura:
-                    self._print_line(printer, tipo_factura.text.strip(), align='center', font='a', width=1, height=1, bold=False)
+                    self._print_line(printer, tipo_factura.text.strip(), align='center', font='a')
                 if subtitulo:
-                    self._print_line(printer, subtitulo.text.strip(), align='center', font='b')
+                    self._print_line(printer, subtitulo.text.strip(), align='center', font='a')
                 
                 # Información de la empresa
                 razon_social = soup.find(id='razon_social')
@@ -104,9 +122,9 @@ class ThermalPrinter:
                 nit = soup.find(id='nit')
                 numero_factura = soup.find(id='numero_factura')
                 if nit:
-                    self._print_line(printer, f"NIT: {nit.text.strip()}", bold=True)
+                    self._print_line(printer, f"NIT: {nit.text.strip()}", align='center', bold=False)
                 if numero_factura:
-                    self._print_line(printer, f"Factura N°: {numero_factura.text.strip()}", bold=True)
+                    self._print_line(printer, f"Factura N°: {numero_factura.text.strip()}", 'center', bold=True)
                 
                 # CUF
                 cuf = soup.find(id='cuf')
@@ -135,7 +153,7 @@ class ThermalPrinter:
                     self._print_line(printer, f"Fecha de Emisión: {fecha.text.strip()}")
                 
                 self._print_separator(printer)
-                self._print_line(printer, "DETALLE", align='center', bold=True)
+                self._print_line(printer, "DETALLE", align='center', bold=True, font='b')
                 self._print_separator(printer)
                 
                 # Productos
@@ -186,10 +204,10 @@ class ThermalPrinter:
                             pos = texto[:self.line_width].rfind(' ')
                             if pos == -1:
                                 pos = self.line_width
-                            self._print_line(printer, texto[:pos])
+                            self._print_line(printer, texto[:pos], align='center', font='b')
                             texto = texto[pos:].strip()
                         else:
-                            self._print_line(printer, texto)
+                            self._print_line(printer, texto, align='center', font='b')
                             break
                 
                 self._print_separator(printer)
@@ -209,10 +227,23 @@ class ThermalPrinter:
                             self._print_line(printer, texto, align='center')
                             break
                 
-                printer.text("\n")  # Espacio antes del QR
+                #printer.text("\n")  # Espacio antes del QR
                 self._print_qr(printer, nit, cuf, numero_factura)
-                printer.text("\n")  # Espacio después del QR
-                
+                #printer.text("\n")  # Espacio después del QR
+                #Legal
+                legal = soup.find(id='legal')
+                if legal:
+                    texto = legal.text.strip()
+                    while texto:
+                        if len(texto) > self.line_width:
+                            pos = texto[:self.line_width].rfind(' ')
+                            if pos == -1:
+                                pos = self.line_width
+                            self._print_line(printer, texto[:pos], align='center')
+                            texto = texto[pos:].strip()
+                        else:
+                            self._print_line(printer, texto, align='center')
+                            break
                 printer.cut()
             
             self.logger.info("Impresión completada exitosamente")

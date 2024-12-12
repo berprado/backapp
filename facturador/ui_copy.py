@@ -610,7 +610,7 @@ def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
             html_content = html_content_orig.replace("{cuf}", cuf)
             
             # Guardar HTML para debug
-            debug_path = f"debug_factura_{numero_factura}.html"
+            debug_path = f"debug_factura_.html"
             with open(debug_path, "w", encoding="utf-8") as f:
                 f.write(html_content)
             logging.info(f"HTML guardado en {debug_path}")
