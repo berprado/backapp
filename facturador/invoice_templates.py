@@ -2,6 +2,7 @@ import os
 from data_access import fetch_random_leyenda
 from num2words import num2words
 from business_logic import generate_qr
+from datetime import datetime
 
 
 def numero_a_palabras_con_decimales_como_fraccion(numero, lang='es'):
@@ -465,6 +466,8 @@ def generate_compact_html_invoice(
     if cuf and nit and numero_factura:
         qr_base64 = generate_qr(nit, cuf, numero_factura)
         qr_code_html = f'<img src="data:image/png;base64,{qr_base64}" alt="Codigo QR" style="width:100px;height:100px;">'
+        
+ 
 
     html_content = f"""
     <!DOCTYPE html>
@@ -473,21 +476,30 @@ def generate_compact_html_invoice(
         <meta charset="UTF-8">
         <title>Factura # {numero_factura}</title>
         <style>
+            @page {{
+                size: 88mm 297mm;
+                margin: 0;
+                    }}
             body {{
                 font-family: monospace;
                 font-size: 10px;
-                width: 80mm;
+                width: 88mm;
                 margin: 0;
-                padding: 5px;
+                padding: 4px;
             }}
             table {{
-                width: 100%;
+                width: 98%;
                 border-collapse: collapse;
             }}
             th, td {{
                 padding: 2px 3px;
             }}
             .header {{
+                text-align: center;
+                font-weight: bold;
+            }}
+            .header1 {{
+                font-size: 9px;
                 text-align: center;
                 font-weight: bold;
             }}
@@ -546,7 +558,7 @@ def generate_compact_html_invoice(
             </tr>
             <tr>
                 <th class="header" colspan="2" id="texto_cuf">
-                    Código de Autorización:<br><span id="cuf">{cuf}</span>
+                    Código de Autorización:<br><span class="header1" id="cuf">{cuf}</span>
                 </th>
             </tr>
             <tr><td class="separator" colspan="2"></td></tr>
@@ -583,7 +595,7 @@ def generate_compact_html_invoice(
                 <td class="detail" id="detalle_{linea['codigo']}_info">
                     <strong id="detalle_{linea['codigo']}_nombre">{linea["codigo"]} - {linea["nombre"]}</strong><br>
                     <span id="detalle_{linea['codigo']}_unidad">{linea["unidad"]}</span><br>
-                    <span id="detalle_{linea['codigo']}_cantidad">{cantidad:.2f} x {precio_unitario:.2f} {'- Desc: {:.2f}'.format(descuento) if descuento > 0 else '0'}</span>
+                    <span id="detalle_{linea['codigo']}_cantidad">{cantidad:.2f} x {precio_unitario:.2f} {'- Desc: {:.2f}'.format(descuento) if descuento > 0 else '- 0'}</span>
                 </td>
                 <td class="amount" id="detalle_{linea['codigo']}_monto">
                     {subtotal_linea:.2f}
@@ -633,7 +645,7 @@ def generate_compact_html_invoice(
         <td class="tg-n17z" colspan="2">
         <span class="tg-q5sf" id="legal">ESTA FACTURA CONTRIBUYE AL DESARROLLO DEL PAÍS, EL USO ILÍCITO SERÁ SANCIONADO PENALMENTE DE ACUERDO A LEY</span>
         <br><br>
-        <span style="text-align:center; display:block;">{qr_code_html}</span><br><br>
+        <span style="text-align:center; display:block;">{qr_code_html}</span>
         <span class="tg-q5sf">"Este documento es la Representación Gráfica de un Documento Fiscal Digital emitido en una modalidad de facturación en línea"</span>
         </td>
             </tr>

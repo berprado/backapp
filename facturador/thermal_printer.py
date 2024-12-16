@@ -166,7 +166,7 @@ class ThermalPrinter:
                     if nombre_id:
                         self._print_line(printer, nombre_id.text.strip(), bold=True)
                     if unidad_id:
-                        self._print_line(printer, unidad_id.text.strip())
+                        self._print_line(printer, f"Unidad: {unidad_id.text.strip()}")
                     if cantidad_id and monto_id:
                         cantidad_text = cantidad_id.text.strip()
                         monto_text = monto_id.text.strip()

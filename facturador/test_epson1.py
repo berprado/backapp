@@ -1,24 +1,12 @@
-from escpos.printer import Usb
-from pdf2image import convert_from_path
+from weasyprint import HTML
 
-def print_pdf_as_image(pdf_path):
-    """
-    Convierte cada página del PDF a una imagen y la imprime.
-    """
-    # Crear conexión con la impresora
-    printer = Usb(0x04B8, 0x0E15, 0, out_ep=0x01)  # Vendor ID y Product ID para Epson TM-T20II
+def html_to_pdf(html_content, output_path):
+    HTML(string=html_content).write_pdf(output_path)
 
-    # Convertir PDF a imágenes
-    images = convert_from_path(pdf_path)
-    for img in images:
-        # Imprimir imagen
-        printer.image(img)
-    
-    printer.cut()
-    print("Impresión completada.")
+# Leer el contenido del archivo HTML
+with open('debug_factura_.html', 'r', encoding='utf-8') as file:
+    html_content = file.read()
 
-# Ruta al archivo PDF
-pdf_path = "factura_325_178B43EFDB960B3F2395E8FCEFCCC35876F58C69269C5839CBD349E74_.pdf"
-
-# Ejecutar la impresión
-print_pdf_as_image(pdf_path)
+# Generar el PDF
+output_path = 'factura_84_247.pdf'
+html_to_pdf(html_content, output_path)
