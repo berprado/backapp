@@ -46,7 +46,7 @@ from facturador.thermal_printer import ThermalPrinter
 #from export import guardar_recibo_como_pdf, generate_file_name
 import threading
 #from compact_pdf_generator import generate_invoice_pdf
-from test_epson1 import html_to_pdf
+from facturador.siat_pdf import html_to_pdf
 
 # Create a custom logger for printing
 printer_logger = logging.getLogger('printer')
@@ -254,7 +254,7 @@ def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_
         <td class="tg-n17z" colspan="7"><span style="font-weight:bold">{tipo_factura}</span><br>{subtitulo}</td>
     </tr>
     <tr>
-        <td class="tg-n17z" colspan="4"><span style="font-weight:bold">Fecha/Hora:</span> {fecha_emision}<br><span style="font-weight:bold">Nombre/Razón Social:</span> {nombre_cliente}</td>
+        <td class="tg-n17z" colspan="4"><span style="font-weight:bold">Fecha/Hora:</span> {fecha_emision}<br><span style="font-weight:bold">Nombre/Razón Social:</span> {nombre_cliente.upper()}</td>
         <td class="tg-n17z"></td>
         <td class="tg-i6l2"><span style="font-weight:bold">NIT/CI/CEX:</span><br><span style="font-weight:bold">Cod. Cliente:</span></td>
         <td class="tg-4pi9">{numero_documento}<br>{numero_documento}</td>
@@ -626,7 +626,7 @@ def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
             
             # Intentar generar el PDF usando la lógica de `test_epson1.py`
             try:
-                output_pdf_path = f"pdfs/factura_{numero_factura}_{cuf}.pdf"
+                output_pdf_path = f"pdfs/factura_{numero_factura}_{nit}_{cuf}.pdf"
                 html_to_pdf(html_content, output_pdf_path)  # Reutilizamos la función de test_epson1.py
                 logging.info(f"PDF generado exitosamente: {output_pdf_path}")
             except Exception as e:
@@ -811,7 +811,7 @@ def main():
                 st.sidebar.text_input("Tipo de Documento:", value=tipo_documento_cliente["descripcion"], disabled=True)
             if cliente_data["codigo_tipo_documento_identidad"] == '2':
                 complemento = st.sidebar.text_input("Complemento:", value=cliente_data['complemento'], disabled=True)
-            nombre_cliente = st.sidebar.text_input("Razón Social:", value=cliente_data['nombre_razon_social'], disabled=True)
+            nombre_cliente = st.sidebar.text_input("Razón Social:", value=cliente_data['nombre_razon_social'].upper(), disabled=True)
 
             # Mostrar el campo email solo si no es None o está vacío
             if cliente_data['email']:
@@ -1109,7 +1109,6 @@ def main():
                 else:
                     message_placeholder.error("❌Por favor, complete todos los campos requeridos.")
 
-                
         with col2:
             if st.session_state.get('factura_validada'):
                 if st.button("Imprimir Factura"):
