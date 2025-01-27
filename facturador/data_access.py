@@ -374,3 +374,15 @@ def obtener_cufd_vigente():
         return None
     finally:
         session.close()
+def obtener_cuf_por_numero_factura(numero_factura):
+    session = SessionLocal()
+    try:
+        factura = session.query(FacturaCabecera).filter_by(numeroFactura=numero_factura).first()
+        if factura:
+            return factura.cuf, factura
+        else:
+            return None, None
+    except Exception as e:
+        return None, str(e)
+    finally:
+        session.close()

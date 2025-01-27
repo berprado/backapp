@@ -5,23 +5,12 @@ import requests
 import xml.etree.ElementTree as ET
 from dotenv import load_dotenv
 from database import SessionLocal
-from facturador.models import FacturaCabecera
+from facturador.data_access import obtener_cuf_por_numero_factura
 from datetime import datetime
 
 load_dotenv()
 
-def obtener_cuf_por_numero_factura(numero_factura):
-    session = SessionLocal()
-    try:
-        factura = session.query(FacturaCabecera).filter_by(numeroFactura=numero_factura).first()
-        if factura:
-            return factura.cuf, factura
-        else:
-            return None, None  # Devuelve dos valores: None y None si no se encuentra la factura
-    except Exception as e:
-        return None, str(e)  # En caso de error, devuelve None y el mensaje de error
-    finally:
-        session.close()
+
 
 
 def construir_solicitud_verificacion(cuf):

@@ -13,7 +13,7 @@ log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
 # Configuración de logger
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 # Crear un handler para la consola
 console_handler = logging.StreamHandler()
@@ -118,7 +118,7 @@ def enviar_solicitud(xml_path, xsd_main_path, fecha_envio, cufd):
         response = requests.post(url, headers=headers, data=soap_body)
         response.raise_for_status()  # Esto lanzará una excepción para códigos de estado HTTP 4xx/5xx
         logger.info(f"Response status code: {response.status_code}")
-        logger.debug(f"Response content: {response.content.decode('utf-8')}")
+        #logger.debug(f"Response content: {response.content.decode('utf-8')}")
 
         # Devuelve el objeto de respuesta HTTP
         return response

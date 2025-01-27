@@ -7,22 +7,11 @@ from dotenv import load_dotenv
 from database import SessionLocal
 from facturador.models import FacturaCabecera
 from datetime import datetime
-from data_access import obtener_mensaje_por_codigo
+from data_access import obtener_mensaje_por_codigo, obtener_cuf_por_numero_factura
 
 load_dotenv()
 
-def obtener_cuf_por_numero_factura(numero_factura):
-    session = SessionLocal()
-    try:
-        factura = session.query(FacturaCabecera).filter_by(numeroFactura=numero_factura).first()
-        if factura:
-            return factura.cuf, factura
-        else:
-            return None, None
-    except Exception as e:
-        return None, str(e)
-    finally:
-        session.close()
+
 
 def construir_solicitud_reversion(cuf):
     envelope = ET.Element("{http://schemas.xmlsoap.org/soap/envelope/}Envelope")
