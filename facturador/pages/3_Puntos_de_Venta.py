@@ -15,8 +15,8 @@ from business_logic import verificar_comunicacion
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Cargar las variables de entorno desde el archivo .env
-load_dotenv()
-
+# Cargar las variables de entorno
+load_dotenv(override=True)
 # Leer variables de entorno
 API_KEY = os.getenv('API_KEY')
 WSDL_URL = os.getenv('WSDL_URL_OPERACIONES')
@@ -26,6 +26,21 @@ CODIGO_AMBIENTE = int(os.getenv('CODIGO_AMBIENTE', '2'))
 CODIGO_MODALIDAD = int(os.getenv('CODIGO_MODALIDAD', '1'))
 CODIGO_SUCURSAL = int(os.getenv('CODIGO_SUCURSAL', '0'))
 CUIS = os.getenv('CUIS')
+
+# Print selected values on terminal
+print(f"API_KEY: {API_KEY}")
+print(f"WSDL_URL: {WSDL_URL}")
+print(f"CODIGO_SISTEMA: {CODIGO_SISTEMA}")
+print(f"NIT: {NIT}")
+print(f"CODIGO_AMBIENTE: {CODIGO_AMBIENTE}")
+print(f"CODIGO_MODALIDAD: {CODIGO_MODALIDAD}")
+print(f"CODIGO_SUCURSAL: {CODIGO_SUCURSAL}")
+print(f"CUIS: {CUIS}")
+
+# Diagnóstico de CUIS
+print(f"CUIS desde os.getenv(): {os.getenv('CUIS')}")
+print(f"CUIS desde os.environ: {os.environ.get('CUIS')}")
+
 
 # Crear un marcador de posición para mensajes
 message_placeholder = st.empty()
