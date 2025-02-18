@@ -1,41 +1,37 @@
+import os
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-# Database URL
-URL_DATABASE = "mysql+pymysql://root:admin123.@localhost:3306/adminerp_copy"
+# Cargar variables de entorno desde .env
+load_dotenv()
 
-# Create the engine to connect to the database
+# Obtener la URL de la base de datos
+URL_DATABASE = os.getenv("DATABASE_URL")
+
+# Crear la conexión a la base de datos
 engine = create_engine(URL_DATABASE)
 
-# Create a session factory for creating database sessions
+# Crear un manejador de sesiones
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Create a base class for declarative models
+# Base para los modelos ORM
 Base = declarative_base()
 
 def init_db():
-    # Import all models here so that Base can recognize them before creating tables
+    """Crea las tablas en la base de datos si no existen."""
     Base.metadata.create_all(bind=engine)
 
-def clear_metadata():
-    # Clear all metadata
-    Base.metadata.clear()
+# Determinar el entorno basado en CODIGO_AMBIENTE (1 = Producción, 2 = Pruebas)
+CODIGO_AMBIENTE = int(os.getenv("CODIGO_AMBIENTE", 2))  # 2 por defecto (Pruebas)
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-# Call init_db to create tables if they do not exist
 if __name__ == "__main__":
-    clear_metadata()  # Descomenta esta línea si deseas limpiar el metadata antes de inicializar la base de datos
-    init_db()
-
-
-
+    if CODIGO_AMBIENTE == 2:  # Solo ejecuta esto en ambiente de pruebas
+        print("Modo PRUEBAS: Inicializando la base de datos...")
+        init_db()
+    else:
+        print("Modo PRODUCCIÓN: No se inicializa la base de datos automáticamente.")
 
 
 

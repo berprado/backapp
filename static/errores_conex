@@ -1,0 +1,158 @@
+ConnectTimeout: HTTPSConnectionPool(host='pilotosiatservicios.impuestos.gob.bo', port=443): Max retries exceeded with url: /v2/FacturacionCodigos?wsdl (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001BDEB4A4D10>, 'Connection to pilotosiatservicios.impuestos.gob.bo timed out. (connect timeout=300)'))
+Traceback:
+
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\streamlit\runtime\scriptrunner\exec_code.py", line 88, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 590, in code_to_exec
+    exec(code, module.__dict__)
+File "C:\Users\Bernardo\Desktop\backapp\facturador\main.py", line 12, in <module>
+    main()
+File "C:\Users\Bernardo\Desktop\backapp\facturador\ui_copy.py", line 715, in main
+    verifica_stream.main()
+File "C:\Users\Bernardo\Desktop\backapp\facturador\verifica_stream.py", line 68, in main
+    client = Client(wsdl=WSDL_URL_CODIGOS, transport=transport, settings=settings)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\zeep\client.py", line 76, in __init__
+    self.wsdl = Document(wsdl, self.transport, settings=self.settings)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\zeep\wsdl\wsdl.py", line 92, in __init__
+    self.load(location)
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\zeep\wsdl\wsdl.py", line 95, in load
+    document = self._get_xml_document(location)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\zeep\wsdl\wsdl.py", line 155, in _get_xml_document
+    return load_external(
+           ^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\zeep\loader.py", line 89, in load_external
+    content = transport.load(url)
+              ^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\zeep\transports.py", line 123, in load
+    content = self._load_remote_data(url)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\zeep\transports.py", line 135, in _load_remote_data
+    response = self.session.get(url, timeout=self.load_timeout)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\requests\sessions.py", line 602, in get
+    return self.request("GET", url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\requests\sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\requests\sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\requests\adapters.py", line 507, in send
+    raise ConnectTimeout(e, request=request)
+	
+	
+	
+	---------------------------------
+	
+ConnectTimeout: HTTPSConnectionPool(host='pilotosiatservicios.impuestos.gob.bo', port=443): Max retries exceeded with url: /v2/FacturacionSincronizacion?wsdl (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001BDEAEDC110>, 'Connection to pilotosiatservicios.impuestos.gob.bo timed out. (connect timeout=300)'))
+Traceback:
+
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\streamlit\runtime\scriptrunner\exec_code.py", line 88, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 590, in code_to_exec
+    exec(code, module.__dict__)
+File "C:\Users\Bernardo\Desktop\backapp\facturador\pages\1_Sincronizar.py", line 49, in <module>
+    client = Client(wsdl_url)
+             ^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\zeep\client.py", line 76, in __init__
+    self.wsdl = Document(wsdl, self.transport, settings=self.settings)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\zeep\wsdl\wsdl.py", line 92, in __init__
+    self.load(location)
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\zeep\wsdl\wsdl.py", line 95, in load
+    document = self._get_xml_document(location)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\zeep\wsdl\wsdl.py", line 155, in _get_xml_document
+    return load_external(
+           ^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\zeep\loader.py", line 89, in load_external
+    content = transport.load(url)
+              ^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\zeep\transports.py", line 123, in load
+    content = self._load_remote_data(url)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\zeep\transports.py", line 135, in _load_remote_data
+    response = self.session.get(url, timeout=self.load_timeout)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\requests\sessions.py", line 602, in get
+    return self.request("GET", url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\requests\sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\requests\sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\requests\adapters.py", line 507, in send
+    raise ConnectTimeout(e, request=request)
+	
+------------------------------------
+
+
+ConnectTimeout: HTTPSConnectionPool(host='pilotosiatservicios.impuestos.gob.bo', port=443): Max retries exceeded with url: /v2/FacturacionCodigos?wsdl (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001BDEB4EA4E0>, 'Connection to pilotosiatservicios.impuestos.gob.bo timed out. (connect timeout=300)'))
+Traceback:
+
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\streamlit\runtime\scriptrunner\exec_code.py", line 88, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 590, in code_to_exec
+    exec(code, module.__dict__)
+File "C:\Users\Bernardo\Desktop\backapp\facturador\main.py", line 12, in <module>
+    main()
+File "C:\Users\Bernardo\Desktop\backapp\facturador\ui_copy.py", line 715, in main
+    verifica_stream.main()
+File "C:\Users\Bernardo\Desktop\backapp\facturador\verifica_stream.py", line 68, in main
+    client = Client(wsdl=WSDL_URL_CODIGOS, transport=transport, settings=settings)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\zeep\client.py", line 76, in __init__
+    self.wsdl = Document(wsdl, self.transport, settings=self.settings)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\zeep\wsdl\wsdl.py", line 92, in __init__
+    self.load(location)
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\zeep\wsdl\wsdl.py", line 95, in load
+    document = self._get_xml_document(location)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\zeep\wsdl\wsdl.py", line 155, in _get_xml_document
+    return load_external(
+           ^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\zeep\loader.py", line 89, in load_external
+    content = transport.load(url)
+              ^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\zeep\transports.py", line 123, in load
+    content = self._load_remote_data(url)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\zeep\transports.py", line 135, in _load_remote_data
+    response = self.session.get(url, timeout=self.load_timeout)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\requests\sessions.py", line 602, in get
+    return self.request("GET", url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\requests\sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\requests\sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Bernardo\Desktop\backapp\backapp\Lib\site-packages\requests\adapters.py", line 507, in send
+    raise ConnectTimeout(e, request=request)
+	
+
+-------------------------------------------
+
+Error de comunicación con el servicio de Operaciones: Error de comunicación: HTTPSConnectionPool(host='pilotosiatservicios.impuestos.gob.bo', port=443): Max retries exceeded with url: /v2/FacturacionOperaciones?wsdl (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001BDEB506ED0>, 'Connection to pilotosiatservicios.impuestos.gob.bo timed out. (connect timeout=None)'))
+
+Facturación Códigos: Error: Error de comunicación: HTTPSConnectionPool(host='pilotosiatservicios.impuestos.gob.bo', port=443): Max retries exceeded with url: /v2/FacturacionCodigos?wsdl (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001BDEB4A63F0>, 'Connection to pilotosiatservicios.impuestos.gob.bo timed out. (connect timeout=None)'))
+
+Facturación Operaciones: Error: Error de comunicación: HTTPSConnectionPool(host='pilotosiatservicios.impuestos.gob.bo', port=443): Max retries exceeded with url: /v2/FacturacionOperaciones?wsdl (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001BDEB2ED370>, 'Connection to pilotosiatservicios.impuestos.gob.bo timed out. (connect timeout=None)'))
+
+Facturación Sincronización: Error: Error de comunicación: HTTPSConnectionPool(host='pilotosiatservicios.impuestos.gob.bo', port=443): Max retries exceeded with url: /v2/FacturacionSincronizacion?wsdl (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001BDEB506A50>, 'Connection to pilotosiatservicios.impuestos.gob.bo timed out. (connect timeout=None)'))
+
+Documentos de Ajuste: Error: Error de comunicación: HTTPSConnectionPool(host='pilotosiatservicios.impuestos.gob.bo', port=443): Max retries exceeded with url: /v2/ServicioFacturacionDocumentoAjuste?wsdl (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001BDEB2ECAD0>, 'Connection to pilotosiatservicios.impuestos.gob.bo timed out. (connect timeout=None)'))
+
+Facturación Compra-Venta: Error: Error de comunicación: HTTPSConnectionPool(host='pilotosiatservicios.impuestos.gob.bo', port=443): Max retries exceeded with url: /v2/ServicioFacturacionCompraVenta?wsdl (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x000001BDEB4A4380>, 'Connection to pilotosiatservicios.impuestos.gob.bo timed out. (connect timeout=None)'))

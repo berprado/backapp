@@ -101,6 +101,10 @@ def verificar_comunicacion():
     except requests.exceptions.RequestException as e:
         return False, f"Error de comunicación: {e}"
 
+def calcular_diferencia_horaria(remote_time, local_time):
+    remote_time_utc = remote_time.astimezone(pytz.utc)
+    return remote_time_utc - local_time
+
 def sincronizar_fecha_hora():
     global remote_time, local_time, time_difference
     st.text("Iniciando sincronización de Fecha y Hora")
@@ -130,26 +134,36 @@ def sincronizar_fecha_hora():
 
         # Zona horaria del servidor remoto (Bolivia)
         bolivia_tz = pytz.timezone("America/La_Paz")
-        
-        # Convertir la fecha y hora remota a un objeto datetime aware en la zona horaria de Bolivia
-        remote_time = bolivia_tz.localize(datetime.fromisoformat(response.fechaHora))
-        
+
+        # Convertir la fecha y hora remota de forma segura
+        try:
+            remote_time = datetime.fromisoformat(response.fechaHora)
+            if remote_time.tzinfo is None:
+                remote_time = bolivia_tz.localize(remote_time)
+            else:
+                remote_time = remote_time.astimezone(bolivia_tz)
+        except Exception as e:
+            logging.error(f"Error al convertir la fecha remota: {e}")
+            st.error("Error al obtener la fecha del servidor. Sincronización fallida.")
+            return False
+
         # Obtener la hora local actual en UTC
         local_time = datetime.now(pytz.utc)
         
         logging.debug(f"Hora remota (Bolivia): {remote_time}")
         logging.debug(f"Hora local (UTC): {local_time}")
 
-        # Calcular la diferencia de tiempo
-        time_difference = remote_time.astimezone(pytz.utc) - local_time
-        
-        # Ajustar la diferencia si es cercana a un día completo
-        if abs(time_difference.total_seconds()) > 43200:  # 12 horas en segundos
-            if time_difference.total_seconds() > 0:
-                time_difference = time_difference - timedelta(days=1)
-            else:
-                time_difference = time_difference + timedelta(days=1)
-        
+        # Calcular la diferencia horaria correctamente
+        time_difference = calcular_diferencia_horaria(remote_time, local_time)
+
+        if abs(time_difference.total_seconds()) > 86400:  # 24 horas
+            logging.warning(f"Diferencia de tiempo anormal: {time_difference}. Verifique la zona horaria.")
+            st.warning(f"Diferencia de tiempo anormal detectada: {time_difference}. ¿Desea corregirla?")
+            
+            if st.button("Corregir diferencia horaria"):
+                time_difference = timedelta(seconds=0)
+                st.success("Diferencia horaria corregida manualmente.")
+
         logging.debug(f"Diferencia de tiempo calculada: {time_difference}")
 
         st.success("Sincronización de Fecha y Hora completada.")
@@ -162,6 +176,7 @@ def sincronizar_fecha_hora():
         logging.error(error_msg)
         logging.error(traceback.format_exc())
         return False
+
 
 def mostrar_informacion_sincronizacion():
     if remote_time and local_time and time_difference is not None:
