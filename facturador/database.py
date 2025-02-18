@@ -19,6 +19,15 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Base para los modelos ORM
 Base = declarative_base()
 
+def get_db():
+    """Generador de sesiones para la base de datos"""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 def init_db():
     """Crea las tablas en la base de datos si no existen."""
     Base.metadata.create_all(bind=engine)
