@@ -11,31 +11,59 @@
 *.txt
 
 # Directorios de entornos virtuales
-/backapp
+venv/
+env/
+.virtualenv/
+backapp/
+
+# Archivos de base de datos MySQL (backups y dumps)
+*.sql
+*.sql.gz
+dump_*.sql
 
 # Directorios de facturas generadas
 /xmls
 
 # Archivos de respaldo y copias
-* - Copy.py
-
-# Archivos PDF generados automáticamente
-*.pdf
+*-Copy.py
+*-Backup.py
+*.bak
+*.swp
 
 # Archivos de log
 *.log
 
-# Directorios de caché y compilación
+# Archivos PDF generados automáticamente
+*.pdf
+
+# Archivos temporales de editores
+*.swp
+*.swo
+.idea/
+.vscode/
+*.DS_Store
+
+# Archivos de caché y compilación
 __pycache__/
 facturador/__pycache__/
 facturador/logs/
 facturador/pages/__pycache__/
 
-# Directorios de configuración del editor
-.vscode/
-
+# Archivos temporales de subida
 .tmp.driveupload/
 
+# Archivos de documentación o estructura
 estructura.md
 
+# Archivos temporales de compilación de Python
+*.pyc
+*.pyo
+
+# Directorios innecesarios o pruebas fuera del repositorio principal
 facturador/off/
+
+# Directorios de datos de MySQL si usas Docker
+mysql_data/
+
+# Archivos de MySQL Workbench
+*.mwb
