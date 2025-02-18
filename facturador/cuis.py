@@ -41,10 +41,12 @@ def solicitar_nuevo_cuis(db: Session, codigo_punto_venta: int):
         st.error(f"No se pudo solicitar un nuevo CUIS: {resultado['message']}")
 
 def main():
-    # Inicializar la base de datos
-    init_db()
-    
+    # Verificar si estamos en ambiente de pruebas antes de inicializar la BD
+    CODIGO_AMBIENTE = int(os.getenv("CODIGO_AMBIENTE", 2))  # 2 por defecto (Pruebas)
 
+    if CODIGO_AMBIENTE == 2:  # Solo inicializar en ambiente de pruebas
+        init_db()
+    
     # Obtener la sesión de la base de datos
     db = next(get_db())
 
