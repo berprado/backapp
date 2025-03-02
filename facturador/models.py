@@ -750,3 +750,15 @@ class SincronizarListaLeyendasFactura(Base):
             "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
             "estado_sincronizacion": self.estado_sincronizacion
         }
+class SincronizacionEstado(Base):
+    __tablename__ = "sincronizacion_estado"
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    ultima_sincronizacion = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "ultima_sincronizacion": self.ultima_sincronizacion.isoformat() if self.ultima_sincronizacion else None
+        }
