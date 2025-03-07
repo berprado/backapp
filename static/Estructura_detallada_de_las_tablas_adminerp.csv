@@ -1,0 +1,869 @@
+Tabla,Columna,Tipo de Dato,Atributos
+seg_usuario,id,INT(11),NOT NULL AUTO_INCREMENT
+seg_usuario,paterno,VARCHAR(255),NOT NULL
+seg_usuario,materno,VARCHAR(255),NOT NULL
+seg_usuario,nombres,VARCHAR(255),NOT NULL
+seg_usuario,nro_documento,VARCHAR(255),NOT NULL
+seg_usuario,email,VARCHAR(255),NOT NULL
+seg_usuario,sigla,VARCHAR(255),DEFAULT NULL
+seg_usuario,p_cargo,INT(11),NOT NULL
+seg_usuario,usuario,VARCHAR(255),NOT NULL
+seg_usuario,contrasena,VARCHAR(255),NOT NULL
+seg_usuario,observaciones,VARCHAR(255),DEFAULT NULL
+seg_usuario,fechacreacion,DATE,NOT NULL
+seg_usuario,tipousuario,VARCHAR(1),NOT NULL
+seg_usuario,fechainiciovigencia,DATE,NOT NULL
+seg_usuario,fechafinvigencia,DATE,NOT NULL
+seg_usuario,pantallaprincipal,VARCHAR(255),DEFAULT NULL
+seg_usuario,conformidad,VARCHAR(1),DEFAULT NULL
+seg_usuario,habilitado,VARCHAR(1),NOT NULL
+seg_usuario,estado,VARCHAR(3),NOT NULL
+seg_usuario,PRIMARY,KEY,(id)
+seg_usuario,CHARACTER,SET,latin1
+seg_usuario,COLLATE,latin1_swedish_ci,
+seg_usuario,nombre,VARCHAR(255),DEFAULT NULL
+seg_usuario,descripcion,VARCHAR(255),DEFAULT NULL
+seg_usuario,denominativo,VARCHAR(255),DEFAULT NULL
+seg_usuario,id_usuario,INT(11),NOT NULL
+seg_usuario,impresora,VARCHAR(255),DEFAULT NULL
+seg_usuario,usuario_reg,VARCHAR(255),NOT NULL
+seg_usuario,fecha_reg,DATE,DEFAULT NULL
+seg_usuario,fecha_mod,DATE,DEFAULT NULL
+seg_usuario,estado,VARCHAR(3),NOT NULL
+seg_usuario,PRIMARY,KEY,(id)
+seg_usuario,CHARACTER,SET,latin1
+seg_usuario,COLLATE,latin1_swedish_ci,
+bar_solicitud_producto,id,INT(11),NOT NULL AUTO_INCREMENT
+bar_solicitud_producto,fecha_solicitud,DATE,DEFAULT NULL
+bar_solicitud_producto,ind_estado_solicitud,INT(11),NOT NULL COMMENT 'parameter table'
+bar_solicitud_producto,descripcion_solicitud,VARCHAR(255),DEFAULT NULL COMMENT 'solo comentarios de alamacenes'
+bar_solicitud_producto,id_barra,INT(11),NOT NULL
+bar_solicitud_producto,fecha_atencion,DATE,DEFAULT NULL
+bar_solicitud_producto,descripcion_atencion,VARCHAR(255),DEFAULT NULL
+bar_solicitud_producto,responsable_solicitud,VARCHAR(255),NOT NULL
+bar_solicitud_producto,usuario_reg,VARCHAR(255),NOT NULL
+bar_solicitud_producto,fecha_reg,DATE,DEFAULT NULL
+bar_solicitud_producto,fecha_mod,DATE,DEFAULT NULL
+bar_solicitud_producto,estado,VARCHAR(3),NOT NULL
+bar_solicitud_producto,PRIMARY,KEY,(id)
+bar_solicitud_producto,CHARACTER,SET,latin1
+bar_solicitud_producto,COLLATE,latin1_swedish_ci,
+bar_ingreso_producto,id,INT(11),NOT NULL AUTO_INCREMENT
+bar_ingreso_producto,fecha,DATE,DEFAULT NULL
+bar_ingreso_producto,correlativo,INT(11),DEFAULT NULL
+bar_ingreso_producto,id_barra,INT(11),NOT NULL
+bar_ingreso_producto,id_solicitud_producto,INT(11),NOT NULL
+bar_ingreso_producto,usuario_reg,VARCHAR(255),NOT NULL
+bar_ingreso_producto,fecha_reg,DATE,DEFAULT NULL
+bar_ingreso_producto,fecha_mod,DATE,DEFAULT NULL
+bar_ingreso_producto,estado,VARCHAR(3),NOT NULL
+bar_ingreso_producto,PRIMARY,KEY,(id)
+bar_ingreso_producto,CHARACTER,SET,latin1
+bar_ingreso_producto,COLLATE,latin1_swedish_ci,
+bar_orden_pedido,id,INT(11),NOT NULL AUTO_INCREMENT
+bar_orden_pedido,fecha_solicitud,DATE,NOT NULL
+bar_orden_pedido,responsable,VARCHAR(255),DEFAULT NULL
+bar_orden_pedido,lugar_entrega,VARCHAR(255),DEFAULT NULL
+bar_orden_pedido,fecha_entrega,DATE,DEFAULT NULL
+bar_orden_pedido,ind_estado_orden,INT(11),NOT NULL
+bar_orden_pedido,observaciones,VARCHAR(255),DEFAULT NULL
+bar_orden_pedido,id_barra,INT(11),NOT NULL
+bar_orden_pedido,usuario_reg,VARCHAR(255),NOT NULL
+bar_orden_pedido,fecha_reg,DATE,DEFAULT NULL
+bar_orden_pedido,fecha_mod,DATE,DEFAULT NULL
+bar_orden_pedido,estado,VARCHAR(3),NOT NULL
+bar_orden_pedido,PRIMARY,KEY,(id)
+bar_orden_pedido,CHARACTER,SET,latin1
+bar_orden_pedido,COLLATE,latin1_swedish_ci,
+bar_orden_pedido,numero,INT(11),DEFAULT NULL
+bar_orden_pedido,descripcion,VARCHAR(255),DEFAULT NULL
+bar_orden_pedido,ubicacion,VARCHAR(255),DEFAULT NULL
+bar_orden_pedido,id_barra,INT(11),NOT NULL
+bar_orden_pedido,usuario_reg,VARCHAR(255),NOT NULL
+bar_orden_pedido,fecha_reg,DATE,DEFAULT NULL
+bar_orden_pedido,fecha_mod,DATE,DEFAULT NULL
+bar_orden_pedido,estado,VARCHAR(3),NOT NULL
+bar_orden_pedido,PRIMARY,KEY,(id)
+bar_orden_pedido,CHARACTER,SET,latin1
+bar_orden_pedido,COLLATE,latin1_swedish_ci,
+bar_barra_mesera,id,INT(11),NOT NULL AUTO_INCREMENT
+bar_barra_mesera,descripcion_asignacion,VARCHAR(255),DEFAULT NULL
+bar_barra_mesera,fecha_asignacion,DATE,NOT NULL
+bar_barra_mesera,descripcion_desasignacion,VARCHAR(255),DEFAULT NULL
+bar_barra_mesera,fecha_desasignacion,DATE,DEFAULT NULL
+bar_barra_mesera,id_barra,INT(11),NOT NULL
+bar_barra_mesera,id_usuario,INT(11),NOT NULL
+bar_barra_mesera,impresora,VARCHAR(255),DEFAULT NULL
+bar_barra_mesera,usuario_reg,VARCHAR(255),NOT NULL
+bar_barra_mesera,fecha_reg,DATE,DEFAULT NULL
+bar_barra_mesera,fecha_mod,DATE,DEFAULT NULL
+bar_barra_mesera,estado,VARCHAR(3),NOT NULL
+bar_barra_mesera,PRIMARY,KEY,(id)
+bar_barra_mesera,CHARACTER,SET,latin1
+bar_barra_mesera,COLLATE,latin1_swedish_ci,
+ope_dia,id,INT(11),NOT NULL AUTO_INCREMENT
+ope_dia,dia,VARCHAR(255),NOT NULL
+ope_dia,descripcion,VARCHAR(255),DEFAULT NULL
+ope_dia,indEsPrincipal,INT(11),DEFAULT NULL
+ope_dia,usuario_reg,VARCHAR(255),NOT NULL
+ope_dia,fecha_reg,DATE,DEFAULT NULL
+ope_dia,fecha_mod,DATE,DEFAULT NULL
+ope_dia,estado,VARCHAR(3),NOT NULL
+ope_dia,PRIMARY,KEY,(id)
+ope_dia,CHARACTER,SET,latin1
+ope_dia,COLLATE,latin1_swedish_ci,
+ope_dia,fecha,DATE,NOT NULL
+ope_dia,nombre_operacion,VARCHAR(255),NOT NULL
+ope_dia,estado_operacion,INT(11),NOT NULL
+ope_dia,ind_tiene_cover,VARCHAR(1),DEFAULT NULL
+ope_dia,monto_cover,DECIMAL(10,", 2) DEFAULT NULL"
+ope_dia,comision,DECIMAL(10,", 2) NOT NULL"
+ope_dia,id_dia,INT(11),NOT NULL
+ope_dia,observaciones,VARCHAR(255),DEFAULT NULL
+ope_dia,usuario_reg,VARCHAR(255),NOT NULL
+ope_dia,fecha_reg,DATE,DEFAULT NULL
+ope_dia,fecha_mod,DATE,DEFAULT NULL
+ope_dia,estado,VARCHAR(3),NOT NULL
+ope_dia,PRIMARY,KEY,(id)
+ope_dia,CHARACTER,SET,latin1
+ope_dia,COLLATE,latin1_swedish_ci,
+ope_novedades,id,INT(11),NOT NULL AUTO_INCREMENT
+ope_novedades,fecha,DATETIME,DEFAULT NULL
+ope_novedades,usuario,VARCHAR(255),NOT NULL
+ope_novedades,evento,VARCHAR(255),NOT NULL
+ope_novedades,id_operacion,INT(11),DEFAULT NULL
+ope_novedades,usuario_reg,VARCHAR(255),NOT NULL
+ope_novedades,fecha_reg,DATETIME,DEFAULT NULL
+ope_novedades,estado,VARCHAR(3),NOT NULL
+ope_novedades,PRIMARY,KEY,(id)
+ope_novedades,CHARACTER,SET,latin1
+ope_novedades,COLLATE,latin1_swedish_ci,
+ope_movimiento,id,INT(11),NOT NULL AUTO_INCREMENT
+ope_movimiento,monto,DECIMAL(10,", 2) NOT NULL"
+ope_movimiento,efectivo,DECIMAL(10,", 2) DEFAULT NULL"
+ope_movimiento,diferencia,DECIMAL(10,", 2) DEFAULT NULL"
+ope_movimiento,motivo,VARCHAR(255),DEFAULT NULL COMMENT 'Cual es el motivo del movimiento de dinero'
+ope_movimiento,ind_tipo_movimiento,INT(11),NOT NULL
+ope_movimiento,id_operacion,INT(11),NOT NULL
+ope_movimiento,usuario_reg,VARCHAR(255),NOT NULL
+ope_movimiento,fecha_reg,DATE,DEFAULT NULL
+ope_movimiento,fecha_mod,DATE,DEFAULT NULL
+ope_movimiento,estado,VARCHAR(3),NOT NULL
+ope_movimiento,PRIMARY,KEY,(id)
+ope_movimiento,CHARACTER,SET,latin1
+ope_movimiento,COLLATE,latin1_swedish_ci,
+ope_movimiento,monto,DECIMAL(10,", 2) NOT NULL"
+ope_movimiento,fecha,DATETIME,NOT NULL
+ope_movimiento,cantidad,INT(11),NOT NULL
+ope_movimiento,id_operacion,INT(11),NOT NULL
+ope_movimiento,id_usuario,INT(11),NOT NULL
+ope_movimiento,estado_impresion,INT(11),NOT NULL
+ope_movimiento,usuario_reg,VARCHAR(255),NOT NULL
+ope_movimiento,fecha_reg,DATE,DEFAULT NULL
+ope_movimiento,fecha_mod,DATE,DEFAULT NULL
+ope_movimiento,estado,VARCHAR(3),NOT NULL
+ope_movimiento,PRIMARY,KEY,(id)
+ope_movimiento,CHARACTER,SET,latin1
+ope_movimiento,COLLATE,latin1_swedish_ci,
+ope_conciliacion,id,INT(11),NOT NULL AUTO_INCREMENT
+ope_conciliacion,total_comandas,INT(11),NOT NULL
+ope_conciliacion,ventas,DECIMAL(10,", 2) NOT NULL"
+ope_conciliacion,efectivo,DECIMAL(10,", 2) NOT NULL"
+ope_conciliacion,con_tarjeta,DECIMAL(10,", 2) DEFAULT NULL"
+ope_conciliacion,diferencia,DECIMAL(10,", 2) NOT NULL"
+ope_conciliacion,observaciones,VARCHAR(255),DEFAULT NULL COMMENT '0 conciliacion exitosa
+ope_conciliacion,id_operacion,INT(11),NOT NULL
+ope_conciliacion,id_usuario,INT(11),DEFAULT NULL
+ope_conciliacion,id_barra,INT(11),DEFAULT NULL
+ope_conciliacion,ind_estado_conciliacion,INT(11),NOT NULL COMMENT '0: conciliacion con novedades1: conciliacion correcta'
+ope_conciliacion,usuario_reg,VARCHAR(255),NOT NULL
+ope_conciliacion,fecha_reg,DATE,DEFAULT NULL
+ope_conciliacion,fecha_mod,DATE,DEFAULT NULL
+ope_conciliacion,estado,VARCHAR(3),NOT NULL
+ope_conciliacion,PRIMARY,KEY,(id)
+ope_conciliacion,CHARACTER,SET,latin1
+ope_conciliacion,COLLATE,latin1_swedish_ci,
+bar_inventario_fisico,id,INT(11),NOT NULL AUTO_INCREMENT
+bar_inventario_fisico,fecha,DATE,DEFAULT NULL
+bar_inventario_fisico,observaciones,VARCHAR(255),DEFAULT NULL
+bar_inventario_fisico,procesado_por,VARCHAR(255),DEFAULT NULL
+bar_inventario_fisico,estado_registro,INT(11),NOT NULL
+bar_inventario_fisico,id_barra,INT(11),NOT NULL
+bar_inventario_fisico,id_operacion,INT(11),DEFAULT NULL
+bar_inventario_fisico,usuario_reg,VARCHAR(255),NOT NULL
+bar_inventario_fisico,fecha_reg,DATE,DEFAULT NULL
+bar_inventario_fisico,fecha_mod,DATE,DEFAULT NULL
+bar_inventario_fisico,estado,VARCHAR(3),NOT NULL
+bar_inventario_fisico,PRIMARY,KEY,(id)
+bar_inventario_fisico,CHARACTER,SET,latin1
+bar_inventario_fisico,COLLATE,latin1_swedish_ci,
+bar_inventario_fisico,fecha,DATETIME,DEFAULT NULL
+bar_inventario_fisico,id_barra,INT(11),DEFAULT NULL
+bar_inventario_fisico,id_mesa,INT(11),DEFAULT NULL
+bar_inventario_fisico,id_operacion,INT(11),NOT NULL
+bar_inventario_fisico,id_usuario,INT(11),NOT NULL
+bar_inventario_fisico,estado_comanda,INT(11),NOT NULL
+bar_inventario_fisico,estado_impresion,INT(11),DEFAULT NULL
+bar_inventario_fisico,tipo_salida,INT(11),DEFAULT NULL
+bar_inventario_fisico,cor_motivo,VARCHAR(255),DEFAULT NULL
+bar_inventario_fisico,cor_registrado_por,VARCHAR(255),DEFAULT NULL
+bar_inventario_fisico,razon_social,VARCHAR(255),DEFAULT NULL
+bar_inventario_fisico,nit,VARCHAR(255),DEFAULT NULL
+bar_inventario_fisico,id_factura,INT(11),DEFAULT NULL
+bar_inventario_fisico,nro_factura,INT(11),DEFAULT NULL
+bar_inventario_fisico,usuario_reg,VARCHAR(255),NOT NULL
+bar_inventario_fisico,fecha_reg,DATE,DEFAULT NULL
+bar_inventario_fisico,fecha_mod,DATE,DEFAULT NULL
+bar_inventario_fisico,estado,VARCHAR(3),NOT NULL
+bar_inventario_fisico,PRIMARY,KEY,(id)
+bar_inventario_fisico,CHARACTER,SET,latin1
+bar_inventario_fisico,COLLATE,latin1_swedish_ci,
+bar_comanda_impresion,id,INT(11),NOT NULL AUTO_INCREMENT
+bar_comanda_impresion,id_comanda,INT(11),NOT NULL
+bar_comanda_impresion,nombre_barra,VARCHAR(255),DEFAULT NULL
+bar_comanda_impresion,impresora,VARCHAR(255),DEFAULT NULL
+bar_comanda_impresion,texto,TEXT,DEFAULT NULL
+bar_comanda_impresion,ind_estado_impresion,INT(11),NOT NULL COMMENT 'si fue impreso o no'
+bar_comanda_impresion,PRIMARY,KEY,(id)
+bar_comanda_impresion,CHARACTER,SET,latin1
+bar_comanda_impresion,COLLATE,latin1_swedish_ci,
+bar_ajuste,id,INT(11),NOT NULL AUTO_INCREMENT
+bar_ajuste,fecha,DATE,DEFAULT NULL
+bar_ajuste,numero_documento,VARCHAR(255),DEFAULT NULL
+bar_ajuste,observaciones,VARCHAR(255),DEFAULT NULL
+bar_ajuste,recepcionado_por,VARCHAR(255),DEFAULT NULL
+bar_ajuste,ind_estado_ingreso,INT(11),"NOT NULL COMMENT '0: pendiente, 1: procesaro, 3: cancelado'"
+bar_ajuste,ind_tipo_movimiento,INT(11),DEFAULT NULL
+bar_ajuste,id_operacion,INT(11),DEFAULT NULL
+bar_ajuste,id_barra,INT(11),DEFAULT NULL
+bar_ajuste,usuario_reg,VARCHAR(255),NOT NULL
+bar_ajuste,fecha_reg,DATE,DEFAULT NULL
+bar_ajuste,fecha_mod,DATE,DEFAULT NULL
+bar_ajuste,estado,VARCHAR(3),NOT NULL
+bar_ajuste,PRIMARY,KEY,(id)
+bar_ajuste,CHARACTER,SET,latin1
+bar_ajuste,COLLATE,latin1_swedish_ci,
+bar_ajuste,nombre,VARCHAR(255),DEFAULT NULL
+bar_ajuste,direccion,VARCHAR(255),DEFAULT NULL
+bar_ajuste,sigla,VARCHAR(255),DEFAULT NULL
+bar_ajuste,usuario_reg,VARCHAR(255),NOT NULL
+bar_ajuste,fecha_reg,DATE,DEFAULT NULL
+bar_ajuste,fecha_mod,DATE,DEFAULT NULL
+bar_ajuste,estado,VARCHAR(3),NOT NULL
+bar_ajuste,PRIMARY,KEY,(id)
+bar_ajuste,CHARACTER,SET,latin1
+bar_ajuste,COLLATE,latin1_swedish_ci,
+bar_ajuste,fecha_salida,DATE,NOT NULL
+bar_ajuste,correlativo,INT(11),DEFAULT NULL
+bar_ajuste,responsable,VARCHAR(255),NOT NULL
+bar_ajuste,ind_estado_salida,INT(11),NOT NULL
+bar_ajuste,observaciones_salida,VARCHAR(255),DEFAULT NULL
+bar_ajuste,fecha_recepcion,DATE,DEFAULT NULL
+bar_ajuste,observaciones_recepcion,VARCHAR(255),DEFAULT NULL
+bar_ajuste,responsable_recepcion,VARCHAR(255),DEFAULT NULL
+bar_ajuste,id_almacen,INT(11),DEFAULT NULL
+bar_ajuste,id_barra,INT(11),DEFAULT NULL
+bar_ajuste,id_operacion,INT(11),DEFAULT NULL
+bar_ajuste,ind_tipo_salida,INT(11),DEFAULT NULL
+bar_ajuste,usuario_reg,VARCHAR(255),NOT NULL
+bar_ajuste,fecha_reg,DATE,DEFAULT NULL
+bar_ajuste,fecha_mod,DATE,DEFAULT NULL
+bar_ajuste,estado,VARCHAR(3),NOT NULL
+bar_ajuste,PRIMARY,KEY,(id)
+bar_ajuste,CHARACTER,SET,latin1
+bar_ajuste,COLLATE,latin1_swedish_ci,
+alm_devolucion,id,INT(11),NOT NULL AUTO_INCREMENT
+alm_devolucion,cliente,VARCHAR(255),DEFAULT NULL
+alm_devolucion,motivo,VARCHAR(255),DEFAULT NULL
+alm_devolucion,id_operacion,INT(11),NOT NULL
+alm_devolucion,id_almacen,INT(11),NOT NULL
+alm_devolucion,id_usuario,INT(11),NOT NULL
+alm_devolucion,usuario_reg,VARCHAR(255),NOT NULL
+alm_devolucion,fecha_reg,DATE,DEFAULT NULL
+alm_devolucion,fecha_mod,DATE,DEFAULT NULL
+alm_devolucion,estado,VARCHAR(3),NOT NULL
+alm_devolucion,PRIMARY,KEY,(id)
+alm_devolucion,CHARACTER,SET,latin1
+alm_devolucion,COLLATE,latin1_swedish_ci,
+gen_area,id,INT(11),NOT NULL AUTO_INCREMENT
+gen_area,nombre,VARCHAR(255),DEFAULT NULL
+gen_area,descripcion,VARCHAR(255),DEFAULT NULL
+gen_area,sigla,VARCHAR(255),DEFAULT NULL
+gen_area,responsable,VARCHAR(255),DEFAULT NULL
+gen_area,cargo,VARCHAR(255),DEFAULT NULL
+gen_area,usuario_reg,VARCHAR(255),NOT NULL
+gen_area,fecha_reg,DATE,DEFAULT NULL
+gen_area,fecha_mod,DATE,DEFAULT NULL
+gen_area,estado,VARCHAR(3),NOT NULL
+gen_area,PRIMARY,KEY,(id)
+gen_area,CHARACTER,SET,latin1
+gen_area,COLLATE,latin1_swedish_ci,
+gen_area,nombre,VARCHAR(255),NOT NULL
+gen_area,nombre_contacto,VARCHAR(255),DEFAULT NULL
+gen_area,telefonos,VARCHAR(255),DEFAULT NULL
+gen_area,email,VARCHAR(255),DEFAULT NULL
+gen_area,direccion,VARCHAR(255),DEFAULT NULL
+gen_area,ciudad,VARCHAR(255),DEFAULT NULL
+gen_area,usuario_reg,VARCHAR(255),NOT NULL
+gen_area,fecha_reg,DATE,DEFAULT NULL
+gen_area,fecha_mod,DATE,DEFAULT NULL
+gen_area,estado,VARCHAR(3),NOT NULL
+gen_area,PRIMARY,KEY,(id)
+gen_area,CHARACTER,SET,latin1
+gen_area,COLLATE,latin1_swedish_ci,
+gen_area,fecha_salida,DATE,NOT NULL
+gen_area,correlativo,INT(11),DEFAULT NULL
+gen_area,responsable,VARCHAR(255),NOT NULL
+gen_area,ind_estado_salida,INT(11),NOT NULL
+gen_area,observaciones_salida,VARCHAR(255),DEFAULT NULL
+gen_area,fecha_recepcion,DATE,DEFAULT NULL
+gen_area,observaciones_recepcion,VARCHAR(255),DEFAULT NULL
+gen_area,responsable_recepcion,VARCHAR(255),DEFAULT NULL
+gen_area,ind_tipo_salida,INT(11),DEFAULT NULL
+gen_area,id_almacen,INT(11),NOT NULL
+gen_area,id_barra,INT(11),DEFAULT NULL
+gen_area,id_proveedor,INT(11),DEFAULT NULL
+gen_area,id_area,INT(11),DEFAULT NULL
+gen_area,id_operacion,INT(11),DEFAULT NULL
+gen_area,ind_tipo_movimiento,INT(11),DEFAULT NULL
+gen_area,usuario_reg,VARCHAR(255),NOT NULL
+gen_area,fecha_reg,DATE,DEFAULT NULL
+gen_area,fecha_mod,DATE,DEFAULT NULL
+gen_area,estado,VARCHAR(3),NOT NULL
+gen_area,PRIMARY,KEY,(id)
+gen_area,CHARACTER,SET,latin1
+gen_area,COLLATE,latin1_swedish_ci,
+alm_ingreso,id,INT(11),NOT NULL AUTO_INCREMENT
+alm_ingreso,fecha,DATE,DEFAULT NULL
+alm_ingreso,numero_documento,VARCHAR(255),DEFAULT NULL
+alm_ingreso,observaciones,VARCHAR(255),DEFAULT NULL
+alm_ingreso,recepcionado_por,VARCHAR(255),DEFAULT NULL
+alm_ingreso,ind_estado_ingreso,VARCHAR(1),"NOT NULL COMMENT '0: pendiente, 1: procesaro, 3: cancelado'"
+alm_ingreso,ind_tipo_documento,INT(11),DEFAULT NULL
+alm_ingreso,ind_tipo_pago,INT(11),DEFAULT NULL
+alm_ingreso,ind_tipo_ingreso,INT(11),DEFAULT NULL
+alm_ingreso,id_proveedor,INT(11),DEFAULT NULL
+alm_ingreso,id_almacen,INT(11),NOT NULL
+alm_ingreso,id_operacion,INT(11),DEFAULT NULL
+alm_ingreso,id_barra,INT(11),DEFAULT NULL
+alm_ingreso,usuario_reg,VARCHAR(255),NOT NULL
+alm_ingreso,fecha_reg,DATE,DEFAULT NULL
+alm_ingreso,fecha_mod,DATE,DEFAULT NULL
+alm_ingreso,estado,VARCHAR(3),NOT NULL
+alm_ingreso,PRIMARY,KEY,(id)
+alm_ingreso,CHARACTER,SET,latin1
+alm_ingreso,COLLATE,latin1_swedish_ci,
+alm_categoria,id,INT(11),NOT NULL AUTO_INCREMENT
+alm_categoria,nombre,VARCHAR(255),NOT NULL
+alm_categoria,descripcion,VARCHAR(255),DEFAULT NULL
+alm_categoria,p_grupo_categoria,INT(11),"NOT NULL COMMENT 'se define datos como: bebidas, bocaditos, prendas, souvenirs'"
+alm_categoria,desde,INT(11),DEFAULT NULL
+alm_categoria,hasta,INT(11),DEFAULT NULL
+alm_categoria,correlativo,INT(11),DEFAULT NULL
+alm_categoria,usuario_reg,VARCHAR(255),NOT NULL
+alm_categoria,fecha_reg,DATE,DEFAULT NULL
+alm_categoria,fecha_mod,DATE,DEFAULT NULL
+alm_categoria,estado,VARCHAR(3),NOT NULL
+alm_categoria,PRIMARY,KEY,(id)
+alm_categoria,CHARACTER,SET,latin1
+alm_categoria,COLLATE,latin1_swedish_ci,
+alm_categoria,nombre,VARCHAR(255),NOT NULL
+alm_categoria,codigo,VARCHAR(255),NOT NULL
+alm_categoria,descripcion,VARCHAR(255),DEFAULT NULL
+alm_categoria,id_barra,INT(11),DEFAULT NULL
+alm_categoria,id_categoria,INT(11),DEFAULT NULL
+alm_categoria,usuario_reg,VARCHAR(255),NOT NULL
+alm_categoria,fecha_reg,DATE,DEFAULT NULL
+alm_categoria,fecha_mod,DATE,DEFAULT NULL
+alm_categoria,estado,VARCHAR(3),NOT NULL
+alm_categoria,PRIMARY,KEY,(id)
+alm_categoria,CHARACTER,SET,latin1
+alm_categoria,COLLATE,latin1_swedish_ci,
+bar_combo_coctel,id,INT(11),NOT NULL AUTO_INCREMENT
+bar_combo_coctel,nombre,VARCHAR(255),NOT NULL
+bar_combo_coctel,codigo,VARCHAR(255),NOT NULL
+bar_combo_coctel,descripcion,VARCHAR(255),DEFAULT NULL
+bar_combo_coctel,id_categoria,INT(11),DEFAULT NULL
+bar_combo_coctel,id_barra,INT(11),DEFAULT NULL
+bar_combo_coctel,usuario_reg,VARCHAR(255),NOT NULL
+bar_combo_coctel,fecha_reg,DATE,DEFAULT NULL
+bar_combo_coctel,fecha_mod,DATE,DEFAULT NULL
+bar_combo_coctel,estado,VARCHAR(3),NOT NULL
+bar_combo_coctel,PRIMARY,KEY,(id)
+bar_combo_coctel,CHARACTER,SET,latin1
+bar_combo_coctel,COLLATE,latin1_swedish_ci,
+alm_producto,id,INT(11),NOT NULL AUTO_INCREMENT
+alm_producto,nombre,VARCHAR(255),NOT NULL
+alm_producto,descripcion,VARCHAR(255),DEFAULT NULL
+alm_producto,correlativo,INT(11),NOT NULL
+alm_producto,id_categoria,INT(11),NOT NULL
+alm_producto,id_proveedor,INT(11),DEFAULT NULL
+alm_producto,codigo,VARCHAR(255),DEFAULT NULL
+alm_producto,medida,DECIMAL(10,", 2) NOT NULL"
+alm_producto,p_unidad_medida,INT(11),NOT NULL
+alm_producto,cantidad_detalle,DECIMAL(10,", 2) DEFAULT NULL"
+alm_producto,p_unidad_medida_detalle,INT(11),DEFAULT NULL
+alm_producto,minimo_stock,DECIMAL(10,", 2) DEFAULT NULL"
+alm_producto,maximo_stock,DECIMAL(10,", 2) DEFAULT NULL"
+alm_producto,minimo_stock_barra,DECIMAL(10,", 2) DEFAULT NULL"
+alm_producto,maximo_stock_barra,DECIMAL(10,", 2) DEFAULT NULL"
+alm_producto,file,MEDIUMBLOB,DEFAULT NULL
+alm_producto,filename,VARCHAR(255),DEFAULT NULL
+alm_producto,ind_permite_comandar,INT(11),DEFAULT NULL
+alm_producto,id_barra,INT(11),DEFAULT NULL
+alm_producto,usuario_reg,VARCHAR(255),NOT NULL
+alm_producto,fecha_reg,DATE,DEFAULT NULL
+alm_producto,fecha_mod,DATE,DEFAULT NULL
+alm_producto,estado,VARCHAR(3),NOT NULL
+alm_producto,PRIMARY,KEY,(id)
+alm_producto,CHARACTER,SET,latin1
+alm_producto,COLLATE,latin1_swedish_ci,
+ope_precio_venta,id,INT(11),NOT NULL AUTO_INCREMENT
+ope_precio_venta,precio_venta,DECIMAL(10,", 2) NOT NULL"
+ope_precio_venta,id_dia,INT(11),NOT NULL
+ope_precio_venta,id_producto,INT(11),DEFAULT NULL
+ope_precio_venta,id_combo_coctel,INT(11),DEFAULT NULL
+ope_precio_venta,usuario_reg,VARCHAR(255),NOT NULL
+ope_precio_venta,fecha_reg,DATE,DEFAULT NULL
+ope_precio_venta,fecha_mod,DATE,DEFAULT NULL
+ope_precio_venta,estado,VARCHAR(3),NOT NULL
+ope_precio_venta,PRIMARY,KEY,(id)
+ope_precio_venta,CHARACTER,SET,latin1
+ope_precio_venta,COLLATE,latin1_swedish_ci,
+bar_valoracion,id,INT(11),NOT NULL AUTO_INCREMENT
+bar_valoracion,fecha,DATE,DEFAULT NULL
+bar_valoracion,ind_tipo_operacion,INT(11),DEFAULT NULL
+bar_valoracion,correlativo,INT(11),DEFAULT NULL
+bar_valoracion,precio_unitario,DECIMAL(10,", 5) DEFAULT NULL"
+bar_valoracion,fisico_ingreso,DECIMAL(10,", 2) DEFAULT NULL"
+bar_valoracion,fisico_salida,DECIMAL(10,", 2) DEFAULT NULL"
+bar_valoracion,fisico_saldo,DECIMAL(20,", 2) DEFAULT NULL"
+bar_valoracion,valor_ingreso,DECIMAL(10,", 2) DEFAULT NULL"
+bar_valoracion,valor_salida,DECIMAL(10,", 2) DEFAULT NULL"
+bar_valoracion,valor_saldo,DECIMAL(10,", 2) DEFAULT NULL"
+bar_valoracion,id_producto,INT(11),NOT NULL
+bar_valoracion,id_barra,INT(11),DEFAULT NULL
+bar_valoracion,id_sucursal,INT(11),DEFAULT NULL
+bar_valoracion,usuario_reg,VARCHAR(255),NOT NULL
+bar_valoracion,fecha_reg,DATE,DEFAULT NULL
+bar_valoracion,fecha_mod,DATE,DEFAULT NULL
+bar_valoracion,estado,VARCHAR(3),NOT NULL
+bar_valoracion,PRIMARY,KEY,(id)
+bar_valoracion,CHARACTER,SET,latin1
+bar_valoracion,COLLATE,latin1_swedish_ci,
+bar_valoracion,inicial_paq,DECIMAL(10,", 2) DEFAULT NULL"
+bar_valoracion,inicial_detalle,DECIMAL(10,", 2) DEFAULT NULL"
+bar_valoracion,ingreso_paq,DECIMAL(10,", 2) DEFAULT NULL"
+bar_valoracion,ingreso_detalle,DECIMAL(10,", 2) DEFAULT NULL"
+bar_valoracion,ventas_paq,DECIMAL(10,", 2) DEFAULT NULL"
+bar_valoracion,ventas_detalle,DECIMAL(10,", 2) DEFAULT NULL"
+bar_valoracion,actual_paq,DECIMAL(10,", 2) DEFAULT NULL"
+bar_valoracion,actual_detalle,DECIMAL(10,", 2) DEFAULT NULL"
+bar_valoracion,fisico_paq,DECIMAL(10,", 2) DEFAULT NULL"
+bar_valoracion,fisico_detalle,DECIMAL(10,", 2) DEFAULT NULL"
+bar_valoracion,diferencia_paq,DECIMAL(10,", 2) DEFAULT NULL"
+bar_valoracion,diferencia_detalle,DECIMAL(10,", 2) DEFAULT NULL"
+bar_valoracion,id_barra,INT(11),NOT NULL
+bar_valoracion,id_operacion,INT(11),NOT NULL
+bar_valoracion,id_producto,INT(11),NOT NULL
+bar_valoracion,usuario_reg,VARCHAR(255),NOT NULL
+bar_valoracion,fecha_reg,DATETIME,DEFAULT NULL
+bar_valoracion,estado,VARCHAR(3),NOT NULL
+bar_valoracion,PRIMARY,KEY,(id)
+bar_valoracion,CHARACTER,SET,latin1
+bar_valoracion,COLLATE,latin1_swedish_ci,
+bar_valoracion,cantidad_paq,DECIMAL(10,", 2) DEFAULT NULL"
+bar_valoracion,cantidad_detalle,DECIMAL(10,", 2) DEFAULT NULL"
+bar_valoracion,inicial_paq,DECIMAL(10,", 2) DEFAULT NULL"
+bar_valoracion,inicial_detalle,DECIMAL(10,", 2) DEFAULT NULL"
+bar_valoracion,id_barra,INT(11),NOT NULL
+bar_valoracion,id_operacion,INT(11),NOT NULL
+bar_valoracion,id_producto,INT(11),NOT NULL
+bar_valoracion,usuario_reg,VARCHAR(255),NOT NULL
+bar_valoracion,fecha_reg,DATE,DEFAULT NULL
+bar_valoracion,fecha_mod,DATE,DEFAULT NULL
+bar_valoracion,estado,VARCHAR(3),NOT NULL
+bar_valoracion,PRIMARY,KEY,(id)
+bar_valoracion,CHARACTER,SET,latin1
+bar_valoracion,COLLATE,latin1_swedish_ci,
+bar_inventario_cierre,id,INT(11),NOT NULL AUTO_INCREMENT
+bar_inventario_cierre,cantidad_paq,DECIMAL(10,", 2) DEFAULT NULL"
+bar_inventario_cierre,cantidad_detalle,DECIMAL(10,", 2) DEFAULT NULL"
+bar_inventario_cierre,id_barra,INT(11),NOT NULL
+bar_inventario_cierre,id_operacion,INT(11),NOT NULL
+bar_inventario_cierre,id_producto,INT(11),NOT NULL
+bar_inventario_cierre,usuario_reg,VARCHAR(255),NOT NULL
+bar_inventario_cierre,fecha_reg,DATETIME,DEFAULT NULL
+bar_inventario_cierre,estado,VARCHAR(3),NOT NULL
+bar_inventario_cierre,PRIMARY,KEY,(id)
+bar_inventario_cierre,CHARACTER,SET,latin1
+bar_inventario_cierre,COLLATE,latin1_swedish_ci,
+bar_inventario_cierre,cantidad_paq,DECIMAL(10,", 2) DEFAULT NULL"
+bar_inventario_cierre,cantidad_detalle,DECIMAL(10,", 2) DEFAULT NULL"
+bar_inventario_cierre,id_producto,INT(11),NOT NULL
+bar_inventario_cierre,id_barra,INT(11),NOT NULL
+bar_inventario_cierre,usuario_reg,VARCHAR(255),NOT NULL
+bar_inventario_cierre,fecha_reg,DATE,DEFAULT NULL
+bar_inventario_cierre,fecha_mod,DATETIME,DEFAULT NULL
+bar_inventario_cierre,estado,VARCHAR(3),NOT NULL
+bar_inventario_cierre,PRIMARY,KEY,(id)
+bar_inventario_cierre,CHARACTER,SET,latin1
+bar_inventario_cierre,COLLATE,latin1_swedish_ci,
+bar_detalle_solicitud,id,INT(11),NOT NULL AUTO_INCREMENT
+bar_detalle_solicitud,cantidad,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_solicitud,id_solicitud_producto,INT(11),NOT NULL
+bar_detalle_solicitud,id_producto,INT(11),NOT NULL
+bar_detalle_solicitud,ind_paq_detalle,VARCHAR(1),NOT NULL
+bar_detalle_solicitud,usuario_reg,VARCHAR(255),NOT NULL
+bar_detalle_solicitud,fecha_reg,DATE,DEFAULT NULL
+bar_detalle_solicitud,fecha_mod,DATE,DEFAULT NULL
+bar_detalle_solicitud,estado,VARCHAR(3),NOT NULL
+bar_detalle_solicitud,PRIMARY,KEY,(id)
+bar_detalle_solicitud,CHARACTER,SET,latin1
+bar_detalle_solicitud,COLLATE,latin1_swedish_ci,
+bar_detalle_sal_combo_coctel,id,INT(11),NOT NULL AUTO_INCREMENT
+bar_detalle_sal_combo_coctel,cantidad,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_sal_combo_coctel,ind_paq_detalle,VARCHAR(1),NOT NULL
+bar_detalle_sal_combo_coctel,id_producto,INT(11),NOT NULL
+bar_detalle_sal_combo_coctel,id_salida_combo_coctel,INT(11),NOT NULL
+bar_detalle_sal_combo_coctel,id_comanda,INT(11),DEFAULT NULL
+bar_detalle_sal_combo_coctel,si_es_opcional,INT(11),DEFAULT NULL
+bar_detalle_sal_combo_coctel,usuario_reg,VARCHAR(255),NOT NULL
+bar_detalle_sal_combo_coctel,fecha_reg,DATE,DEFAULT NULL
+bar_detalle_sal_combo_coctel,fecha_mod,DATE,DEFAULT NULL
+bar_detalle_sal_combo_coctel,estado,VARCHAR(3),NOT NULL
+bar_detalle_sal_combo_coctel,PRIMARY,KEY,(id)
+bar_detalle_sal_combo_coctel,CHARACTER,SET,latin1
+bar_detalle_sal_combo_coctel,COLLATE,latin1_swedish_ci,
+bar_detalle_salida_inv,id,INT(11),NOT NULL AUTO_INCREMENT
+bar_detalle_salida_inv,cantidad,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_salida_inv,ind_paq_detalle,VARCHAR(1),DEFAULT NULL
+bar_detalle_salida_inv,id_salida_inventario,INT(11),NOT NULL
+bar_detalle_salida_inv,id_producto,INT(11),NOT NULL
+bar_detalle_salida_inv,usuario_reg,VARCHAR(255),NOT NULL
+bar_detalle_salida_inv,fecha_reg,DATE,DEFAULT NULL
+bar_detalle_salida_inv,fecha_mod,DATE,DEFAULT NULL
+bar_detalle_salida_inv,estado,VARCHAR(3),NOT NULL
+bar_detalle_salida_inv,PRIMARY,KEY,(id)
+bar_detalle_salida_inv,CHARACTER,SET,latin1
+bar_detalle_salida_inv,COLLATE,latin1_swedish_ci,
+bar_detalle_orden_pedido,id,INT(11),NOT NULL AUTO_INCREMENT
+bar_detalle_orden_pedido,cantidad,DECIMAL(10,", 2) NOT NULL"
+bar_detalle_orden_pedido,id_producto,INT(11),NOT NULL
+bar_detalle_orden_pedido,id_orden_pedido,INT(11),NOT NULL
+bar_detalle_orden_pedido,stock_barra,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_orden_pedido,ind_estado_orden,INT(11),DEFAULT NULL
+bar_detalle_orden_pedido,usuario_reg,VARCHAR(255),NOT NULL
+bar_detalle_orden_pedido,fecha_reg,DATE,DEFAULT NULL
+bar_detalle_orden_pedido,fecha_mod,DATE,DEFAULT NULL
+bar_detalle_orden_pedido,estado,VARCHAR(3),NOT NULL
+bar_detalle_orden_pedido,PRIMARY,KEY,(id)
+bar_detalle_orden_pedido,CHARACTER,SET,latin1
+bar_detalle_orden_pedido,COLLATE,latin1_swedish_ci,
+bar_detalle_orden_pedido,cantidad,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_orden_pedido,ind_paq_detalle,VARCHAR(1),DEFAULT NULL
+bar_detalle_orden_pedido,id_producto,INT(11),NOT NULL
+bar_detalle_orden_pedido,id_ingreso_producto,INT(11),NOT NULL
+bar_detalle_orden_pedido,usuario_reg,VARCHAR(255),NOT NULL
+bar_detalle_orden_pedido,fecha_reg,DATE,DEFAULT NULL
+bar_detalle_orden_pedido,fecha_mod,DATE,DEFAULT NULL
+bar_detalle_orden_pedido,estado,VARCHAR(3),NOT NULL
+bar_detalle_orden_pedido,PRIMARY,KEY,(id)
+bar_detalle_orden_pedido,CHARACTER,SET,latin1
+bar_detalle_orden_pedido,COLLATE,latin1_swedish_ci,
+bar_detalle_fisico,id,INT(11),NOT NULL AUTO_INCREMENT
+bar_detalle_fisico,cantidad_unidad,DECIMAL(10,", 2) NOT NULL"
+bar_detalle_fisico,cantidad_detalle,DECIMAL(10,", 2) NOT NULL"
+bar_detalle_fisico,id_producto,INT(11),NOT NULL
+bar_detalle_fisico,id_inventario_fisico,INT(11),NOT NULL
+bar_detalle_fisico,usuario_reg,VARCHAR(255),NOT NULL
+bar_detalle_fisico,fecha_reg,DATE,DEFAULT NULL
+bar_detalle_fisico,fecha_mod,DATE,DEFAULT NULL
+bar_detalle_fisico,estado,VARCHAR(3),NOT NULL
+bar_detalle_fisico,PRIMARY,KEY,(id)
+bar_detalle_fisico,CHARACTER,SET,latin1
+bar_detalle_fisico,COLLATE,latin1_swedish_ci,
+bar_detalle_fisico,id_producto,INT(11),NOT NULL
+bar_detalle_fisico,id_combo_coctel,INT(11),NOT NULL
+bar_detalle_fisico,cantidad,DECIMAL(10,", 2) NOT NULL"
+bar_detalle_fisico,ind_paq_detalle,VARCHAR(1),NOT NULL
+bar_detalle_fisico,ind_tipo_producto,INT(11),NOT NULL
+bar_detalle_fisico,usuario_reg,VARCHAR(255),NOT NULL
+bar_detalle_fisico,fecha_reg,DATE,DEFAULT NULL
+bar_detalle_fisico,fecha_mod,DATE,DEFAULT NULL
+bar_detalle_fisico,estado,VARCHAR(3),NOT NULL
+bar_detalle_fisico,PRIMARY,KEY,(id)
+bar_detalle_fisico,CHARACTER,SET,latin1
+bar_detalle_fisico,COLLATE,latin1_swedish_ci,
+bar_detalle_comanda_salida,id,INT(11),NOT NULL AUTO_INCREMENT
+bar_detalle_comanda_salida,cantidad,DECIMAL(10,", 2) NOT NULL"
+bar_detalle_comanda_salida,id_comanda,INT(11),NOT NULL
+bar_detalle_comanda_salida,id_producto,INT(11),DEFAULT NULL
+bar_detalle_comanda_salida,id_salida_combo_coctel,INT(11),DEFAULT NULL
+bar_detalle_comanda_salida,id_bar_combo_coctel,INT(11),DEFAULT NULL
+bar_detalle_comanda_salida,precio_venta,DECIMAL(10,", 2) NOT NULL"
+bar_detalle_comanda_salida,sub_total,DECIMAL(10,", 2) NOT NULL"
+bar_detalle_comanda_salida,producto_coctel,VARCHAR(255),DEFAULT NULL
+bar_detalle_comanda_salida,cor_subtotal_anterior,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_comanda_salida,id_barra,INT(11),DEFAULT NULL
+bar_detalle_comanda_salida,comision,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_comanda_salida,usuario_reg,VARCHAR(255),NOT NULL
+bar_detalle_comanda_salida,fecha_reg,DATE,DEFAULT NULL
+bar_detalle_comanda_salida,fecha_mod,DATE,DEFAULT NULL
+bar_detalle_comanda_salida,estado,VARCHAR(3),NOT NULL
+bar_detalle_comanda_salida,PRIMARY,KEY,(id)
+bar_detalle_comanda_salida,CHARACTER,SET,latin1
+bar_detalle_comanda_salida,COLLATE,latin1_swedish_ci,
+bar_detalle_ajuste,id,INT(11),NOT NULL AUTO_INCREMENT
+bar_detalle_ajuste,cantidad,DECIMAL(10,", 2) NOT NULL"
+bar_detalle_ajuste,precio_costo,DECIMAL(10,", 2) NOT NULL"
+bar_detalle_ajuste,precio_costo_real,DECIMAL(10,", 5) DEFAULT NULL"
+bar_detalle_ajuste,observaciones,VARCHAR(255),DEFAULT NULL
+bar_detalle_ajuste,ind_paq_detalle,VARCHAR(1),DEFAULT NULL COMMENT '1: display 0:detalle'
+bar_detalle_ajuste,id_ajuste,INT(11),NOT NULL
+bar_detalle_ajuste,id_producto,INT(11),NOT NULL
+bar_detalle_ajuste,usuario_reg,VARCHAR(255),NOT NULL
+bar_detalle_ajuste,fecha_reg,DATE,DEFAULT NULL
+bar_detalle_ajuste,fecha_mod,DATE,DEFAULT NULL
+bar_detalle_ajuste,estado,VARCHAR(3),NOT NULL
+bar_detalle_ajuste,PRIMARY,KEY,(id)
+bar_detalle_ajuste,CHARACTER,SET,latin1
+bar_detalle_ajuste,COLLATE,latin1_swedish_ci,
+bar_detalle_ajuste,fecha,DATE,DEFAULT NULL
+bar_detalle_ajuste,ind_tipo_operacion,INT(11),DEFAULT NULL
+bar_detalle_ajuste,correlativo,INT(11),DEFAULT NULL
+bar_detalle_ajuste,precio_unitario,DECIMAL(10,", 5) DEFAULT NULL"
+bar_detalle_ajuste,fisico_ingreso,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,fisico_salida,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,fisico_saldo,DECIMAL(20,", 2) DEFAULT NULL"
+bar_detalle_ajuste,valor_ingreso,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,valor_salida,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,valor_saldo,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,id_producto,INT(11),NOT NULL
+bar_detalle_ajuste,numero_factura,VARCHAR(255),DEFAULT NULL
+bar_detalle_ajuste,usuario_reg,VARCHAR(255),NOT NULL
+bar_detalle_ajuste,fecha_reg,DATE,DEFAULT NULL
+bar_detalle_ajuste,fecha_mod,DATE,DEFAULT NULL
+bar_detalle_ajuste,estado,VARCHAR(3),NOT NULL
+bar_detalle_ajuste,PRIMARY,KEY,(id)
+bar_detalle_ajuste,CHARACTER,SET,latin1
+bar_detalle_ajuste,COLLATE,latin1_swedish_ci,
+bar_detalle_ajuste,fecha,DATE,DEFAULT NULL
+bar_detalle_ajuste,ind_tipo_operacion,INT(11),DEFAULT NULL
+bar_detalle_ajuste,correlativo,INT(11),DEFAULT NULL
+bar_detalle_ajuste,precio_unitario,DECIMAL(10,", 5) DEFAULT NULL"
+bar_detalle_ajuste,fisico_ingreso,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,fisico_salida,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,fisico_saldo,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,valor_ingreso,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,valor_salida,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,valor_saldo,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,id_producto,INT(11),NOT NULL
+bar_detalle_ajuste,id_almacen,INT(11),NOT NULL
+bar_detalle_ajuste,usuario_reg,VARCHAR(255),NOT NULL
+bar_detalle_ajuste,fecha_reg,DATE,DEFAULT NULL
+bar_detalle_ajuste,fecha_mod,DATE,DEFAULT NULL
+bar_detalle_ajuste,estado,VARCHAR(3),NOT NULL
+bar_detalle_ajuste,PRIMARY,KEY,(id)
+bar_detalle_ajuste,CHARACTER,SET,latin1
+bar_detalle_ajuste,COLLATE,latin1_swedish_ci,
+bar_detalle_ajuste,inicial_paq,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,inicial_detalle,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,ingreso_paq,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,ingreso_detalle,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,salida_paq,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,salida_detalle,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,actual_paq,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,actual_detalle,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,id_almacen,INT(11),NOT NULL
+bar_detalle_ajuste,id_operacion,INT(11),NOT NULL
+bar_detalle_ajuste,id_producto,INT(11),NOT NULL
+bar_detalle_ajuste,usuario_reg,VARCHAR(255),NOT NULL
+bar_detalle_ajuste,fecha_reg,DATETIME,DEFAULT NULL
+bar_detalle_ajuste,estado,VARCHAR(3),NOT NULL
+bar_detalle_ajuste,PRIMARY,KEY,(id)
+bar_detalle_ajuste,CHARACTER,SET,latin1
+bar_detalle_ajuste,COLLATE,latin1_swedish_ci,
+bar_detalle_ajuste,cantidad_paq,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,cantidad_detalle,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,id_almacen,INT(11),NOT NULL
+bar_detalle_ajuste,id_operacion,INT(11),NOT NULL
+bar_detalle_ajuste,id_producto,INT(11),NOT NULL
+bar_detalle_ajuste,usuario_reg,VARCHAR(255),NOT NULL
+bar_detalle_ajuste,fecha_reg,DATE,DEFAULT NULL
+bar_detalle_ajuste,estado,VARCHAR(3),NOT NULL
+bar_detalle_ajuste,PRIMARY,KEY,(id)
+bar_detalle_ajuste,CHARACTER,SET,latin1
+bar_detalle_ajuste,COLLATE,latin1_swedish_ci,
+bar_detalle_ajuste,cantidad_paq,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,cantidad_detalle,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,id_almacen,INT(11),NOT NULL
+bar_detalle_ajuste,id_operacion,INT(11),NOT NULL
+bar_detalle_ajuste,id_producto,INT(11),NOT NULL
+bar_detalle_ajuste,usuario_reg,VARCHAR(255),NOT NULL
+bar_detalle_ajuste,fecha_reg,DATETIME,DEFAULT NULL
+bar_detalle_ajuste,estado,VARCHAR(3),NOT NULL
+bar_detalle_ajuste,PRIMARY,KEY,(id)
+bar_detalle_ajuste,CHARACTER,SET,latin1
+bar_detalle_ajuste,COLLATE,latin1_swedish_ci,
+bar_detalle_ajuste,cantidad_paq,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,cantidad_detalle,DECIMAL(10,", 2) DEFAULT NULL"
+bar_detalle_ajuste,id_producto,INT(11),NOT NULL
+bar_detalle_ajuste,id_almacen,INT(11),NOT NULL
+bar_detalle_ajuste,usuario_reg,VARCHAR(255),NOT NULL
+bar_detalle_ajuste,fecha_reg,DATE,DEFAULT NULL
+bar_detalle_ajuste,fecha_mod,DATE,DEFAULT NULL
+bar_detalle_ajuste,estado,VARCHAR(3),NOT NULL
+bar_detalle_ajuste,PRIMARY,KEY,(id)
+bar_detalle_ajuste,CHARACTER,SET,latin1
+bar_detalle_ajuste,COLLATE,latin1_swedish_ci,
+alm_detalle_salida_inv,id,INT(11),NOT NULL AUTO_INCREMENT
+alm_detalle_salida_inv,cantidad,DECIMAL(10,", 2) DEFAULT NULL"
+alm_detalle_salida_inv,ind_paq_detalle,VARCHAR(1),DEFAULT NULL
+alm_detalle_salida_inv,id_salida_inventario,INT(11),NOT NULL
+alm_detalle_salida_inv,id_producto,INT(11),NOT NULL
+alm_detalle_salida_inv,usuario_reg,VARCHAR(255),NOT NULL
+alm_detalle_salida_inv,fecha_reg,DATE,DEFAULT NULL
+alm_detalle_salida_inv,fecha_mod,DATE,DEFAULT NULL
+alm_detalle_salida_inv,estado,VARCHAR(3),NOT NULL
+alm_detalle_salida_inv,PRIMARY,KEY,(id)
+alm_detalle_salida_inv,CHARACTER,SET,latin1
+alm_detalle_salida_inv,COLLATE,latin1_swedish_ci,
+alm_detalle_ingreso,id,INT(11),NOT NULL AUTO_INCREMENT
+alm_detalle_ingreso,cantidad,DECIMAL(10,", 2) NOT NULL"
+alm_detalle_ingreso,precio_costo,DECIMAL(10,", 2) NOT NULL"
+alm_detalle_ingreso,precio_costo_real,DECIMAL(10,", 5) DEFAULT NULL"
+alm_detalle_ingreso,observaciones,VARCHAR(255),DEFAULT NULL
+alm_detalle_ingreso,ind_paq_detalle,VARCHAR(1),DEFAULT NULL COMMENT '1: display 0:detalle'
+alm_detalle_ingreso,id_ingreso,INT(11),NOT NULL
+alm_detalle_ingreso,id_producto,INT(11),NOT NULL
+alm_detalle_ingreso,usuario_reg,VARCHAR(255),NOT NULL
+alm_detalle_ingreso,fecha_reg,DATE,DEFAULT NULL
+alm_detalle_ingreso,fecha_mod,DATE,DEFAULT NULL
+alm_detalle_ingreso,estado,VARCHAR(3),NOT NULL
+alm_detalle_ingreso,PRIMARY,KEY,(id)
+alm_detalle_ingreso,CHARACTER,SET,latin1
+alm_detalle_ingreso,COLLATE,latin1_swedish_ci,
+alm_detalle_devolucion,id,INT(11),NOT NULL AUTO_INCREMENT
+alm_detalle_devolucion,cantidad_paq,DECIMAL(10,", 2) DEFAULT NULL"
+alm_detalle_devolucion,cantidad_detallle,DECIMAL(10,", 2) DEFAULT NULL"
+alm_detalle_devolucion,id_producto,INT(11),NOT NULL
+alm_detalle_devolucion,id_devolucion,INT(11),NOT NULL
+alm_detalle_devolucion,usuario_reg,VARCHAR(255),NOT NULL
+alm_detalle_devolucion,fecha_reg,DATE,DEFAULT NULL
+alm_detalle_devolucion,fecha_mod,DATE,DEFAULT NULL
+alm_detalle_devolucion,estado,VARCHAR(3),NOT NULL
+alm_detalle_devolucion,PRIMARY,KEY,(id)
+alm_detalle_devolucion,CHARACTER,SET,latin1
+alm_detalle_devolucion,COLLATE,latin1_swedish_ci,
+seg_rol,id,INT(11),NOT NULL AUTO_INCREMENT
+seg_rol,nombre,VARCHAR(255),NOT NULL
+seg_rol,codigo,VARCHAR(255),NOT NULL
+seg_rol,pantallaprincipal,VARCHAR(255),DEFAULT NULL
+seg_rol,observaciones,VARCHAR(255),DEFAULT NULL
+seg_rol,estado,VARCHAR(3),NOT NULL
+seg_rol,PRIMARY,KEY,(id)
+seg_rol,CHARACTER,SET,latin1
+seg_rol,COLLATE,latin1_swedish_ci,
+seg_rol,id_usuario,INT(11),NOT NULL
+seg_rol,id_rol,INT(11),NOT NULL
+seg_rol,estado,VARCHAR(3),NOT NULL
+seg_rol,PRIMARY,KEY,(id)
+seg_rol,CHARACTER,SET,latin1
+seg_rol,COLLATE,latin1_swedish_ci,
+seg_menu,id,INT(11),NOT NULL AUTO_INCREMENT
+seg_menu,id_menu,INT(11),DEFAULT NULL
+seg_menu,identificador,VARCHAR(255),DEFAULT NULL
+seg_menu,nivel,INT(11),DEFAULT NULL
+seg_menu,nombre,VARCHAR(255),DEFAULT NULL
+seg_menu,descripcion,VARCHAR(255),DEFAULT NULL
+seg_menu,url,VARCHAR(255),DEFAULT NULL
+seg_menu,tipo,INT(11),DEFAULT NULL COMMENT '1 si es PC y 2 si es para movil'
+seg_menu,estado,VARCHAR(3),NOT NULL
+seg_menu,PRIMARY,KEY,(id)
+seg_menu,CHARACTER,SET,latin1
+seg_menu,COLLATE,latin1_swedish_ci,
+seg_menurol,id,INT(11),NOT NULL AUTO_INCREMENT
+seg_menurol,id_menu,INT(11),DEFAULT NULL
+seg_menurol,id_rol,INT(11),DEFAULT NULL
+seg_menurol,estado,VARCHAR(3),NOT NULL
+seg_menurol,PRIMARY,KEY,(id)
+seg_menurol,CHARACTER,SET,latin1
+seg_menurol,COLLATE,latin1_swedish_ci,
+master_table,id,INT(11),NOT NULL AUTO_INCREMENT
+master_table,nombre,VARCHAR(255),DEFAULT NULL
+master_table,descripcion,VARCHAR(255),DEFAULT NULL
+master_table,estado,VARCHAR(3),NOT NULL
+master_table,PRIMARY,KEY,(id)
+master_table,CHARACTER,SET,latin1
+master_table,COLLATE,latin1_swedish_ci,
+master_table,nombre,VARCHAR(255),DEFAULT NULL
+master_table,descripcion,VARCHAR(255),DEFAULT NULL
+master_table,texto1,VARCHAR(255),DEFAULT NULL
+master_table,texto2,VARCHAR(255),DEFAULT NULL
+master_table,fechaInicio,DATE,DEFAULT NULL
+master_table,fechaFin,DATE,DEFAULT NULL
+master_table,numero1,INT(11),DEFAULT NULL
+master_table,numero2,DECIMAL(10,", 2) DEFAULT NULL"
+master_table,id_master,INT(11),DEFAULT NULL
+master_table,orden,INT(11),DEFAULT NULL
+master_table,requerido,VARCHAR(1),DEFAULT NULL
+master_table,estado,VARCHAR(3),NOT NULL
+master_table,PRIMARY,KEY,(id)
+master_table,CHARACTER,SET,latin1
+master_table,COLLATE,latin1_swedish_ci,
+ope_cuentas_cobrar,id,INT(11),NOT NULL AUTO_INCREMENT
+ope_cuentas_cobrar,nombre,VARCHAR(255),NOT NULL
+ope_cuentas_cobrar,fecha,DATE,NOT NULL
+ope_cuentas_cobrar,motivo,VARCHAR(255),NOT NULL
+ope_cuentas_cobrar,monto,DECIMAL(10,", 2) NOT NULL"
+ope_cuentas_cobrar,a_cuenta,DECIMAL(10,", 2) DEFAULT NULL"
+ope_cuentas_cobrar,saldo,DECIMAL(10,", 2) DEFAULT NULL"
+ope_cuentas_cobrar,estado_cobro,VARCHAR(1),DEFAULT NULL COMMENT '1: cobrado0: pendiente'
+ope_cuentas_cobrar,usuario_reg,VARCHAR(255),NOT NULL
+ope_cuentas_cobrar,fecha_reg,DATE,DEFAULT NULL
+ope_cuentas_cobrar,fecha_mod,DATE,DEFAULT NULL
+ope_cuentas_cobrar,estado,VARCHAR(3),NOT NULL
+ope_cuentas_cobrar,PRIMARY,KEY,(id)
+ope_cuentas_cobrar,CHARACTER,SET,latin1
+ope_cuentas_cobrar,COLLATE,latin1_swedish_ci,
+ope_cuentas_cobrar,fecha,DATE,DEFAULT NULL
+ope_cuentas_cobrar,monto,DECIMAL(10,", 2) DEFAULT NULL"
+ope_cuentas_cobrar,descripcion,VARCHAR(255),DEFAULT NULL
+ope_cuentas_cobrar,id_cuentas_cobrar,INT(11),NOT NULL
+ope_cuentas_cobrar,usuario_reg,VARCHAR(255),NOT NULL
+ope_cuentas_cobrar,fecha_reg,DATE,DEFAULT NULL
+ope_cuentas_cobrar,fecha_mod,DATE,DEFAULT NULL
+ope_cuentas_cobrar,estado,VARCHAR(3),NOT NULL
+ope_cuentas_cobrar,PRIMARY,KEY,(id)
+ope_cuentas_cobrar,CHARACTER,SET,latin1
+ope_cuentas_cobrar,COLLATE,latin1_swedish_ci,
+alm_orden_compra,id,INT(11),NOT NULL AUTO_INCREMENT
+alm_orden_compra,fecha_solicitud,DATE,NOT NULL
+alm_orden_compra,responsable,VARCHAR(255),DEFAULT NULL
+alm_orden_compra,lugar_entrega,VARCHAR(255),DEFAULT NULL
+alm_orden_compra,fecha_entrega,DATE,DEFAULT NULL
+alm_orden_compra,ind_estado_orden,INT(11),NOT NULL
+alm_orden_compra,observaciones,VARCHAR(255),DEFAULT NULL
+alm_orden_compra,usuario_reg,VARCHAR(255),NOT NULL
+alm_orden_compra,fecha_reg,DATE,DEFAULT NULL
+alm_orden_compra,fecha_mod,DATE,DEFAULT NULL
+alm_orden_compra,estado,VARCHAR(3),NOT NULL
+alm_orden_compra,PRIMARY,KEY,(id)
+alm_orden_compra,CHARACTER,SET,latin1
+alm_orden_compra,COLLATE,latin1_swedish_ci,
+alm_orden_compra,cantidad,DECIMAL(10,", 2) NOT NULL"
+alm_orden_compra,id_producto,INT(11),NOT NULL
+alm_orden_compra,id_orden_compra,INT(11),NOT NULL
+alm_orden_compra,stock_almacen,DECIMAL(10,", 2) DEFAULT NULL"
+alm_orden_compra,stock_barra,DECIMAL(10,", 2) DEFAULT NULL"
+alm_orden_compra,costo_unitario,DECIMAL(10,", 2) DEFAULT NULL"
+alm_orden_compra,id_proveedor,INT(11),DEFAULT NULL
+alm_orden_compra,ind_estado_orden,INT(11),DEFAULT NULL
+alm_orden_compra,usuario_reg,VARCHAR(255),NOT NULL
+alm_orden_compra,fecha_reg,DATE,DEFAULT NULL
+alm_orden_compra,fecha_mod,DATE,DEFAULT NULL
+alm_orden_compra,estado,VARCHAR(3),NOT NULL
+alm_orden_compra,PRIMARY,KEY,(id)
+alm_orden_compra,CHARACTER,SET,latin1
+alm_orden_compra,COLLATE,latin1_swedish_ci,

@@ -34,13 +34,13 @@ from facturador.models import (
 # Cargar variables de entorno desde el directorio raíz
 load_dotenv(os.path.join(root_dir, '.env'))
 
-# Configuración de logging
-log_dir = os.path.join(facturador_dir, 'logs')
+# Configuración de logging con mayor detalle
+log_dir = os.path.join(os.getcwd(), 'logs')
 os.makedirs(log_dir, exist_ok=True)
 logging.basicConfig(
-    filename=os.path.join(log_dir, 'sincronizacion.log'),
+    filename=os.path.join(log_dir, 'sincronizacion_detallada.log'),
     level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(levelname)s - %(funcName)s - %(message)s'
 )
 
 # Configuración del cliente SOAP (fuera de la función para reutilizarlo)
