@@ -87,6 +87,27 @@ service_model_map = {
     'sincronizarParametricaUnidadMedida': ModeloSincronizarParametricaUnidadMedida,
 }
 
+# Configuración de campos clave para cada modelo
+model_key_fields = {
+    ModeloSincronizarActividades: 'codigoCaeb',
+    ModeloSincronizarListaActividadesDocumentoSector: ['codigoActividad', 'codigoDocumentoSector'],
+    ModeloSincronizarListaLeyendasFactura: 'codigoActividad',
+    ModeloSincronizarListaMensajesServicios: 'codigoClasificador',
+    ModeloSincronizarListaProductosServicios: ['codigoActividad', 'codigoProducto'],
+    ModeloSincronizarParametricaEventosSignificativos: 'codigoClasificador',
+    ModeloSincronizarParametricaMotivoAnulacion: 'codigoClasificador',
+    ModeloSincronizarParametricaPaisOrigen: 'codigoClasificador',
+    ModeloSincronizarParametricaTipoDocumentoIdentidad: 'codigoClasificador',
+    ModeloSincronizarParametricaTipoDocumentoSector: 'codigoClasificador',
+    ModeloSincronizarParametricaTipoEmision: 'codigoClasificador',
+    ModeloSincronizarParametricaTipoHabitacion: 'codigoClasificador',
+    ModeloSincronizarParametricaTipoMetodoPago: 'codigoClasificador',
+    ModeloSincronizarParametricaTipoMoneda: 'codigoClasificador',
+    ModeloSincronizarParametricaTipoPuntoVenta: 'codigoClasificador',
+    ModeloSincronizarParametricaTiposFactura: 'codigoClasificador',
+    ModeloSincronizarParametricaUnidadMedida: 'codigoClasificador',
+}
+
 def verificar_comunicacion():
     url = os.getenv("WSDL_URL_SYNC")
     headers = {
@@ -238,10 +259,8 @@ def mostrar_informacion_sincronizacion():
     else:
         st.warning("No hay información de sincronización disponible.")
 
-def sincronizar_generico(service_name, model_class):
-    st.text(f"Iniciando sincronización de {service_name}")
-    
-    # Crear solicitud de sincronización
+def crear_solicitud_sincronizacion():
+    """Crear una solicitud de sincronización estándar."""
     SolicitudSincronizacion = client.get_type('ns0:solicitudSincronizacion')
     solicitud = SolicitudSincronizacion(
         codigoAmbiente=int(os.getenv("CODIGO_AMBIENTE")),
@@ -251,6 +270,16 @@ def sincronizar_generico(service_name, model_class):
         cuis=os.getenv("CUIS"),
         nit=int(os.getenv("NIT"))
     )
+    return solicitud
+
+def sincronizar_parametrica(service_name, model_class):
+    """
+    Sincroniza datos paramétricos desde el servicio SOAP.
+    """
+    st.text(f"Iniciando sincronización de {service_name}")
+    
+    # Crear solicitud de sincronización
+    solicitud = crear_solicitud_sincronizacion()
     
     try:
         # Llamar al servicio de sincronización
@@ -258,87 +287,90 @@ def sincronizar_generico(service_name, model_class):
         
         if not response.transaccion:
             st.error(f"Error en la transacción SOAP para {service_name}: {response.mensajesList}")
-            return
+            logging.error(f"Error en la transacción SOAP para {service_name}: {response.mensajesList}")
+            return False
         
+        # Obtener nombre de la lista según el servicio
+        lista_nombre = f"lista{service_name[11:]}"
+        if not hasattr(response, lista_nombre):
+            st.warning(f"No se encontró la lista '{lista_nombre}' en la respuesta")
+            logging.warning(f"No se encontró la lista '{lista_nombre}' en la respuesta")
+            return False
+            
+        lista_items = getattr(response, lista_nombre, [])
+        if not lista_items:
+            st.info(f"No hay datos para sincronizar en {service_name}")
+            return True
+            
         # Procesar la respuesta
         db = next(get_db())
         try:
-            lista_items = getattr(response, f"lista{service_name[11:]}", [])
-            if lista_items:
-                # Utilizar bulk insert/update para optimizar inserciones masivas
-                items_a_insertar = []
-                # Determinar el nombre del campo clave para este modelo
-                campo_clave = None
+            # Obtener el campo clave para este modelo
+            campos_clave = model_key_fields.get(model_class)
+            
+            # Contador para estadísticas
+            nuevos = 0
+            actualizados = 0
+            
+            for item in lista_items:
+                # Convertir el objeto zeep a un diccionario
+                item_dict = {key: value for key, value in item.__dict__.items()}
                 
-                if hasattr(model_class, 'codigoClasificador'):
-                    campo_clave = 'codigoClasificador'
-                elif hasattr(model_class, 'codigoCaeb'):
-                    campo_clave = 'codigoCaeb'
-                else:
-                    # Intentar detectar automáticamente el campo clave en la primera instancia
-                    sample_item = lista_items[0]
-                    probable_campos = ['codigo', 'codigoActividad', 'codigoClasificador', 'codigoCaeb']
-                    for campo in probable_campos:
-                        if hasattr(sample_item, campo):
-                            campo_clave = campo
-                            break
+                # Construir el filtro según el tipo de campo clave
+                if isinstance(campos_clave, list):
+                    # Manejo de claves compuestas
+                    filtros = []
+                    for campo in campos_clave:
+                        if hasattr(item, campo):
+                            filtros.append(getattr(model_class, campo) == getattr(item, campo))
                     
-                    # Si aún no se encuentra, usar un valor por defecto como id
-                    if campo_clave is None:
-                        campo_clave = 'id' if hasattr(model_class, 'id') else 'codigo'
-                        logging.warning(f"No se pudo determinar el campo clave para {service_name}, usando {campo_clave}")
-                
-                for item in lista_items:
-                    if hasattr(item, campo_clave):
-                        valor_clave = getattr(item, campo_clave)
+                    if filtros:
+                        db_item = db.query(model_class).filter(*filtros).first()
+                    else:
+                        db_item = None
+                else:
+                    # Manejo de clave simple
+                    if hasattr(item, campos_clave):
+                        valor_clave = getattr(item, campos_clave)
+                        db_item = db.query(model_class).filter(getattr(model_class, campos_clave) == valor_clave).first()
+                    else:
+                        db_item = None
                         
-                        # Convertir el objeto zeep a un diccionario de Python
-                        item_dict = {}
-                        for key, value in item.__dict__.items():
-                            item_dict[key] = value
-                        
-                        # Buscar el item en la base de datos
-                        db_item = db.query(model_class).filter(getattr(model_class, campo_clave) == valor_clave).first()
-                        
-                        if db_item:
-                            # Actualizar item existente
-                            for key, value in item_dict.items():
-                                if hasattr(db_item, key):
-                                    setattr(db_item, key, value)
-                            db_item.fecha_sincronizacion = func.now()
-                            db_item.estado_sincronizacion = 'Exitoso'
-                        else:
-                            # Preparar nuevo item para insertar
-                            new_item = model_class()
-                            for key, value in item_dict.items():
-                                if hasattr(new_item, key):
-                                    setattr(new_item, key, value)
-                            new_item.fecha_sincronizacion = func.now()
-                            new_item.estado_sincronizacion = 'Exitoso'
-                            items_a_insertar.append(new_item)
-
-                # Insertar todos los nuevos ítems de una vez
-                if items_a_insertar:
-                    db.bulk_save_objects(items_a_insertar)
-                
-                db.commit()
-                st.success(f"✅ Sincronización de {service_name} completada con éxito.")
-            else:
-                st.info(f"No se encontraron items para sincronizar en {service_name}.")
-
+                if db_item:
+                    # Actualizar item existente
+                    for key, value in item_dict.items():
+                        if hasattr(db_item, key):
+                            setattr(db_item, key, value)
+                    db_item.fecha_sincronizacion = func.now()
+                    db_item.estado_sincronizacion = 'Exitoso'
+                    actualizados += 1
+                else:
+                    # Crear nuevo item
+                    new_item = model_class()
+                    for key, value in item_dict.items():
+                        if hasattr(new_item, key):
+                            setattr(new_item, key, value)
+                    new_item.fecha_sincronizacion = func.now()
+                    new_item.estado_sincronizacion = 'Exitoso'
+                    db.add(new_item)
+                    nuevos += 1
+            
+            db.commit()
+            st.success(f"✅ Sincronización de {service_name} completada: {nuevos} nuevos, {actualizados} actualizados")
+            return True
+            
         except Exception as e:
             db.rollback()
-            st.error(f"Error al procesar la respuesta de {service_name}: {str(e)}")
-            logging.error(f"Error detallado al sincronizar {service_name}: {traceback.format_exc()}")
+            st.error(f"Error al procesar datos de {service_name}: {str(e)}")
+            logging.error(f"Error al procesar datos de {service_name}: {traceback.format_exc()}")
+            return False
         finally:
             db.close()
-
-    except requests.RequestException as e:
-        st.error(f"Error de red al sincronizar {service_name}: {str(e)}")
-        logging.error(traceback.format_exc())
+            
     except Exception as e:
-        st.error(f"Error inesperado al sincronizar {service_name}: {str(e)}")
-        logging.error(traceback.format_exc())
+        st.error(f"Error al sincronizar {service_name}: {str(e)}")
+        logging.error(f"Error al sincronizar {service_name}: {traceback.format_exc()}")
+        return False
 
 def main():
     st.title("Sincronizar Datos")
@@ -353,10 +385,19 @@ def main():
         
         if st.button('Sincronizar Todo'):
             sincronizar_fecha_hora()
-            for service_name, model_class in service_model_map.items():
-                with st.spinner(f"Sincronizando {service_name}..."):
-                    sincronizar_generico(service_name, model_class)
-            st.success("✅ Todas las sincronizaciones completadas.")
+            with st.spinner("Sincronizando tablas paramétricas..."):
+                resultados = []
+                for service_name, model_class in service_model_map.items():
+                    resultado = sincronizar_parametrica(service_name, model_class)
+                    resultados.append((service_name, resultado))
+                
+                # Mostrar resumen
+                st.subheader("Resumen de sincronización")
+                for service_name, exito in resultados:
+                    icon = "✅" if exito else "❌"
+                    st.text(f"{icon} {service_name}")
+                    
+                st.success("Todas las sincronizaciones completadas.")
         
         # Opción para sincronizar servicios individuales
         selected_service = st.selectbox(
@@ -369,8 +410,9 @@ def main():
                 sincronizar_fecha_hora()
             else:
                 with st.spinner(f"Sincronizando {selected_service}..."):
-                    sincronizar_generico(selected_service, service_model_map[selected_service])
-                st.success(f"✅ Sincronización de {selected_service} completada.")
+                    resultado = sincronizar_parametrica(selected_service, service_model_map[selected_service])
+                    if resultado:
+                        st.success(f"✅ Sincronización de {selected_service} completada.")
         
         if st.button('Mostrar información de sincronización'):
             mostrar_informacion_sincronizacion()
