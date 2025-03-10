@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from sqlalchemy import func
 from datetime import datetime, timezone, timedelta
 import pytz
+import tzlocal
 
 # Agregar rutas a sys.path para acceder a los módulos del proyecto
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -18,17 +19,26 @@ sys.path.extend([root_dir, facturador_dir])
 # Importar desde database.py en el directorio facturador
 from facturador.database import get_db, Base
 
-# Importar todos los modelos necesarios
+# Importar todos los modelos necesarios con nombres completamente cualificados
 from facturador.models import (
-    SincronizarActividades, SincronizarListaActividadesDocumentoSector,
-    SincronizarListaLeyendasFactura, SincronizarListaMensajesServicios,
-    SincronizarListaProductosServicios, SincronizarParametricaEventosSignificativos,
-    SincronizarParametricaMotivoAnulacion, SincronizarParametricaPaisOrigen,
-    SincronizarParametricaTipoDocumentoIdentidad, SincronizarParametricaTipoDocumentoSector,
-    SincronizarParametricaTipoEmision, SincronizarParametricaTipoHabitacion,
-    SincronizarParametricaTipoMetodoPago, SincronizarParametricaTipoMoneda,
-    SincronizarParametricaTipoPuntoVenta, SincronizarParametricaTiposFactura,
-    SincronizarParametricaUnidadMedida,
+    SincronizarActividades as ModeloSincronizarActividades,
+    SincronizarListaActividadesDocumentoSector as ModeloSincronizarListaActividadesDocumentoSector,
+    SincronizarListaLeyendasFactura as ModeloSincronizarListaLeyendasFactura,
+    SincronizarListaMensajesServicios as ModeloSincronizarListaMensajesServicios,
+    SincronizarListaProductosServicios as ModeloSincronizarListaProductosServicios,
+    SincronizarParametricaEventosSignificativos as ModeloSincronizarParametricaEventosSignificativos,
+    SincronizarParametricaMotivoAnulacion as ModeloSincronizarParametricaMotivoAnulacion,
+    SincronizarParametricaPaisOrigen as ModeloSincronizarParametricaPaisOrigen,
+    SincronizarParametricaTipoDocumentoIdentidad as ModeloSincronizarParametricaTipoDocumentoIdentidad,
+    SincronizarParametricaTipoDocumentoSector as ModeloSincronizarParametricaTipoDocumentoSector,
+    SincronizarParametricaTipoEmision as ModeloSincronizarParametricaTipoEmision,
+    SincronizarParametricaTipoHabitacion as ModeloSincronizarParametricaTipoHabitacion,
+    SincronizarParametricaTipoMetodoPago as ModeloSincronizarParametricaTipoMetodoPago,
+    SincronizarParametricaTipoMoneda as ModeloSincronizarParametricaTipoMoneda,
+    SincronizarParametricaTipoPuntoVenta as ModeloSincronizarParametricaTipoPuntoVenta,
+    SincronizarParametricaTiposFactura as ModeloSincronizarParametricaTiposFactura,
+    SincronizacionEstado,
+    SincronizarParametricaUnidadMedida as ModeloSincronizarParametricaUnidadMedida,
 )
 
 # Cargar variables de entorno desde el directorio raíz
@@ -56,25 +66,25 @@ remote_time = None
 local_time = None
 time_difference = None
 
-# Diccionario que mapea nombres de servicios a clases de modelo
+# Actualizar diccionario que mapea nombres de servicios a clases de modelo con referencia completa
 service_model_map = {
-    'sincronizarActividades': SincronizarActividades,
-    'sincronizarListaActividadesDocumentoSector': SincronizarListaActividadesDocumentoSector,
-    'sincronizarListaLeyendasFactura': SincronizarListaLeyendasFactura,
-    'sincronizarListaMensajesServicios': SincronizarListaMensajesServicios,
-    'sincronizarListaProductosServicios': SincronizarListaProductosServicios,
-    'sincronizarParametricaEventosSignificativos': SincronizarParametricaEventosSignificativos,
-    'sincronizarParametricaMotivoAnulacion': SincronizarParametricaMotivoAnulacion,
-    'sincronizarParametricaPaisOrigen': SincronizarParametricaPaisOrigen,
-    'sincronizarParametricaTipoDocumentoIdentidad': SincronizarParametricaTipoDocumentoIdentidad,
-    'sincronizarParametricaTipoDocumentoSector': SincronizarParametricaTipoDocumentoSector,
-    'sincronizarParametricaTipoEmision': SincronizarParametricaTipoEmision,
-    'sincronizarParametricaTipoHabitacion': SincronizarParametricaTipoHabitacion,
-    'sincronizarParametricaTipoMetodoPago': SincronizarParametricaTipoMetodoPago,
-    'sincronizarParametricaTipoMoneda': SincronizarParametricaTipoMoneda,
-    'sincronizarParametricaTipoPuntoVenta': SincronizarParametricaTipoPuntoVenta,
-    'sincronizarParametricaTiposFactura': SincronizarParametricaTiposFactura,
-    'sincronizarParametricaUnidadMedida': SincronizarParametricaUnidadMedida
+    'sincronizarActividades': ModeloSincronizarActividades,
+    'sincronizarListaActividadesDocumentoSector': ModeloSincronizarListaActividadesDocumentoSector,
+    'sincronizarListaLeyendasFactura': ModeloSincronizarListaLeyendasFactura,
+    'sincronizarListaMensajesServicios': ModeloSincronizarListaMensajesServicios,
+    'sincronizarListaProductosServicios': ModeloSincronizarListaProductosServicios,
+    'sincronizarParametricaEventosSignificativos': ModeloSincronizarParametricaEventosSignificativos,
+    'sincronizarParametricaMotivoAnulacion': ModeloSincronizarParametricaMotivoAnulacion,
+    'sincronizarParametricaPaisOrigen': ModeloSincronizarParametricaPaisOrigen,
+    'sincronizarParametricaTipoDocumentoIdentidad': ModeloSincronizarParametricaTipoDocumentoIdentidad,
+    'sincronizarParametricaTipoDocumentoSector': ModeloSincronizarParametricaTipoDocumentoSector,
+    'sincronizarParametricaTipoEmision': ModeloSincronizarParametricaTipoEmision,
+    'sincronizarParametricaTipoHabitacion': ModeloSincronizarParametricaTipoHabitacion,
+    'sincronizarParametricaTipoMetodoPago': ModeloSincronizarParametricaTipoMetodoPago,
+    'sincronizarParametricaTipoMoneda': ModeloSincronizarParametricaTipoMoneda,
+    'sincronizarParametricaTipoPuntoVenta': ModeloSincronizarParametricaTipoPuntoVenta,
+    'sincronizarParametricaTiposFactura': ModeloSincronizarParametricaTiposFactura,
+    'sincronizarParametricaUnidadMedida': ModeloSincronizarParametricaUnidadMedida,
 }
 
 def verificar_comunicacion():
@@ -90,7 +100,7 @@ def verificar_comunicacion():
           <siat:verificarComunicacion/>
        </soapenv:Body>
     </soapenv:Envelope>"""
-
+    
     try:
         response = requests.post(url, data=soap_request, headers=headers)
         response.raise_for_status()
@@ -102,14 +112,15 @@ def verificar_comunicacion():
         return False, f"Error de comunicación: {e}"
 
 def calcular_diferencia_horaria(remote_time, local_time):
+    # Asegurar que ambos tiempos estén en UTC para una comparación correcta
     remote_time_utc = remote_time.astimezone(pytz.utc)
-    return remote_time_utc - local_time
+    local_time_utc = local_time.astimezone(pytz.utc)
+    return remote_time_utc - local_time_utc
 
 def sincronizar_fecha_hora():
     global remote_time, local_time, time_difference
+    
     st.text("Iniciando sincronización de Fecha y Hora")
-    logging.debug("Iniciando sincronización de Fecha y Hora")
-
     SolicitudSincronizacion = client.get_type('ns0:solicitudSincronizacion')
     solicitud = SolicitudSincronizacion(
         codigoAmbiente=int(os.getenv("CODIGO_AMBIENTE")),
@@ -119,22 +130,23 @@ def sincronizar_fecha_hora():
         cuis=os.getenv("CUIS"),
         nit=int(os.getenv("NIT"))
     )
+    
     logging.debug(f"Solicitud creada: {solicitud}")
-
+    
     try:
         logging.debug("Enviando solicitud al servicio SOAP")
         response = client.service.sincronizarFechaHora(solicitud)
         logging.debug(f"Respuesta recibida: {response}")
-
+        
         if not response.transaccion:
             error_msg = "Error en la transacción SOAP para sincronizarFechaHora"
             st.error(error_msg)
             logging.error(error_msg)
             return False
-
+        
         # Zona horaria del servidor remoto (Bolivia)
         bolivia_tz = pytz.timezone("America/La_Paz")
-
+        
         # Convertir la fecha y hora remota de forma segura
         try:
             remote_time = datetime.fromisoformat(response.fechaHora)
@@ -146,15 +158,28 @@ def sincronizar_fecha_hora():
             logging.error(f"Error al convertir la fecha remota: {e}")
             st.error("Error al obtener la fecha del servidor. Sincronización fallida.")
             return False
-
-        # Obtener la hora local actual en UTC
-        local_time = datetime.now(pytz.utc)
+        
+        # Obtener la hora local actual con su zona horaria
+        local_time = datetime.now(tzlocal.get_localzone())
         
         logging.debug(f"Hora remota (Bolivia): {remote_time}")
-        logging.debug(f"Hora local (UTC): {local_time}")
+        logging.debug(f"Hora local: {local_time}")
 
         # Calcular la diferencia horaria correctamente
         time_difference = calcular_diferencia_horaria(remote_time, local_time)
+
+        # Verificar si la diferencia de tiempo está en un rango razonable (5 minutos)
+        tiempo_razonable = 300  # 5 minutos en segundos
+        diferencia_segundos = abs(time_difference.total_seconds())
+        
+        if diferencia_segundos <= tiempo_razonable:
+            mensaje_tiempo = f"La diferencia de tiempo está en un rango razonable ({diferencia_segundos:.2f} segundos)"
+            st.success(f"✅ {mensaje_tiempo}")
+            logging.info(mensaje_tiempo)
+        else:
+            mensaje_tiempo = f"La diferencia de tiempo NO está en un rango razonable ({diferencia_segundos:.2f} segundos)"
+            st.warning(mensaje_tiempo)
+            logging.warning(mensaje_tiempo)
 
         if abs(time_difference.total_seconds()) > 86400:  # 24 horas
             logging.warning(f"Diferencia de tiempo anormal: {time_difference}. Verifique la zona horaria.")
@@ -162,11 +187,28 @@ def sincronizar_fecha_hora():
             
             if st.button("Corregir diferencia horaria"):
                 time_difference = timedelta(seconds=0)
-                st.success("Diferencia horaria corregida manualmente.")
+                st.success("✅ Diferencia horaria corregida manualmente.")
 
         logging.debug(f"Diferencia de tiempo calculada: {time_difference}")
 
-        st.success("Sincronización de Fecha y Hora completada.")
+        # Guardar resultado en la base de datos
+        db = next(get_db())
+        try:
+            sync_record = db.query(SincronizacionEstado).first()
+            if not sync_record:
+                sync_record = SincronizacionEstado()
+                db.add(sync_record)
+            
+            # Actualizar fecha de sincronización
+            sync_record.ultima_sincronizacion = datetime.now(pytz.utc)
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            logging.error(f"Error al guardar sincronización: {e}")
+        finally:
+            db.close()
+            
+        st.success("✅ Sincronización de Fecha y Hora completada.")
         mostrar_informacion_sincronizacion()
         return True
 
@@ -177,7 +219,6 @@ def sincronizar_fecha_hora():
         logging.error(traceback.format_exc())
         return False
 
-
 def mostrar_informacion_sincronizacion():
     if remote_time and local_time and time_difference is not None:
         st.info("Información de sincronización:")
@@ -186,7 +227,7 @@ def mostrar_informacion_sincronizacion():
             st.write("Hora del servidor remoto (Bolivia):")
             st.write(remote_time.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3])
         with col2:
-            st.write("Hora local (UTC):")
+            st.write("Hora local:")
             st.write(local_time.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3])
         
         st.write("Diferencia de tiempo:")
@@ -199,7 +240,7 @@ def mostrar_informacion_sincronizacion():
 
 def sincronizar_generico(service_name, model_class):
     st.text(f"Iniciando sincronización de {service_name}")
-
+    
     # Crear solicitud de sincronización
     SolicitudSincronizacion = client.get_type('ns0:solicitudSincronizacion')
     solicitud = SolicitudSincronizacion(
@@ -210,15 +251,15 @@ def sincronizar_generico(service_name, model_class):
         cuis=os.getenv("CUIS"),
         nit=int(os.getenv("NIT"))
     )
-
+    
     try:
         # Llamar al servicio de sincronización
         response = getattr(client.service, service_name)(solicitud)
-
+        
         if not response.transaccion:
             st.error(f"Error en la transacción SOAP para {service_name}: {response.mensajesList}")
             return
-
+        
         # Procesar la respuesta
         db = next(get_db())
         try:
@@ -226,40 +267,69 @@ def sincronizar_generico(service_name, model_class):
             if lista_items:
                 # Utilizar bulk insert/update para optimizar inserciones masivas
                 items_a_insertar = []
+                # Determinar el nombre del campo clave para este modelo
+                campo_clave = None
+                
+                if hasattr(model_class, 'codigoClasificador'):
+                    campo_clave = 'codigoClasificador'
+                elif hasattr(model_class, 'codigoCaeb'):
+                    campo_clave = 'codigoCaeb'
+                else:
+                    # Intentar detectar automáticamente el campo clave en la primera instancia
+                    sample_item = lista_items[0]
+                    probable_campos = ['codigo', 'codigoActividad', 'codigoClasificador', 'codigoCaeb']
+                    for campo in probable_campos:
+                        if hasattr(sample_item, campo):
+                            campo_clave = campo
+                            break
+                    
+                    # Si aún no se encuentra, usar un valor por defecto como id
+                    if campo_clave is None:
+                        campo_clave = 'id' if hasattr(model_class, 'id') else 'codigo'
+                        logging.warning(f"No se pudo determinar el campo clave para {service_name}, usando {campo_clave}")
+                
                 for item in lista_items:
-                    campo_clave = 'codigoClasificador' if hasattr(item, 'codigoClasificador') else 'codigoCaeb'
-                    valor_clave = getattr(item, campo_clave)
-
-                    # Buscar el item en la base de datos
-                    db_item = db.query(model_class).filter(getattr(model_class, campo_clave) == valor_clave).first()
-
-                    if db_item:
-                        # Actualizar item existente
+                    if hasattr(item, campo_clave):
+                        valor_clave = getattr(item, campo_clave)
+                        
+                        # Convertir el objeto zeep a un diccionario de Python
+                        item_dict = {}
                         for key, value in item.__dict__.items():
-                            if hasattr(db_item, key):
-                                setattr(db_item, key, value)
-                        db_item.fecha_sincronizacion = func.now()
-                        db_item.estado_sincronizacion = 'Exitoso'
-                    else:
-                        # Preparar nuevo item para insertar
-                        new_item = model_class(**item.__dict__)
-                        new_item.fecha_sincronizacion = func.now()
-                        new_item.estado_sincronizacion = 'Exitoso'
-                        items_a_insertar.append(new_item)
+                            item_dict[key] = value
+                        
+                        # Buscar el item en la base de datos
+                        db_item = db.query(model_class).filter(getattr(model_class, campo_clave) == valor_clave).first()
+                        
+                        if db_item:
+                            # Actualizar item existente
+                            for key, value in item_dict.items():
+                                if hasattr(db_item, key):
+                                    setattr(db_item, key, value)
+                            db_item.fecha_sincronizacion = func.now()
+                            db_item.estado_sincronizacion = 'Exitoso'
+                        else:
+                            # Preparar nuevo item para insertar
+                            new_item = model_class()
+                            for key, value in item_dict.items():
+                                if hasattr(new_item, key):
+                                    setattr(new_item, key, value)
+                            new_item.fecha_sincronizacion = func.now()
+                            new_item.estado_sincronizacion = 'Exitoso'
+                            items_a_insertar.append(new_item)
 
                 # Insertar todos los nuevos ítems de una vez
                 if items_a_insertar:
                     db.bulk_save_objects(items_a_insertar)
-                    db.commit()
-
-                st.success(f"Sincronización de {service_name} completada con éxito.")
+                
+                db.commit()
+                st.success(f"✅ Sincronización de {service_name} completada con éxito.")
             else:
                 st.info(f"No se encontraron items para sincronizar en {service_name}.")
 
         except Exception as e:
             db.rollback()
             st.error(f"Error al procesar la respuesta de {service_name}: {str(e)}")
-            logging.error(traceback.format_exc())
+            logging.error(f"Error detallado al sincronizar {service_name}: {traceback.format_exc()}")
         finally:
             db.close()
 
@@ -272,40 +342,38 @@ def sincronizar_generico(service_name, model_class):
 
 def main():
     st.title("Sincronizar Datos")
-
+    
     # Asegurarse de que las variables globales estén inicializadas
     global remote_time, local_time, time_difference
-    remote_time = None
-    local_time = None
-    time_difference = None
-
+    
     # Verificar comunicación antes de mostrar opciones de sincronización
     exito, mensaje = verificar_comunicacion()
-    if exito:
-        st.success("Conexión exitosa con el servidor remoto.")
+    if (exito):
+        st.success(f"✅ Conexión exitosa con el servidor remoto.")
         
         if st.button('Sincronizar Todo'):
             sincronizar_fecha_hora()
             for service_name, model_class in service_model_map.items():
                 with st.spinner(f"Sincronizando {service_name}..."):
                     sincronizar_generico(service_name, model_class)
-            st.success("Todas las sincronizaciones completadas.")
-
+            st.success("✅ Todas las sincronizaciones completadas.")
+        
         # Opción para sincronizar servicios individuales
-        selected_service = st.selectbox("Seleccione un servicio para sincronizar", 
-                                        ['sincronizarFechaHora'] + list(service_model_map.keys()))
+        selected_service = st.selectbox(
+            "Seleccione un servicio para sincronizar", 
+            ['sincronizarFechaHora'] + list(service_model_map.keys())
+        )
+        
         if st.button('Sincronizar Servicio Seleccionado'):
             if selected_service == 'sincronizarFechaHora':
                 sincronizar_fecha_hora()
             else:
                 with st.spinner(f"Sincronizando {selected_service}..."):
                     sincronizar_generico(selected_service, service_model_map[selected_service])
-            st.success(f"Sincronización de {selected_service} completada.")
-
-        # Mostrar la información de sincronización
+                st.success(f"✅ Sincronización de {selected_service} completada.")
+        
         if st.button('Mostrar información de sincronización'):
             mostrar_informacion_sincronizacion()
-
     else:
         st.error(f"Error de comunicación con el servidor remoto: {mensaje}")
         st.warning("No se pueden realizar sincronizaciones debido a problemas de comunicación.")

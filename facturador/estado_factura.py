@@ -60,7 +60,7 @@ def verificar_estado_factura(numero_factura):
 
     # Si no se encontró la factura, retornamos un mensaje de error claro
     if factura is None:
-        return False, "No se encontró la factura especificada."
+        return False, "❌No se encontró la factura especificada."
 
     # Si se encontró la factura, procedemos a la verificación
     exito, respuesta = enviar_solicitud_verificacion(cuf)
@@ -104,7 +104,7 @@ def actualizar_estado_factura(factura, estado_validacion, codigo_recepcion=None,
         return True, f"Factura: {estado_validacion}"
     except Exception as e:
         session.rollback()
-        return False, f"Error al actualizar la factura: {str(e)}"
+        return False, f"❌Error al actualizar la factura: {str(e)}"
     finally:
         session.close()
 
@@ -118,7 +118,7 @@ def procesar_respuesta_verificacion(respuesta_xml, factura):
     codigo_estado = tree.find('.//codigoEstado').text
 
     if factura is None:
-        return False, "No se encontró la factura especificada."
+        return False, "❌No se encontró la factura especificada."
 
     if codigo_estado == "690":  # Factura válida
         factura.estadoValidacion = "VALIDADA"
