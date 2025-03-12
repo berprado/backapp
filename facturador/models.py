@@ -692,6 +692,7 @@ class SincronizarParametricaTipoMetodoPago(Base):
     descripcion = Column(String(255), nullable=True)
     fecha_creacion = Column(DateTime, nullable=True)
     fecha_sincronizacion = Column(DateTime, nullable=True)
+    estado_sincronizacion = Column(String(10), nullable=True)  # Se añade esta columna
 
     __table_args__ = (
         UniqueConstraint('codigoClasificador', name='uq_codigoClasificador'), {'extend_existing': True})
@@ -702,7 +703,8 @@ class SincronizarParametricaTipoMetodoPago(Base):
             "codigoClasificador": self.codigoClasificador,
             "descripcion": self.descripcion,
             "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
-            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None
+            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
+            "estado_sincronizacion": self.estado_sincronizacion  # Se añade al diccionario
         }
     
 class SincronizarParametricaTipoDocumentoIdentidad(Base):

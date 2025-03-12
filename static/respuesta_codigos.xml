@@ -1,0 +1,778 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+   <soap:Body>
+      <ns2:sincronizarListaMensajesServiciosResponse xmlns:ns2="https://siat.impuestos.gob.bo/">
+         <RespuestaListaParametricas>
+            <transaccion>true</transaccion>
+            <listaCodigos>
+               <codigoClasificador>123</codigoClasificador>
+               <descripcion>CODIGO UNICO DE FACTURACION DIARIA (CUFD) FUERA DE TOLERANCIA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>901</codigoClasificador>
+               <descripcion>RECEPCION PENDIENTE</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>902</codigoClasificador>
+               <descripcion>RECEPCION RECHAZADA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>903</codigoClasificador>
+               <descripcion>RECEPCION PROCESADA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>904</codigoClasificador>
+               <descripcion>RECEPCION OBSERVADA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>905</codigoClasificador>
+               <descripcion>ANULACION CONFIRMADA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>906</codigoClasificador>
+               <descripcion>ANULACION RECHAZADA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>907</codigoClasificador>
+               <descripcion>REVERSION DE ANULACION CONFIRMADA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>908</codigoClasificador>
+               <descripcion>RECEPCION VALIDADA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>909</codigoClasificador>
+               <descripcion>REVERSION DE ANULACION RECHAZADA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>910</codigoClasificador>
+               <descripcion>EL PARAMETRO AMBIENTE ES INVALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>911</codigoClasificador>
+               <descripcion>EL PARAMETRO CODIGO DE SISTEMA ES INVALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>912</codigoClasificador>
+               <descripcion>EL SISTEMA NO ESTA ASOCIADO AL CONTRIBUYENTE</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>913</codigoClasificador>
+               <descripcion>CODIGO UNICO DE INICIO DE SISTEMA (CUIS) INVALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>914</codigoClasificador>
+               <descripcion>CODIGO UNICO DE FACTURACION DIARIA (CUFD) INVALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>915</codigoClasificador>
+               <descripcion>EL PARAMETRO TIPO FACTURA DOCUMENTO ES INVALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>916</codigoClasificador>
+               <descripcion>EL PARAMETRO TIPO DE EMISION ES INVALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>917</codigoClasificador>
+               <descripcion>EL PARAMETRO MODALIDAD ES INVALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>918</codigoClasificador>
+               <descripcion>EL PARAMETRO SUCURSAL ES INVALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>919</codigoClasificador>
+               <descripcion>EL PARAMETRO NIT ES INVALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>920</codigoClasificador>
+               <descripcion>EL PARAMETRO ARCHIVO ES INVALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>921</codigoClasificador>
+               <descripcion>EL FIRMADO DEL XML ES INCORRECTO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>922</codigoClasificador>
+               <descripcion>LA FIRMA DEL XML NO CORRESPONDE AL CONTRIBUYENTE</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>923</codigoClasificador>
+               <descripcion>EL PARAMETRO CODIGO DE RECEPCION ES INVALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>924</codigoClasificador>
+               <descripcion>LA FACTURA O NOTA, NO EXISTE EN LA BASE DE DATOS DEL SIN</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>925</codigoClasificador>
+               <descripcion>EL PARAMETRO MOTIVO DE ANULACION ES INVALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>926</codigoClasificador>
+               <descripcion>COMUNICACION EXITOSA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>927</codigoClasificador>
+               <descripcion>EL CERTIFICADO DE LA FIRMA ES INVALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>928</codigoClasificador>
+               <descripcion>EL CERTIFICADO SE ENCUENTRA REVOCADO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>929</codigoClasificador>
+               <descripcion>EL CODIGO UNICO DE INICIO DE SISTEMA (CUIS) NO ESTA VIGENTE</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>930</codigoClasificador>
+               <descripcion>EL CODIGO UNICO DE INICIO DE SISTEMA (CUIS) NO CORRESPONDE A LA SUCURSAL/PUNTO VENTA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>931</codigoClasificador>
+               <descripcion>EL PARAMETRO CODIGO DOCUMENTO SECTOR ES INVALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>932</codigoClasificador>
+               <descripcion>EL PARAMETRO CODIGO DOCUMENTO SECTOR NO CORRESPONDE AL SERVICIO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>933</codigoClasificador>
+               <descripcion>EL PUNTO DE VENTA ES INEXISTENTE O INVALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>934</codigoClasificador>
+               <descripcion>LA SOLICITUD DE ANULACION DE LA FACTURA O NOTA DE CREDITO-DEBITO SE ENCUENTRA FUERA DE PLAZO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>935</codigoClasificador>
+               <descripcion>EL PARAMETRO FECHA DE ENVIO ES INVALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>936</codigoClasificador>
+               <descripcion>LA FACTURA O NOTA DE CREDITO-DEBITO YA SE ENCUENTRA ANULADA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>937</codigoClasificador>
+               <descripcion>EL NIT NO TIENE ASOCIADO LA MODALIDAD DE FACTURACION</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>938</codigoClasificador>
+               <descripcion>EL NIT PRESENTA MARCAS DE CONTROL</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>939</codigoClasificador>
+               <descripcion>LA FACTURA O NOTA DE CREDITO - DEBITO NO CUMPLE CON EL FORMATO DEL XSD ESPECIFICADO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>940</codigoClasificador>
+               <descripcion>EL NIT NO TIENE HABILITADO EL DOCUMENTO SECTOR</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>941</codigoClasificador>
+               <descripcion>LA FACTURA O NOTA DE CREDITO - DEBITO NO SE ENCUENTRA DISPONIBLE PARA SER ANULADA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>942</codigoClasificador>
+               <descripcion>EL CODIGO DE RECEPCION DE EVENTO SIGNIFICATIVO NO SE ENCUENTRA EN LA BASE DE DATOS DEL SIN</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>943</codigoClasificador>
+               <descripcion>EL FORMATO DE LA FECHA DE ENVIO ES INCORRECTO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>944</codigoClasificador>
+               <descripcion>EL CODIGO DE RECEPCION NO SE ENCUENTRA EN LA BASE DE DATOS DEL SIN</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>945</codigoClasificador>
+               <descripcion>EL ESTADO DE RECEPCION DE LA ANULACION ES INCORRECTA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>946</codigoClasificador>
+               <descripcion>EL CODIGO UNICO DE FACTURA (CUF) NO EXISTE EN BASE DE DATOS DEL SIN</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>947</codigoClasificador>
+               <descripcion>EL PARAMETRO TIPO DE PUNTO DE VENTA ES INVALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>948</codigoClasificador>
+               <descripcion>EL PARAMETRO NOMBRE DE PUNTO DE VENTA NO PUEDE SER VACIO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>949</codigoClasificador>
+               <descripcion>EL PARAMETRO DESCRIPCION DE PUNTO DE VENTA NO PUEDE SER VACIO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>950</codigoClasificador>
+               <descripcion>EL PARAMETRO CODIGO DE EVENTO SIGNIFICATIVO NO PUEDE SER VACIO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>951</codigoClasificador>
+               <descripcion>EL PARAMETRO DESCRIPCION DE EVENTO SIGNIFICATIVO NO PUEDE SER VACIO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>952</codigoClasificador>
+               <descripcion>EL CODIGO UNICO DE FACTURA (CUF) YA SE ENCUENTRA REGISTRADO EN LA BASE DE DATOS DEL SIN</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>953</codigoClasificador>
+               <descripcion>EL CODIGO UNICO DE FACTURACION DIARIA (CUFD) NO SE ENCUENTRA VIGENTE</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>954</codigoClasificador>
+               <descripcion>LA CANTIDAD DE FACTURAS EN EL  PAQUETE EMITIDO POR CONTINGENCIA HA EXCEDIO EL MAXIMO PERMITIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>955</codigoClasificador>
+               <descripcion>NO EXISTE REGISTRO PARA AUTORIZAR EL PROCESO MASIVO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>956</codigoClasificador>
+               <descripcion>LA CANTIDAD DE FACTURAS EN EL PAQUETE EMITIDO MASIVAMENTE HA EXCEDIO EL MAXIMO PERMITIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>957</codigoClasificador>
+               <descripcion>NO EXISTE REGISTRO DE EVENTO SIGNIFICATIVO EN LA BASE DE DATOS DEL SIN</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>958</codigoClasificador>
+               <descripcion>EL USUARIO NO SE ENCUENTRA AUTORIZADO PARA CONSUMIR ESTE SERVICIO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>959</codigoClasificador>
+               <descripcion>EL CODIGO UNICO DE INICIO DE SISTEMA (CUIS) NO SE ENCUENTRA ASOCIADO AL SISTEMA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>960</codigoClasificador>
+               <descripcion>EL PARAMETRO FIN DE EVENTO ES REQUERIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>961</codigoClasificador>
+               <descripcion>EL NIT TIENE MARCA DE DOMICILIO INEXISTENTE</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>962</codigoClasificador>
+               <descripcion>EL NIT TIENE BLOQUEO DE DOSIFICACION ORIGINADO EN FISCALIZACION</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>963</codigoClasificador>
+               <descripcion>EL NIT TIENE BLOQUEO DE DOSIFICACION ORIGINADO EN JURIDICA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>964</codigoClasificador>
+               <descripcion>EL NIT NO CUMPLE CON OBLIGATORIEDAD DE PRESENTACION DE DDJJ</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>965</codigoClasificador>
+               <descripcion>EL CONTRIBUYENTE NO CUENTA CON FIRMA VIGENTE REGISTRADA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>966</codigoClasificador>
+               <descripcion>NO SE PUEDE RECUPERAR LOS DATOS DEL CONTRIBUYENTE</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>967</codigoClasificador>
+               <descripcion>TIEMPO DE ESPERA AGOTADO PARA CONEXION A BASE DE DATOS</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>968</codigoClasificador>
+               <descripcion>LA ANULACION DE LA FACTURA O NOTA DE CREDITO - DEBITO YA SE ENCUENTRA REVERTIDA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>969</codigoClasificador>
+               <descripcion>EL PARAMETRO HASH ES INVALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>970</codigoClasificador>
+               <descripcion>EL CUIS EN LA BASE DE DATOS SE ENCUENTRA VIGENTE, NO PUEDE SOLICITAR OTRO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>971</codigoClasificador>
+               <descripcion>EL TAMAÃ‘O DEL ARCHIVO EXCEDE EL TAMAÃ‘O PERMITIDO DE 100 MB</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>972</codigoClasificador>
+               <descripcion>LA CANTIDAD DE FACTURAS ENVIADA EN EL PAQUETE ES MAYOR A LA DEFINIDA EN LA NORMATIVA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>973</codigoClasificador>
+               <descripcion>EL CODIGO UNICO DE INICIO DE SISTEMA (CUIS) NO SE ENCUENTRA VIGENTE</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>974</codigoClasificador>
+               <descripcion>EL RANGO DE FECHAS DEL EVENTO SIGNIFICATIVO PARA REGISTRAR ES INVÃLIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>975</codigoClasificador>
+               <descripcion>EL SISTEMA NO SE ENCUENTRA AUTORIZADO O SE ENCUENTRA OBSERVADO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>976</codigoClasificador>
+               <descripcion>EL CODIGO DEL EVENTO ES INCORRECTO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>977</codigoClasificador>
+               <descripcion>NO EXISTEN ACTIVIDADES ASOCIADAS AL NIT</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>978</codigoClasificador>
+               <descripcion>REVERSION DE LA FACTURA O NOTA DE CREDITO/DEBITO CONFIRMADA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>979</codigoClasificador>
+               <descripcion>EL CUIS NO SE ENCUENTRA ASOCIADO AL SISTEMA O A LA SUCURSAL</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>980</codigoClasificador>
+               <descripcion>EXISTE UN CUIS VIGENTE PARA LA SUCURSAL O PUNTO DE VENTA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>981</codigoClasificador>
+               <descripcion>RANGO DE FECHAS DE EVENTO SIGNIFICATIVO INVALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>982</codigoClasificador>
+               <descripcion>NO EXISTE PUNTOS DE VENTA ASOCIADOS</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>983</codigoClasificador>
+               <descripcion>LA FECHA DE ENVIO DEL PAQUETE ESTA FUERA DE PLAZO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>984</codigoClasificador>
+               <descripcion>EL EVENTO SIGNIFICATIVO NO CORRESPONDE AL CUFD DEL EVENTO REGISTRADO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>985</codigoClasificador>
+               <descripcion>LA CANTIDAD DE FACTURAS ES DIFERENTE A LA DECLARADA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>986</codigoClasificador>
+               <descripcion>NIT ACTIVO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>987</codigoClasificador>
+               <descripcion>NIT INACTIVO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>988</codigoClasificador>
+               <descripcion>CODIGO UNICO DE INICIO DE SISTEMA (CUIS) FUERA DE TOLERANCIA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>989</codigoClasificador>
+               <descripcion>API KEY NO VALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>990</codigoClasificador>
+               <descripcion>EL CLIENTE NO TIENE ACTIVIDADES RELACIONADAS AL SECTOR QUE INTENTA ASOCIAR</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>991</codigoClasificador>
+               <descripcion>ERROR EN BASE DE DATOS</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>992</codigoClasificador>
+               <descripcion>ERROR SERVICIO PADRON</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>993</codigoClasificador>
+               <descripcion>LA FECHA DE ENVIO ESTA FUERA DE PLAZO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>994</codigoClasificador>
+               <descripcion>NIT INEXISTENTE</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>995</codigoClasificador>
+               <descripcion>SERVICIO NO DISPONIBLE</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>996</codigoClasificador>
+               <descripcion>RANGO DE FECHAS INVALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>997</codigoClasificador>
+               <descripcion>EL NOMBRE EXCEDE EL LIMITE DE CARACTERES PERMITIDOS</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>998</codigoClasificador>
+               <descripcion>LA DESCRIPCION EXCEDE EL LIMITE DE CARACTERES PERMITIDOS</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>999</codigoClasificador>
+               <descripcion>ERROR EN LA EJECUCION DEL SERVICIO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1000</codigoClasificador>
+               <descripcion>EL CUF ENVIADO YA EXISTE EN LA BASE DE DATOS DEL SIN</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1001</codigoClasificador>
+               <descripcion>EL NIT ENVIADO EN EL XML ES INEXISTENTE O NO CORRESPONDE AL CUFD</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1002</codigoClasificador>
+               <descripcion>EL CODIGO UNICO DE FACTURA (CUF) ENVIADO EN EL XML ES INVALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1003</codigoClasificador>
+               <descripcion>EL CODIGO UNICO DE FACTURACION DIARIA (CUFD) ENVIADO EN EL XML ES INVALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1004</codigoClasificador>
+               <descripcion>LA SUCURSAL ENVIADA EN EL XML NO CORRESPONDE A LOS DATOS DEL CUFD</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1005</codigoClasificador>
+               <descripcion>LA FACTURA O NOTA DE CREDITO-DEBITO NO PUEDE SER EMITIDA AL MISMO EMISOR</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1006</codigoClasificador>
+               <descripcion>EL CUFD ENVIADO NO CORRESPONDE AL EVENTO ASOCIADO AL PAQUETE ENVIADO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1007</codigoClasificador>
+               <descripcion>LA DIRECCION ENVIADA EN EL XML NO CORRESPONDE A LA REGISTRADA EN PADRON</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1008</codigoClasificador>
+               <descripcion>EL PUNTO DE VENTA ENVIADO EN EL XML ES INEXISTENTE O INVALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1009</codigoClasificador>
+               <descripcion>LA FECHA DE EMISION ENVIADA EN EL XML NO ES VALIDA PARA EMISION EN LINEA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1010</codigoClasificador>
+               <descripcion>LA FACTURA NO PUEDE SER ENVIADA CON NUMERO DE CI/NIT/CEX 0 PARA MONTOS MAYORES A 3000</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1011</codigoClasificador>
+               <descripcion>EL COMPLEMENTO SOLO PUEDE SER ENVIADO CUANDO EL TIPO DE DOCUMENTO ES CARNET DE IDENTIDAD</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1012</codigoClasificador>
+               <descripcion>EL NUMERO DE TARJETA SOLO PUEDE SER ENVIADO CUANDO EL METODO DE PAGO SEA CON TARJETA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1013</codigoClasificador>
+               <descripcion>EL CALCULO DEL MONTO TOTAL ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1014</codigoClasificador>
+               <descripcion>EL CALCULO DEL  MONTO TOTAL MONEDA ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1015</codigoClasificador>
+               <descripcion>EL CALCULO DEL IMPORTE BASE PARA CREDITO FISCAL ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1016</codigoClasificador>
+               <descripcion>EL CODIGO DE ACTIVIDAD ECONOMICA NO ESTA HABILITADA PARA EL CONTRIBUYENTE</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1017</codigoClasificador>
+               <descripcion>EL CODIGO DE PRODUCTO NO ESTA RELACIONADO A NINGUN ACTIVIDAD ECONOMICA DEL CONTRIBUYENTE</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1018</codigoClasificador>
+               <descripcion>EL CALCULO DEL SUBTOTAL ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1019</codigoClasificador>
+               <descripcion>EL CALCULO DE ICE ESPECIFICO ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1020</codigoClasificador>
+               <descripcion>EL CALCULO DE ICE PORCENTUAL ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1021</codigoClasificador>
+               <descripcion>EL MONTO ICE ESPECIFICO ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1022</codigoClasificador>
+               <descripcion>EL MONTO ICE PORCENTUAL ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1023</codigoClasificador>
+               <descripcion>EL CODIGO NANDINA ENVIADO EN LA FACTURA ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1024</codigoClasificador>
+               <descripcion>LA SUMATORIA DE LO DETALLES ES ERRONEA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1025</codigoClasificador>
+               <descripcion>EL MONTO SUJETO A CREDITO FISCAL LEY 317 ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1026</codigoClasificador>
+               <descripcion>EL MONTO TOTAL SUJETO AL IMPUESTO DEL JUEGO (IJ) ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1027</codigoClasificador>
+               <descripcion>EL MONTO DE DIFERENCIA DE CAMBIOS ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1028</codigoClasificador>
+               <descripcion>EL MONTO DE IVA ENVIADO ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1029</codigoClasificador>
+               <descripcion>EL MONTO TOTAL DEVUELTO ENVIADO ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1030</codigoClasificador>
+               <descripcion>EL MONTO TOTAL ORIGINAL ENVIADO ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1031</codigoClasificador>
+               <descripcion>EL MONTO EFECTIVO DE CREDITO O DEBITO DEVUELTO ENVIADO ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1032</codigoClasificador>
+               <descripcion>EL MONTO TOTAL DE IMPUESTO A LA PARTICIPACION EN JUEGO (IPJ) ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1033</codigoClasificador>
+               <descripcion>EL MONTO DEVUELTO ES MAYOR AL MONTO ORIGINAL</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1034</codigoClasificador>
+               <descripcion>LA FECHA DE EMISION ES MENOR AL PERIODO ANTERIOR</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1035</codigoClasificador>
+               <descripcion>FORMATO DE FECHA INCORRECTA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1036</codigoClasificador>
+               <descripcion>NOMINATIVIDAD INCORRECTA PARA NOMBRE/RAZON SOCIAL</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1037</codigoClasificador>
+               <descripcion>EL NUMERO DOCUMENTO DE TIPO NIT NO ES VALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1038</codigoClasificador>
+               <descripcion>NIT CONJUNTO NO VALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1039</codigoClasificador>
+               <descripcion>FECHA EMISION PARA ENVIO MASIVO INCORRECTO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1040</codigoClasificador>
+               <descripcion>FECHA DE EMISION NO SE ENCUENTRA EN EL RANGO DE CONTINGENCIA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1041</codigoClasificador>
+               <descripcion>LA FECHA DE EMISION NO SE ENCUENTRA DENTRO DEL PLAZO ESTABLECIDO EN NORMA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1042</codigoClasificador>
+               <descripcion>EL NIT DEL MEDICO ENVIADO NO ES VALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1043</codigoClasificador>
+               <descripcion>EL MONTO CONCILIADO ENVIADO ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1044</codigoClasificador>
+               <descripcion>EL MONTO TOTAL CONCILIADO ENVIADO ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1045</codigoClasificador>
+               <descripcion>VALOR DE CAFC NO VALIDO PARA LA FACTURA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1046</codigoClasificador>
+               <descripcion>FECHA EMISION PARA EL CAFC ENVIADO INCORRECTO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1047</codigoClasificador>
+               <descripcion>NUMERO FACTURA PARA EL CAFC ENVIADO INCORRECTO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1048</codigoClasificador>
+               <descripcion>FACTURA DE LA NOTA CREDITO DEBITO NO ENCONTRADA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1049</codigoClasificador>
+               <descripcion>DETALLE DE LA NOTA DIFERENTE AL DETALLE DE LA FACTURA ORIGINAL</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1050</codigoClasificador>
+               <descripcion>MONTO GIFT CARD NO CORRESPONDE AL METODO DE PAGO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1051</codigoClasificador>
+               <descripcion>FECHA DE FACTURA INCORRECTA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1052</codigoClasificador>
+               <descripcion>EL CALCULO DEL MONTO IEHD ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1053</codigoClasificador>
+               <descripcion>LA ACTIVIDAD DE LA NOTA DE CREDITO DEBITO NO SE ENCUENTRA AUTORIZADA PARA ESTE PLAZO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1054</codigoClasificador>
+               <descripcion>EL MONTO DESCUENTO CREDITO DEBITO ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1055</codigoClasificador>
+               <descripcion>EL MONTO TARIFA ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1056</codigoClasificador>
+               <descripcion>EL TIPO DE CAMBIO ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1057</codigoClasificador>
+               <descripcion>EL MONTO TOTAL MONEDA ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1058</codigoClasificador>
+               <descripcion>EL MONTO TOTAL SUJETO IVA ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1059</codigoClasificador>
+               <descripcion>LA RAZON SOCIAL ES ERRONEA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>1060</codigoClasificador>
+               <descripcion>EL MONTO DETALLE ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>2000</codigoClasificador>
+               <descripcion>ADVERTENCIA: EL NUMERO FACTURA ENVIADO TIENE ERROR DE CORRELATIVIDAD</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>2001</codigoClasificador>
+               <descripcion>ADVERTENCIA: LA FECHA DE EMISION ENVIADA NO SE ENCUENTRA DENTRO DEL RANGO DEL EVENTO DE CONTINGENCIA ASOCIADO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>2002</codigoClasificador>
+               <descripcion>ADVERTENCIA: LA FECHA DE EMISION ENVIADA NO ES VALIDA PARA LA EMISION MASIVA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>2003</codigoClasificador>
+               <descripcion>ADVERTENCIA: LA FACTURA NO PUEDE SER ENVIADA CON NUMERO DE CI/NIT/CEX 0 PARA MONTOS MAYORES A 3000</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>2004</codigoClasificador>
+               <descripcion>ADVERTENCIA: EL COMPLEMENTO SOLO PUEDE SER ENVIADO CUANDO EL TIPO DE DOCUMENTO ES CARNET DE IDENTIDAD</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>2005</codigoClasificador>
+               <descripcion>ADVERTENCIA: EL NIT DEL CLIENTE ENVIADO EN EL CAMPO NUMERO DE DOCUMENTO NO ES VALIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>2006</codigoClasificador>
+               <descripcion>ADVERTENCIA: EL NUMERO DE TARJETA SOLO PUEDE SER ENVIADO CUANDO EL METODO DE PAGO SEA CON TARJETA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>2007</codigoClasificador>
+               <descripcion>ADVERTENCIA: EL CALCULO DEL MONTO TOTAL ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>2008</codigoClasificador>
+               <descripcion>ADVERTENCIA: EL CALCULO DEL  MONTO TOTAL MONEDA ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>2009</codigoClasificador>
+               <descripcion>ADVERTENCIA: EL CALCULO DEL IMPORTE BASE PARA CREDITO FISCAL ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>2010</codigoClasificador>
+               <descripcion>ADVERTENCIA: EL CODIGO DE ACTIVIDAD ECONOMICA NO ESTA HABILITADA PARA EL CONTRIBUYENTE</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>2011</codigoClasificador>
+               <descripcion>ADVERTENCIA: EL CODIGO DE PRODUCTO NO ESTA RELACIONADO A NINGUN ACTIVIDAD ECONOMICA DEL CONTRIBUYENTE</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>2012</codigoClasificador>
+               <descripcion>ADVERTENCIA: EL CALCULO DEL SUBTOTAL ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>2013</codigoClasificador>
+               <descripcion>ADVERTENCIA: LA FACTURA O NOTA DE CREDITO-DEBITO NO PUEDE SER EMITIDA AL MISMO EMISOR</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>2014</codigoClasificador>
+               <descripcion>ADVERTENCIA: LA DIRECCION ENVIADA EN EL XML NO CORRESPONDE A LA REGISTRADA EN PADRON</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>2015</codigoClasificador>
+               <descripcion>ADVERTENCIA: EL CALCULO DE ICE ESPECIFICO ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>2016</codigoClasificador>
+               <descripcion>ADVERTENCIA: EL CALCULO DE ICE PORCENTUAL ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>2017</codigoClasificador>
+               <descripcion>ADVERTENCIA: EL MONTO ICE ESPECIFICO ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>2018</codigoClasificador>
+               <descripcion>ADVERTENCIA: EL MONTO ICE PORCENTUAL ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>2019</codigoClasificador>
+               <descripcion>ADVERTENCIA: EL CODIGO NANDINA ENVIADO EN LA FACTURA ES ERRONEO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>3000</codigoClasificador>
+               <descripcion>EL NIT NO TIENE CONTRATO VIGENTE</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>3001</codigoClasificador>
+               <descripcion>LA CATEGORIA DE CONTRATO NO CORRESPONDE AL SECTOR</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>3002</codigoClasificador>
+               <descripcion>LA SOLICITUD EXCEDE EL LIMITE DE CUFD MASIVO PERMITIDO</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>3003</codigoClasificador>
+               <descripcion>MARCA: NO TIENE FORMULARIOS 200 Y 210 VIGENTES</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>3004</codigoClasificador>
+               <descripcion>MARCA: DOMICILIO INEXISTENTE</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>3005</codigoClasificador>
+               <descripcion>MARCA: BLOQUEO DE DOSIFICACION ORIGINADOS EN FISCALIZACION</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>3006</codigoClasificador>
+               <descripcion>MARCA: BLOQUEO DE DOSIFICACION ORIGINADOS EN JURIDICA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>3007</codigoClasificador>
+               <descripcion>MARCA: NO CUMPLE CON OBLIGATORIEDAD DE PRESENTACION DE DDJJ</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>3008</codigoClasificador>
+               <descripcion>ADVERTENCIA: EL CUIS ESTA A PUNTO DE CADUCAR, GENERE UN NUEVO CUIS POR FAVOR</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>3011</codigoClasificador>
+               <descripcion>MARCA: ACTIVIDAD ECONOMICA INEXISTENTE O NO DECLARADA</descripcion>
+            </listaCodigos>
+            <listaCodigos>
+               <codigoClasificador>3012</codigoClasificador>
+               <descripcion>MARCA: CAMBIO DE DOMICILIO FISCAL NO COMUNICADO</descripcion>
+            </listaCodigos>
+         </RespuestaListaParametricas>
+      </ns2:sincronizarListaMensajesServiciosResponse>
+   </soap:Body>
+</soap:Envelope>
