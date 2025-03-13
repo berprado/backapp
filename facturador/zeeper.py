@@ -7,6 +7,19 @@ import requests
 from dotenv import load_dotenv
 import xml.etree.ElementTree as ET
 import logging
+import sys
+import traceback  # Añadir la importación de traceback
+
+# Agregar la ruta del directorio padre al path de Python si no está ya
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
+
+from logger_config import get_logger, get_xml_logger
+
+# Obtener loggers para este módulo
+logger = get_logger()
+xml_logger = get_xml_logger()
 
 # Configurar el logging
 log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
@@ -19,7 +32,6 @@ logger.setLevel(logging.INFO)
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(log_formatter)
 logger.addHandler(console_handler)
-
 # Crear un handler para el archivo
 file_handler = logging.FileHandler('app.log')
 file_handler.setFormatter(log_formatter)
@@ -30,7 +42,7 @@ load_dotenv()
 
 # Función para validar el XML contra el XSD principal
 def validar_xml(xml_path, xsd_main_path):
-    logger.debug(f"Validando XML: {xml_path} contra el esquema XSD: {xsd_main_path}")
+    xml_logger.info(f"Validando XML: {xml_path} contra el esquema XSD: {xsd_main_path}")
     schema_main = xmlschema.XMLSchema(xsd_main_path)
     try:
         # Validar el XML contra el esquema principal
@@ -38,7 +50,7 @@ def validar_xml(xml_path, xsd_main_path):
         logger.info("El XML es válido contra el esquema principal.")
         return True
     except xmlschema.validators.exceptions.XMLSchemaValidationError as e:
-        logger.error(f"Error de validación: {e}")
+        xml_logger.error(f"Error de validación: {e}")
         return False
 
 # Función para comprimir el archivo XML en formato Gzip

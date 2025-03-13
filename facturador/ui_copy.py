@@ -49,22 +49,24 @@ import threading
 from facturador.siat_pdf import html_to_pdf
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-# Create a custom logger for printing
-printer_logger = logging.getLogger('printer')
-printer_logger.setLevel(logging.DEBUG)
 
-# Create handlers
-file_handler = logging.FileHandler('printer_debug.log')
-console_handler = logging.StreamHandler()
+# Modificar las importaciones para usar la ruta correcta
+# En lugar de importar directamente, usamos la ruta absoluta del módulo
+import logging
 
-# Create formatters and add it to handlers
-log_format = '%(asctime)s - %(levelname)s - %(message)s'
-file_handler.setFormatter(logging.Formatter(log_format))
-console_handler.setFormatter(logging.Formatter(log_format))
+# Agregar la ruta del directorio padre al path de Python si no está ya
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if (parent_dir not in sys.path):
+    sys.path.append(parent_dir)
 
-# Add handlers to the logger
-printer_logger.addHandler(file_handler)
-printer_logger.addHandler(console_handler)
+# Ahora importamos del módulo en el directorio padre
+from logger_config import get_logger, get_printer_logger, get_facturacion_logger, get_xml_logger
+
+# Obtener loggers específicos para diferentes componentes
+logger = get_logger()  # Logger principal
+printer_logger = get_printer_logger()  # Logger para la impresora
+facturacion_logger = get_facturacion_logger()  # Logger para facturación
+xml_logger = get_xml_logger()  # Logger para operaciones XML
 
 # Agregar al inicio del script o en la configuración inicial
 if not os.path.exists('pdfs'):
@@ -73,10 +75,10 @@ if not os.path.exists('pdfs'):
 # Agregar al inicio del script
 try:
     if not os.access('pdfs', os.W_OK):
-        logging.error("No hay permisos de escritura en la carpeta pdfs")
+        logger.error("No hay permisos de escritura en la carpeta pdfs")
         raise PermissionError("No hay permisos de escritura en la carpeta pdfs")
 except Exception as e:
-    logging.error(f"Error al verificar permisos: {str(e)}")
+    logger.error(f"Error al verificar permisos: {str(e)}")
 
 # Lista de códigos permitidos para gift cards
 gift_card_codes = [
@@ -333,13 +335,13 @@ def get_next_invoice_number():
         with open("invoice_number.txt", "r") as file:
             numero_factura = int(file.read().strip())
     except FileNotFoundError:
-        logging.warning("Archivo 'invoice_number.txt' no encontrado. Se creará uno nuevo con el número de factura inicial 0.")
+        logger.warning("Archivo 'invoice_number.txt' no encontrado. Se creará uno nuevo con el número de factura inicial 0.")
         numero_factura = 0
     except ValueError as e:
-        logging.error(f"Error de formato en 'invoice_number.txt': {e}")
+        logger.error(f"Error de formato en 'invoice_number.txt': {e}")
         raise ValueError("El archivo 'invoice_number.txt' contiene un valor no válido.")
     except Exception as e:
-        logging.error(f"Error inesperado al leer 'invoice_number.txt': {e}")
+        logger.error(f"Error inesperado al leer 'invoice_number.txt': {e}")
         raise e
     return numero_factura + 1
 
@@ -348,7 +350,7 @@ def increment_invoice_number(numero_factura):
         with open("invoice_number.txt", "w") as file:
             file.write(str(numero_factura))
     except Exception as e:
-        logging.error(f"Error al escribir en 'invoice_number.txt': {e}")
+        logger.error(f"Error al escribir en 'invoice_number.txt': {e}")
         raise e
 
 def save_or_fetch_client_data(codigo_cliente, codigo_tipo_documento_identidad, complemento, email, nombre_razon_social, numero_documento, telefono, message_placeholder):
@@ -435,37 +437,37 @@ def calculate_hash(xml_str):
     return hasher.hexdigest()
 
 def sign_xml(xml_str, private_key_path, cert_path, cuf):
-    logging.info("Iniciando proceso de firma del XML")
+    xml_logger.info("Iniciando proceso de firma del XML")
     xml_str = xml_str.replace('\r\n', '\n')
 
     original_hash = calculate_hash(xml_str)
-    logging.info(f"Hash del XML original: {original_hash}")
+    xml_logger.info(f"Hash del XML original: {original_hash}")
 
     try:
         xml_root = etree.fromstring(xml_str.encode('utf-8'))
         canonical_xml = etree.tostring(xml_root, method="c14n").decode()
-        logging.info("XML canonicalizado exitosamente.")
+        xml_logger.info("XML canonicalizado exitosamente.")
     except Exception as e:
-        logging.error(f"Error al parsear o canonicalizar el XML: {e}")
-        traceback.print_exc()
+        xml_logger.error(f"Error al parsear o canonicalizar el XML: {e}")
+        xml_logger.error(traceback.format_exc())
         return None
 
     try:
         digest = hashes.Hash(hashes.SHA256())
         digest.update(canonical_xml.encode())
         hash_value = digest.finalize()
-        logging.info(f"Hash del XML: {hash_value.hex()}")
+        xml_logger.info(f"Hash del XML: {hash_value.hex()}")
     except Exception as e:
-        logging.error(f"Error al calcular el hash SHA256: {e}")
-        traceback.print_exc()
+        xml_logger.error(f"Error al calcular el hash SHA256: {e}")
+        xml_logger.error(traceback.format_exc())
         return None
 
     try:
         digest_base64 = base64.b64encode(hash_value).decode()
-        logging.info(f"Hash del XML en Base64: {digest_base64}")
+        xml_logger.info(f"Hash del XML en Base64: {digest_base64}")
     except Exception as e:
-        logging.error(f"Error al codificar el hash en Base64: {e}")
-        traceback.print_exc()
+        xml_logger.error(f"Error al codificar el hash en Base64: {e}")
+        xml_logger.error(traceback.format_exc())
         return None
 
     try:
@@ -496,18 +498,18 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
         digest_value.text = digest_base64
 
         xml_root.append(signature)
-        logging.info("Etiquetas de signature añadidas al XML.")
+        xml_logger.info("Etiquetas de signature añadidas al XML.")
     except Exception as e:
-        logging.error(f"Error al adicionar las etiquetas de signature al XML: {e}")
-        traceback.print_exc()
+        xml_logger.error(f"Error al adicionar las etiquetas de signature al XML: {e}")
+        xml_logger.error(traceback.format_exc())
         return None
 
     try:
         signed_info_canonical = etree.tostring(signed_info, method="c14n").decode()
-        logging.info("SignedInfo canonicalizado exitosamente.")
+        xml_logger.info("SignedInfo canonicalizado exitosamente.")
     except Exception as e:
-        logging.error(f"Error al canonicalizar SignedInfo: {e}")
-        traceback.print_exc()
+        xml_logger.error(f"Error al canonicalizar SignedInfo: {e}")
+        xml_logger.error(traceback.format_exc())
         return None
 
     try:
@@ -517,27 +519,27 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
             padding.PKCS1v15(),
             hashes.SHA256()
         )
-        logging.info("SignedInfo firmado exitosamente.")
+        xml_logger.info("SignedInfo firmado exitosamente.")
     except Exception as e:
-        logging.error(f"Error al firmar SignedInfo: {e}")
-        traceback.print_exc()
+        xml_logger.error(f"Error al firmar SignedInfo: {e}")
+        xml_logger.error(traceback.format_exc())
         return None
 
     try:
         signature_value_base64 = base64.b64encode(signature_value).decode()
-        logging.info(f"SignatureValue en Base64: {signature_value_base64}")
+        xml_logger.info(f"SignatureValue en Base64: {signature_value_base64}")
     except Exception as e:
-        logging.error(f"Error al codificar SignatureValue en Base64: {e}")
-        traceback.print_exc()
+        xml_logger.error(f"Error al codificar SignatureValue en Base64: {e}")
+        xml_logger.error(traceback.format_exc())
         return None
 
     try:
         signature_value_element = etree.SubElement(signature, "SignatureValue")
         signature_value_element.text = signature_value_base64
-        logging.info("SignatureValue añadido al XML.")
+        xml_logger.info("SignatureValue añadido al XML.")
     except Exception as e:
-        logging.error(f"Error al adicionar SignatureValue al XML: {e}")
-        traceback.print_exc()
+        xml_logger.error(f"Error al adicionar SignatureValue al XML: {e}")
+        xml_logger.error(traceback.format_exc())
         return None
 
     try:
@@ -546,10 +548,10 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
         x509_data = etree.SubElement(key_info, "X509Data")
         x509_certificate = etree.SubElement(x509_data, "X509Certificate")
         x509_certificate.text = base64.b64encode(certificate.public_bytes(serialization.Encoding.DER)).decode()
-        logging.info("X509Certificate añadido al XML.")
+        xml_logger.info("X509Certificate añadido al XML.")
     except Exception as e:
-        logging.error(f"Error al adicionar X509Certificate al XML: {e}")
-        traceback.print_exc()
+        xml_logger.error(f"Error al adicionar X509Certificate al XML: {e}")
+        xml_logger.error(traceback.format_exc())
         return None
 
     try:
@@ -564,17 +566,17 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
 
         signed_xml_canonical = etree.tostring(signed_xml_root, method="c14n").decode()
         signed_hash = calculate_hash(signed_xml_canonical)
-        logging.info(f"Hash del XML firmado (sin nodo de firma): {signed_hash}")
+        xml_logger.info(f"Hash del XML firmado (sin nodo de firma): {signed_hash}")
 
         if signed_hash == hash_value.hex():
-            logging.info("El XML no se ha modificado después de la firma.")
+            xml_logger.info("El XML no se ha modificado después de la firma.")
         else:
-            logging.warning("El XML se ha modificado después de la firma.")
+            xml_logger.warning("El XML se ha modificado después de la firma.")
 
         return signed_xml_str
     except Exception as e:
-        logging.error(f"Error al devolver el XML firmado: {e}")
-        traceback.print_exc()
+        xml_logger.error(f"Error al devolver el XML firmado: {e}")
+        xml_logger.error(traceback.format_exc())
         return None
 
 
@@ -632,7 +634,7 @@ def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
     """
     def imprimir():
         try:
-            logging.info(f"Iniciando proceso de impresión para factura {numero_factura}")
+            printer_logger.info(f"Iniciando proceso de impresión para factura {numero_factura}")
 
             # Actualizar HTML con CUF
             html_content = html_content_orig.replace("{cuf}", cuf)
@@ -643,13 +645,13 @@ def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
                 f.write(html_content)
                 f.flush()
                 os.fsync(f.fileno())  # Asegurar escritura al disco
-            logging.info(f"HTML guardado en {debug_path}")
+            printer_logger.info(f"HTML guardado en {debug_path}")
 
             # Intentar generar el PDF
             try:
                 output_pdf_path = f"pdfs/factura_{numero_factura}_{nit}_{cuf}.pdf"
                 html_to_pdf(html_content, output_pdf_path)
-                logging.info(f"PDF generado exitosamente: {output_pdf_path}")
+                printer_logger.info(f"PDF generado exitosamente: {output_pdf_path}")
             except Exception as e:
                 raise Exception(f"Error al generar PDF: {str(e)}")
 
@@ -665,7 +667,8 @@ def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
                 raise Exception(f"Error en impresión térmica: {str(e)}")
         except Exception as e:
             error_msg = f"❌ Error general: {str(e)}"
-            logging.error(error_msg)
+            printer_logger.error(error_msg)
+            printer_logger.error(traceback.format_exc())
             st.session_state['print_status'] = error_msg
 
     # Crear y ejecutar el hilo
@@ -685,6 +688,7 @@ def monitorear_hilo_impresion(hilo):
             elapsed_time = time.time() - start_time
             if elapsed_time > timeout:
                 st.session_state['print_status'] = "❌ Tiempo de espera excedido para la impresión."
+                printer_logger.warning(f"Tiempo de espera excedido al monitorear hilo de impresión {hilo.name}")
                 break
             print_status = st.session_state.get('print_status', "⏳ Procesando...")
             st.info(print_status)
@@ -693,9 +697,10 @@ def monitorear_hilo_impresion(hilo):
         print_status = st.session_state.get('print_status', "❓ Estado desconocido.")
         if print_status == "❓ Estado desconocido.":
             st.session_state['print_status'] = "❌ El proceso no se completó correctamente."
+            printer_logger.error(f"El hilo de impresión {hilo.name} no completó correctamente")
     except Exception as e:
         st.session_state['print_status'] = f"❌ Error durante el monitoreo del hilo: {str(e)}"
-        logging.exception("Error en monitorear_hilo_impresion")
+        printer_logger.exception("Error en monitorear_hilo_impresion")
 def main():
     message_placeholder = st.empty()
     # Definición de las pestañas

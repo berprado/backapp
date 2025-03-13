@@ -1,6 +1,10 @@
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Agregar la ruta del directorio padre al path de Python si no está ya
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if (parent_dir not in sys.path):
+    sys.path.append(parent_dir)
+
 import random
 import requests
 import streamlit as st
@@ -16,6 +20,11 @@ import logging
 from sqlalchemy.orm import Session
 from datetime import datetime
 from zeep import Client
+from logger_config import get_logger
+import traceback
+
+# Obtener logger para este módulo
+logger = get_logger()
 
 
 
@@ -31,10 +40,13 @@ engine = create_engine(URL_DATABASE)
 @st.cache_resource
 def fetch_comandas():
     try:
+        logger.info("Obteniendo comandas")
         response = requests.get(f"{ENDPOINT_URL}")
         response.raise_for_status()
         return response.json(), None
     except requests.exceptions.RequestException as e:
+        logger.error(f"Error al obtener comandas: {e}")
+        logger.error(traceback.format_exc())
         return [], f"Error al obtener los id_comanda: {e}"
 
 @st.cache_data

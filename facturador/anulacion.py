@@ -1,6 +1,17 @@
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Agregar la ruta del directorio padre al path de Python si no está ya
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
+
+from logger_config import get_logger, get_facturacion_logger
+import traceback  # Añadir la importación de traceback
+
+# Obtener loggers para este módulo
+logger = get_logger()
+facturacion_logger = get_facturacion_logger()
+
 import requests
 import xml.etree.ElementTree as ET
 from dotenv import load_dotenv
@@ -128,29 +139,34 @@ def procesar_respuesta_anulacion(respuesta_xml, factura, descripcion_motivo):
 
 
 def anular_factura(numero_factura, descripcion_motivo):
-    cuf, factura = obtener_cuf_por_numero_factura(numero_factura)
+    try:
+        facturacion_logger.info(f"Iniciando anulación de la factura {numero_factura}")
+        cuf, factura = obtener_cuf_por_numero_factura(numero_factura)
 
-    if factura is None:
-        return False, "No se encontró la factura especificada."
+        if factura is None:
+            return False, "No se encontró la factura especificada."
 
-    # Verificar si la factura está revertida y bloquear una nueva anulación
-    if factura.estado == "Valida" and factura.fechaValidacion is not None:
-        return False, "La factura ya fue revertida y no puede ser anulada nuevamente."
+        # Verificar si la factura está revertida y bloquear una nueva anulación
+        if factura.estado == "Valida" and factura.fechaValidacion is not None:
+            return False, "La factura ya fue revertida y no puede ser anulada nuevamente."
 
-    # Verificar si la fecha actual supera el plazo de anulación
-    if datetime.now().month > factura.fechaEmision.month + 1:
-        return False, "La factura está fuera del plazo para su anulación."
+        # Verificar si la fecha actual supera el plazo de anulación
+        if datetime.now().month > factura.fechaEmision.month + 1:
+            return False, "La factura está fuera del plazo para su anulación."
 
-    cufd = obtener_cufd_vigente()
-    if cufd is None:
-        return False, "No se pudo obtener el CUFD vigente."
+        cufd = obtener_cufd_vigente()
+        if cufd is None:
+            return False, "No se pudo obtener el CUFD vigente."
 
-    codigo_motivo = obtener_codigo_motivo(descripcion_motivo)
-    if codigo_motivo is None:
-        return False, "No se pudo obtener el código del motivo de anulación."
+        codigo_motivo = obtener_codigo_motivo(descripcion_motivo)
+        if codigo_motivo is None:
+            return False, "No se pudo obtener el código del motivo de anulación."
 
-    exito, respuesta = enviar_solicitud_anulacion(cuf, cufd, codigo_motivo)
-    if exito:
-        return procesar_respuesta_anulacion(respuesta, factura, descripcion_motivo)
-    else:
-        return False, respuesta
+        exito, respuesta = enviar_solicitud_anulacion(cuf, cufd, codigo_motivo)
+        if exito:
+            return procesar_respuesta_anulacion(respuesta, factura, descripcion_motivo)
+        else:
+            return False, respuesta
+    except Exception as e:
+        facturacion_logger.error(f"Error al anular factura {numero_factura}: {e}")
+        facturacion_logger.error(traceback.format_exc())
