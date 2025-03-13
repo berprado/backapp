@@ -559,7 +559,7 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
 
         signed_xml_root = etree.fromstring(signed_xml_str.encode('utf-8'))
         signature_element = signed_xml_root.find(".//{http://www.w3.org/2000/09/xmldsig#}Signature")
-        if signature_element is not None:
+        if (signature_element is not None):
             signed_xml_root.remove(signature_element)
         else:
             return None
@@ -568,7 +568,7 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
         signed_hash = calculate_hash(signed_xml_canonical)
         xml_logger.info(f"Hash del XML firmado (sin nodo de firma): {signed_hash}")
 
-        if signed_hash == hash_value.hex():
+        if (signed_hash == hash_value.hex()):
             xml_logger.info("El XML no se ha modificado después de la firma.")
         else:
             xml_logger.warning("El XML se ha modificado después de la firma.")
@@ -970,7 +970,11 @@ def main():
         lineas_productos = []
 
     fecha_emision = datetime.now()
+    # Este formato se usa para el XML y comunicación con SIAT (ISO 8601 con milisegundos)
     fecha_emision_str = fecha_emision.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
+    
+    # Para mostrar en la interfaz y factura impresa se usa el formato:
+    fecha_emision_display = fecha_emision.strftime("%d/%m/%Y %H:%M:%S")
     numero_factura = get_next_invoice_number()
 
     ACTIVIDAD_ECONOMICA = os.getenv('ACTIVIDAD_ECONOMICA')
@@ -981,7 +985,7 @@ def main():
     with tab1:
         html_invoice = generate_html_invoice(
             subtotal, descuento_adicional, monto_giftcard, lineas_productos,
-            nombre_cliente, fecha_emision_str, numero_factura, seleccion_metodo_pago,
+            nombre_cliente, fecha_emision_display, numero_factura, seleccion_metodo_pago,
             codigo_clasificador_metodo_pago, seleccion_tipo_documento,
             codigo_clasificador_documento, numero_documento, complemento,
             email, telefono, ultimos_digitos_tarjeta
@@ -1083,7 +1087,7 @@ def main():
                                                     'monto_giftcard': monto_giftcard,
                                                     'lineas_productos': lineas_productos,
                                                     'nombre_cliente': nombre_cliente,
-                                                    'fecha_emision_str': fecha_emision_str,
+                                                    'fecha_emision_str': fecha_emision_display, # Cambiado a formato legible
                                                     'seleccion_metodo_pago': seleccion_metodo_pago,
                                                     'codigo_clasificador_metodo_pago': codigo_clasificador_metodo_pago,
                                                     'seleccion_tipo_documento': seleccion_tipo_documento,

@@ -4,12 +4,10 @@ from datetime import datetime
 from typing import List, Dict, Optional, Tuple
 from dotenv import load_dotenv
 from data_access import guardar_factura_cabecera, guardar_factura_detalle, fetch_random_leyenda
-import logging
+from logger_config import get_xml_logger
 
-# Configure logging level
-logging.basicConfig(level=logging.DEBUG, 
-                    format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
-                    filename='invoice_log.txt')
+# Obtener el logger específico para XML
+logger = get_xml_logger()
 
 # Cargar variables de entorno
 load_dotenv()
@@ -35,14 +33,14 @@ XML_FOLDER_PATH = "xmls"  # Carpeta donde se guardarán los archivos XML
 def validate_and_format_datetime(value: str) -> str:
     try:
         # Intentar convertir la cadena en un objeto datetime
-        logging.debug("Validando y formateando la fecha: %s", value)
+        logger.debug("Validando y formateando la fecha: %s", value)
         dt = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%f")
         # Convertir de nuevo a cadena en el formato requerido
         formatted_date = dt.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
-        logging.info("Fecha validada y formateada correctamente: %s", formatted_date)
+        logger.info("Fecha validada y formateada correctamente: %s", formatted_date)
         return formatted_date
     except ValueError:
-        logging.error("Fecha inválida: %s. Formato esperado: YYYY-MM-DDTHH:MM:SS.sss", value)
+        logger.error("Fecha inválida: %s. Formato esperado: YYYY-MM-DDTHH:MM:SS.sss", value)
         raise ValueError(f"Invalid dateTime value: {value}. Expected format: YYYY-MM-DDTHH:MM:SS.sss")
 
 def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: str, telefono: Optional[str],
@@ -55,8 +53,8 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
                          usuario: str, codigo_documento_sector: int, lineas_productos: List[Dict[str, str]],
                          actividad_economica: str, codigo_producto_sin: str) -> Tuple[str, Dict, List[Dict]]:
 
-    logging.info("Iniciando la generación del XML de la factura.")
-    logging.debug("Valores recibidos: nit_emisor=%s, razon_social_emisor=%s, municipio=%s, telefono=%s, numero_factura=%s, cuf=%s, cufd=%s, codigo_sucursal=%s, direccion=%s, codigo_punto_venta=%s, fecha_emision=%s, nombre_razon_social=%s, codigo_tipo_documento_identidad=%s, numero_documento=%s, complemento=%s, codigo_cliente=%s, codigo_metodo_pago=%s, ultimos_digitos_tarjeta=%s, subtotal=%s, total=%s, codigo_moneda=%s, tipo_cambio=%s, monto_total_moneda=%s, monto_giftcard=%s, descuento_adicional=%s, usuario=%s, codigo_documento_sector=%s, lineas_productos=%s", nit_emisor, razon_social_emisor, municipio, telefono, numero_factura, cuf, cufd, codigo_sucursal, direccion, codigo_punto_venta, fecha_emision, nombre_razon_social, codigo_tipo_documento_identidad, numero_documento, complemento, codigo_cliente, codigo_metodo_pago, ultimos_digitos_tarjeta, subtotal, total, codigo_moneda, tipo_cambio, monto_total_moneda, monto_giftcard, descuento_adicional, usuario, codigo_documento_sector, lineas_productos)
+    logger.info("Iniciando la generación del XML de la factura.")
+    logger.debug("Valores recibidos: nit_emisor=%s, razon_social_emisor=%s, municipio=%s, telefono=%s, numero_factura=%s, cuf=%s, cufd=%s, codigo_sucursal=%s, direccion=%s, codigo_punto_venta=%s, fecha_emision=%s, nombre_razon_social=%s, codigo_tipo_documento_identidad=%s, numero_documento=%s, complemento=%s, codigo_cliente=%s, codigo_metodo_pago=%s, ultimos_digitos_tarjeta=%s, subtotal=%s, total=%s, codigo_moneda=%s, tipo_cambio=%s, monto_total_moneda=%s, monto_giftcard=%s, descuento_adicional=%s, usuario=%s, codigo_documento_sector=%s, lineas_productos=%s", nit_emisor, razon_social_emisor, municipio, telefono, numero_factura, cuf, cufd, codigo_sucursal, direccion, codigo_punto_venta, fecha_emision, nombre_razon_social, codigo_tipo_documento_identidad, numero_documento, complemento, codigo_cliente, codigo_metodo_pago, ultimos_digitos_tarjeta, subtotal, total, codigo_moneda, tipo_cambio, monto_total_moneda, monto_giftcard, descuento_adicional, usuario, codigo_documento_sector, lineas_productos)
 
     # Validar y formatear fechaEmision
     fecha_emision = validate_and_format_datetime(fecha_emision)
@@ -178,7 +176,7 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
     detalles_data = []
 
     for linea in lineas_productos:
-        logging.debug("Procesando la línea de producto: %s", linea)
+        logger.debug("Procesando la línea de producto: %s", linea)
         detalle = ET.SubElement(factura, "detalle")
         ET.SubElement(detalle, "actividadEconomica").text = str(actividad_economica)
         ET.SubElement(detalle, "codigoProductoSin").text = str(codigo_producto_sin)
@@ -225,4 +223,5 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
         })
 
     xml_string = ET.tostring(factura, encoding='utf-8', method='xml').decode('utf-8')
+    logger.info("XML generado exitosamente para la factura #%s", numero_factura)
     return xml_string, cabecera_data, detalles_data
