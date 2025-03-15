@@ -47,6 +47,7 @@ import verifica_stream
 from estado_factura import verificar_estado_factura
 from anulacion import anular_factura
 from reversion import enviar_solicitud_reversion, procesar_respuesta_reversion
+from facturador.response_handler import parse_siat_response, display_siat_response
 
 # Impresión y exportación
 from facturador.export import imprimir_recibo
@@ -58,7 +59,7 @@ import threading
 # Configuración de logger
 # Agregar la ruta del directorio padre al path de Python si no está ya
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-if parent_dir not in sys.path:
+if (parent_dir not in sys.path):
     sys.path.append(parent_dir)
 
 from logger_config import get_logger, get_printer_logger, get_facturacion_logger, get_xml_logger
@@ -475,6 +476,7 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
         signed_info = etree.SubElement(signature, "SignedInfo", nsmap={})
 
         canonicalization_method = etree.SubElement(signed_info, "CanonicalizationMethod")
+        # Corregir la URL del algoritmo de canonicalización (faltaba el "3" después de "w")
         canonicalization_method.set("Algorithm", "http://www.w3.org/TR/2001/REC-xml-c14n-20010315")
 
         signature_method = etree.SubElement(signed_info, "SignatureMethod")
@@ -1052,105 +1054,73 @@ def main():
                             hash_archivo = obtener_hash(gzip_path)
                             response = enviar_solicitud(filename, xsd_main_path, fecha_emision_str, cufd)
 
+                            # Envío y procesamiento de la respuesta
                             if isinstance(response, dict) and response.get("error"):
                                 message_placeholder.error(f"❌Error al enviar la factura: {response['error']}")
                             else:
                                 try:
-                                    root = ET.fromstring(response.content)
-                                    ns = {'soap': 'http://schemas.xmlsoap.org/soap/envelope/', 'ns2': 'https://siat.impuestos.gob.bo/'}
-                                    respuesta_servicio = root.find('.//RespuestaServicioFacturacion')
+                                    # Usar el nuevo manejador de respuestas
+                                    success, response_data = parse_siat_response(response.content)
                                     
-                                    if respuesta_servicio is not None:
-                                        codigo_descripcion = respuesta_servicio.find('codigoDescripcion')
-                                        codigo_estado = respuesta_servicio.find('codigoEstado')
-                                        codigo_recepcion = respuesta_servicio.find('codigoRecepcion')
-                                        transaccion = respuesta_servicio.find('transaccion')
+                                    if success:
+                                        # Mostrar la respuesta apropiadamente
+                                        transaccion_exitosa = display_siat_response(response_data, message_placeholder)
                                         
-                                        if all([codigo_descripcion is not None, codigo_estado is not None, 
-                                                codigo_recepcion is not None, transaccion is not None]):
-                                            
-                                            codigo_descripcion = codigo_descripcion.text
-                                            codigo_estado = codigo_estado.text
-                                            codigo_recepcion = codigo_recepcion.text
-                                            transaccion = transaccion.text.lower() == 'true'
-                                            
-                                            if transaccion:
-                                                message_placeholder.success(f""":heavy_check_mark: FACTURA {codigo_descripcion}""")
-                                                
-                                                # Almacenar datos en session_state
-                                                st.session_state['cuf'] = cuf
-                                                st.session_state['ultima_factura'] = numero_factura
-                                                st.session_state['factura_validada'] = True
-                                                st.session_state['datos_impresion'] = {
-                                                    'subtotal': subtotal,
-                                                    'descuento_adicional': descuento_adicional,
-                                                    'monto_giftcard': monto_giftcard,
-                                                    'lineas_productos': lineas_productos,
-                                                    'nombre_cliente': nombre_cliente,
-                                                    'fecha_emision_str': fecha_emision_display, # Cambiado a formato legible
-                                                    'seleccion_metodo_pago': seleccion_metodo_pago,
-                                                    'codigo_clasificador_metodo_pago': codigo_clasificador_metodo_pago,
-                                                    'seleccion_tipo_documento': seleccion_tipo_documento,
-                                                    'codigo_clasificador_documento': codigo_clasificador_documento,
-                                                    'numero_documento': numero_documento,
-                                                    'complemento': complemento,
-                                                    'email': email,
-                                                    'telefono': telefono,
-                                                    'ultimos_digitos_tarjeta': ultimos_digitos_tarjeta
-                                                }
+                                        if transaccion_exitosa:
+                                            # Almacenar datos en session_state
+                                            st.session_state['cuf'] = cuf
+                                            st.session_state['ultima_factura'] = numero_factura
+                                            st.session_state['factura_validada'] = True
+                                            st.session_state['datos_impresion'] = {
+                                                'subtotal': subtotal,
+                                                'descuento_adicional': descuento_adicional,
+                                                'monto_giftcard': monto_giftcard,
+                                                'lineas_productos': lineas_productos,
+                                                'nombre_cliente': nombre_cliente,
+                                                'fecha_emision_str': fecha_emision_display, 
+                                                'seleccion_metodo_pago': seleccion_metodo_pago,
+                                                'codigo_clasificador_metodo_pago': codigo_clasificador_metodo_pago,
+                                                'seleccion_tipo_documento': seleccion_tipo_documento,
+                                                'codigo_clasificador_documento': codigo_clasificador_documento,
+                                                'numero_documento': numero_documento,
+                                                'complemento': complemento,
+                                                'email': email,
+                                                'telefono': telefono,
+                                                'ultimos_digitos_tarjeta': ultimos_digitos_tarjeta
+                                            }
 
-                                                # Guardar factura en base de datos
-                                                is_valid, error_message = validar_factura_cabecera(factura_cabecera_data)
+                                            # Guardar factura en base de datos
+                                            is_valid, error_message = validar_factura_cabecera(factura_cabecera_data)
+                                            if is_valid:
+                                                guardar_factura_cabecera(factura_cabecera_data)
+                                                increment_invoice_number(numero_factura)
+                                            else:
+                                                message_placeholder.error(error_message)
+                                                return
+
+                                            for detalle in detalles_data:
+                                                is_valid, error_message = validar_factura_detalle(detalle)
                                                 if is_valid:
-                                                    guardar_factura_cabecera(factura_cabecera_data)
-                                                    increment_invoice_number(numero_factura)
+                                                    guardar_factura_detalle(detalle)
                                                 else:
                                                     message_placeholder.error(error_message)
                                                     return
-
-                                                for detalle in detalles_data:
-                                                    is_valid, error_message = validar_factura_detalle(detalle)
-                                                    if is_valid:
-                                                        guardar_factura_detalle(detalle)
-                                                    else:
-                                                        message_placeholder.error(error_message)
-                                                        return
-                                            else:
-                                                mensajes_list = respuesta_servicio.find('mensajesList')
-                                                error_message = "❌La factura no fue procesada correctamente."
-                                                if mensajes_list is not None:
-                                                    for mensaje in mensajes_list:
-                                                        codigo = mensaje.find('codigo')
-                                                        descripcion = mensaje.find('descripcion')
-                                                        if codigo is not None and descripcion is not None:
-                                                            error_message += f"\nCódigo: {codigo.text}, Descripción: {descripcion.text}"
-                                                    
-                                                    message_placeholder.error(f"""{error_message}
-                                                        Código de recepción: {codigo_recepcion}\n
-                                                        Descripción: {codigo_descripcion}\n
-                                                        Estado: {codigo_estado}\n
-                                                    """)
-                                                else:
-                                                    message_placeholder.error("❌La respuesta del servicio no contiene todos los campos esperados.")
-                                                    st.write("Contenido de la respuesta:", response.content)
                                     else:
-                                        message_placeholder.error("❌No se pudo encontrar RespuestaServicioFacturacion en la respuesta XML.")
-                                        st.write("Contenido de la respuesta:", response.content)
-                                except ET.ParseError as e:
-                                    message_placeholder.error(f"❌Error al parsear la respuesta XML: {str(e)}")
-                                    st.write("Contenido de la respuesta:", response.content)
+                                        # El parser ya reportó el error
+                                        facturacion_logger.error(f"Error al procesar respuesta: {response_data.get('error')}")
+                                        if 'xml_content' in response_data:
+                                            xml_logger.error(f"Contenido XML problemático: {response_data['xml_content'][:500]}...")
                                 except Exception as e:
-                                    message_placeholder.error(f"❌Error inesperado al procesar la respuesta: {str(e)}")
-                                    if 'response' in locals():
-                                        st.write("Contenido de la respuesta:", response.content)
+                                    message_placeholder.error(f"❌Error al procesar la respuesta: {str(e)}")
+                                    facturacion_logger.exception("Error inesperado al procesar respuesta")
                     except Exception as e:
                         message_placeholder.error(f"❌Error en el proceso de facturación: {str(e)}")
                         logging.exception("Error en facturación")
-                else:
+                else:   
                     message_placeholder.error("❌Por favor, complete todos los campos requeridos.")
 
         with col2:
-    # Asegurarse de que el estado esté inicializado
+            # Asegurarse de que el estado esté inicializado
             initialize_print_state()
 
             if st.session_state.get('factura_validada'):
@@ -1210,15 +1180,11 @@ def main():
                         st.error(f"❌ Error durante la impresión: {str(e)}")
                         logging.exception("Error en el proceso de impresión")
 
-
-
-
         with col3:
             if st.session_state.get('factura_validada'):
                 nit_emisor = int(os.getenv('NIT'))
                 enlace = generate_invoice_link(nit_emisor, st.session_state['cuf'], st.session_state['ultima_factura'])
                 st.link_button("Consultar factura", enlace)
-
 
 if __name__ == "__main__":
     initialize_print_state()
