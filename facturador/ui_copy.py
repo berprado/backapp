@@ -6,7 +6,8 @@ import streamlit as st
 import streamlit.components.v1 as components
 from data_access import (
     fetch_comandas, fetch_metodos_pago, fetch_tipos_documento, fetch_cliente, 
-    fetch_random_leyenda, guardar_factura_cabecera, guardar_factura_detalle, obtener_nombre_unidad_medida, obtener_motivos_anulacion, obtener_cuf_por_numero_factura
+    fetch_random_leyenda, guardar_factura_cabecera, guardar_factura_detalle, 
+    obtener_nombre_unidad_medida, obtener_motivos_anulacion, obtener_cuf_por_numero_factura
 )
 from business_logic import calculate_totals, collect_product_lines, generate_invoice_link, generate_qr
 from invoice_xml_generator import generate_xml_invoice
@@ -15,58 +16,77 @@ from database import SessionLocal
 from facturador.models import Cufd, Cliente
 from sqlalchemy.exc import IntegrityError
 import re
-from zeep import Client
-from zeep.transports import Transport
-from dotenv import load_dotenv
-from requests import Session
 from datetime import datetime
-from generate_cuf import generate_cuf
-from cufd import solicitar_cufd
-from lxml import etree
-from cryptography.hazmat.primitives import serialization, hashes
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography import x509
-#from cryptography.hazmat.backends import default_backend
-import base64
-import hashlib
-from zeeper import validar_xml, comprimir_xml, obtener_hash, enviar_solicitud
 from decimal import Decimal
 import logging
 import traceback
 import xml.etree.ElementTree as ET
+
+# Zeep y solicitudes
+from zeep import Client
+from zeep.transports import Transport
+from requests import Session
+from dotenv import load_dotenv
+
+# Módulos relacionados con CUF/CUFD
+from generate_cuf import generate_cuf
+from cufd import solicitar_cufd
+import cuis
+
+# XML y criptografía
+from lxml import etree
+from cryptography.hazmat.primitives import serialization, hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography import x509
+import base64
+import hashlib
+
+# Utilidades para facturación
+from zeeper import validar_xml, comprimir_xml, obtener_hash, enviar_solicitud
 import verifica_stream
 from estado_factura import verificar_estado_factura
-import cuis
 from anulacion import anular_factura
 from reversion import enviar_solicitud_reversion, procesar_respuesta_reversion
-from facturador.export import imprimir_recibo # Importar la función `imprimir_recibo`
-from invoice_templates import generate_compact_html_invoice  # Importar la generación del HTML
-#from printer_utils import print_invoice_escpos
+
+# Impresión y exportación
+from facturador.export import imprimir_recibo
+from invoice_templates import generate_compact_html_invoice
 from facturador.thermal_printer import ThermalPrinter
-#from export import guardar_recibo_como_pdf, generate_file_name
-import threading
-#from compact_pdf_generator import generate_invoice_pdf
 from facturador.siat_pdf import html_to_pdf
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
+import threading
 
-# Modificar las importaciones para usar la ruta correcta
-# En lugar de importar directamente, usamos la ruta absoluta del módulo
-import logging
-
+# Configuración de logger
 # Agregar la ruta del directorio padre al path de Python si no está ya
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-if (parent_dir not in sys.path):
+if parent_dir not in sys.path:
     sys.path.append(parent_dir)
 
-# Ahora importamos del módulo en el directorio padre
 from logger_config import get_logger, get_printer_logger, get_facturacion_logger, get_xml_logger
 
 # Obtener loggers específicos para diferentes componentes
-logger = get_logger()  # Logger principal
-printer_logger = get_printer_logger()  # Logger para la impresora
-facturacion_logger = get_facturacion_logger()  # Logger para facturación
-xml_logger = get_xml_logger()  # Logger para operaciones XML
+logger = get_logger()
+printer_logger = get_printer_logger()
+facturacion_logger = get_facturacion_logger()
+xml_logger = get_xml_logger()
+
+# Lista de códigos permitidos para gift cards
+gift_card_codes = [
+    102, 109, 115, 120, 124, 128, 129, 130, 138, 146, 153, 159, 164, 168,
+    172, 173, 174, 182, 189, 195, 200, 204, 208, 209, 210, 217, 221, 222,
+    223, 224, 225, 226, 228, 232, 241, 246, 250, 254, 255, 256, 261, 265,
+    269, 270, 271, 275, 279, 280, 281, 285, 286, 287, 291, 292, 293, 30,
+    304, 35, 40, 49, 53, 60, 64, 68, 72, 76, 77, 78, 86, 94, 27
+]
+
+# Configurar logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("ui_copy.log"),
+        logging.StreamHandler()
+    ]
+)
 
 # Agregar al inicio del script o en la configuración inicial
 if not os.path.exists('pdfs'):
@@ -79,27 +99,6 @@ try:
         raise PermissionError("No hay permisos de escritura en la carpeta pdfs")
 except Exception as e:
     logger.error(f"Error al verificar permisos: {str(e)}")
-
-# Lista de códigos permitidos para gift cards
-gift_card_codes = [
-    102, 109, 115, 120, 124, 128, 129, 130, 138, 146, 153, 159, 164, 168,
-    172, 173, 174, 182, 189, 195, 200, 204, 208, 209, 210, 217, 221, 222,
-    223, 224, 225, 226, 228, 232, 241, 246, 250, 254, 255, 256, 261, 265,
-    269, 270, 271, 275, 279, 280, 281, 285, 286, 287, 291, 292, 293, 30,
-    304, 35, 40, 49, 53, 60, 64, 68, 72, 76, 77, 78, 86, 94, 27
-]
-
-# Configurar logging
-# Configurar logging (una sola vez, al principio del archivo)
-logging.basicConfig(
-    level=logging.DEBUG,  # Asegúrate de que el nivel sea DEBUG para capturar todos los mensajes
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler("ui_copy.log"), # Escribe en un archivo
-        logging.StreamHandler() # Muestra en consola
-    ]
-)
-
 
 def es_email_valido(email, message_placeholder):
     patron = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
@@ -582,8 +581,9 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
 
 with open('verifica_stream.py', 'r') as file:
     file_content = file.read()
-with open('cuis.py', 'r') as file:
-    file_content += file.read()
+# Eliminando la lectura de cuis.py ya que estamos importando el módulo directamente
+# with open('cuis.py', 'r') as file:
+#     file_content += file.read()
 @st.cache_data
 def render_sidebar():
     # Toda la lógica relacionada con st.sidebar aquí

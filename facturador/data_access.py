@@ -26,16 +26,15 @@ import traceback
 # Obtener logger para este módulo
 logger = get_logger()
 
-
-
+# Configurar logging básico - NO REPETIR ESTO
 logging.basicConfig(level=logging.DEBUG, 
                     format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
                     filename='invoice_log.log')
+# Cargar variables de entorno solo una vez
 load_dotenv()
+# Definir metadata y engine solo una vez
 metadata = MetaData()
 engine = create_engine(URL_DATABASE)
-# Create the engine to connect to the database
-
 
 @st.cache_resource
 def fetch_comandas():
@@ -216,14 +215,12 @@ def guardar_factura_detalle(detalle: Dict[str, Union[str, float, int]]) -> None:
     finally:
         session.close()
 
-
-
 def obtener_nombre_unidad_medida(codigo_producto: str, db: Session) -> str:
     try:
         producto = db.query(ProductoSiat).filter(ProductoSiat.codigo == codigo_producto).first()
         if producto and producto.unidad_medida:
             return producto.unidad_medida
-        return "Unidad."  # Valor por defecto si la unidad no se encuentra
+        return "Unidadxxx."  # Valor por defecto si la unidad no se encuentra
     except SQLAlchemyError as e:
         logging.error(f"Error al obtener el nombre de la unidad de medida: {e}")
         return "Error"
