@@ -6,9 +6,8 @@ import base64
 import requests
 from dotenv import load_dotenv
 import xml.etree.ElementTree as ET
-import logging
 import sys
-import traceback  # Añadir la importación de traceback
+import traceback
 
 # Agregar la ruta del directorio padre al path de Python si no está ya
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -20,22 +19,6 @@ from logger_config import get_logger, get_xml_logger
 # Obtener loggers para este módulo
 logger = get_logger()
 xml_logger = get_xml_logger()
-
-# Configurar el logging
-log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-
-# Configuración de logger
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-
-# Crear un handler para la consola
-console_handler = logging.StreamHandler()
-console_handler.setFormatter(log_formatter)
-logger.addHandler(console_handler)
-# Crear un handler para el archivo
-file_handler = logging.FileHandler('app.log')
-file_handler.setFormatter(log_formatter)
-logger.addHandler(file_handler)
 
 # Cargar variables de entorno desde el archivo .env
 load_dotenv()

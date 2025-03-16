@@ -1,5 +1,4 @@
 import xml.etree.ElementTree as ET
-import logging
 from typing import Dict, Any, Tuple, List, Optional
 import streamlit as st
 import traceback
@@ -8,8 +7,11 @@ import re
 import os
 from pprint import pformat
 
-# Configuración de logger para este módulo
-logger = logging.getLogger(__name__)
+# Importar el logger configurado específico para este módulo
+from logger_config import get_response_logger
+
+# Obtener el logger específico para este módulo
+logger = get_response_logger()
 
 def parse_siat_response(response_content: bytes) -> Tuple[bool, Dict[str, Any]]:
     """

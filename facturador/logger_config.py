@@ -99,8 +99,26 @@ def setup_application_loggers(log_dir='logs'):
             name='xml',
             log_file=f"{log_dir}/xml_{date_str}.log",
             level=logging.DEBUG
+        ),
+        'response_handler': setup_logger(
+            name='facturador.response_handler',
+            log_file=f"{log_dir}/response_{date_str}.log",
+            level=logging.DEBUG
+        ),
+        'siat': setup_logger(
+            name='siat',
+            log_file=f"{log_dir}/siat_{date_str}.log",
+            level=logging.DEBUG
+        ),
+        'zeeper': setup_logger(
+            name='zeeper',
+            log_file=f"{log_dir}/zeeper_{date_str}.log",
+            level=logging.DEBUG
         )
     }
+    
+    # Configurar el logger raíz para que no propague mensajes a los handlers por defecto
+    logging.getLogger().handlers = []
     
     return loggers
 
@@ -155,3 +173,30 @@ def get_xml_logger():
         Logger: Logger de XML
     """
     return get_logger('xml')
+
+def get_response_logger():
+    """
+    Obtiene el logger para el manejo de respuestas SIAT.
+    
+    Returns:
+        Logger: Logger de respuestas
+    """
+    return get_logger('facturador.response_handler')
+
+def get_siat_logger():
+    """
+    Obtiene el logger para comunicaciones con SIAT.
+    
+    Returns:
+        Logger: Logger de SIAT
+    """
+    return get_logger('siat')
+
+def get_zeeper_logger():
+    """
+    Obtiene el logger para el módulo zeeper.
+    
+    Returns:
+        Logger: Logger de zeeper
+    """
+    return get_logger('zeeper')

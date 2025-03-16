@@ -79,16 +79,6 @@ gift_card_codes = [
     304, 35, 40, 49, 53, 60, 64, 68, 72, 76, 77, 78, 86, 94, 27
 ]
 
-# Configurar logging
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler("ui_copy.log"),
-        logging.StreamHandler()
-    ]
-)
-
 # Agregar al inicio del script o en la configuración inicial
 if not os.path.exists('pdfs'):
     os.makedirs('pdfs')

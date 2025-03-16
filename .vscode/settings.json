@@ -2,5 +2,7 @@
     "python.analysis.extraPaths": [
         "./facturador/pages/sync",
         "./facturador/pages/sync"
-    ]
+    ],
+    "github.copilot.advanced": {},
+    "chat.promptFiles": true
 }
