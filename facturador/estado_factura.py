@@ -8,10 +8,15 @@ from database import SessionLocal
 from facturador.data_access import obtener_cuf_por_numero_factura
 from datetime import datetime
 
+# Importar loggers
+from logger_config import get_logger, get_facturacion_logger
+import traceback
+
+# Obtener loggers para este módulo
+logger = get_logger()
+facturacion_logger = get_facturacion_logger()
+
 load_dotenv()
-
-
-
 
 def construir_solicitud_verificacion(cuf):
     envelope = ET.Element("{http://schemas.xmlsoap.org/soap/envelope/}Envelope")
@@ -60,22 +65,27 @@ def verificar_estado_factura(numero_factura):
 
     # Si no se encontró la factura, retornamos un mensaje de error claro
     if factura is None:
+        logger.warning(f"No se encontró la factura #{numero_factura}")
         return False, "❌No se encontró la factura especificada."
 
     # Si se encontró la factura, procedemos a la verificación
+    logger.info(f"Verificando estado de factura #{numero_factura} con CUF: {cuf[:10]}...")
     exito, respuesta = enviar_solicitud_verificacion(cuf)
     if exito:
         return procesar_respuesta_verificacion(respuesta, factura)
     else:
+        logger.error(f"Error al enviar solicitud de verificación: {respuesta}")
         return False, respuesta
-
 
 
 def actualizar_estado_factura(factura, estado_validacion, codigo_recepcion=None, mensaje_error=None):
     session = SessionLocal()
     try:
-        # Ensure the factura object contains the correct data
-        print(factura)
+        # Eliminar print que causa ruido en los logs
+        # print(factura)  <- Esta línea debe eliminarse
+        
+        # Registrar mejor la información usando el logger
+        facturacion_logger.info(f"Actualizando estado de factura #{factura.numeroFactura} a '{estado_validacion}'")
 
         # Update the factura's validation state
         factura.estadoValidacion = estado_validacion
@@ -100,16 +110,17 @@ def actualizar_estado_factura(factura, estado_validacion, codigo_recepcion=None,
         session.add(factura)
         session.commit()
         
+        facturacion_logger.info(f"Factura #{factura.numeroFactura} actualizada correctamente a estado '{estado_validacion}'")
+        
         # Return success and the updated state
         return True, f"Factura: {estado_validacion}"
     except Exception as e:
         session.rollback()
+        facturacion_logger.error(f"Error al actualizar la factura: {str(e)}")
+        facturacion_logger.error(traceback.format_exc())
         return False, f"❌Error al actualizar la factura: {str(e)}"
     finally:
         session.close()
-
-
-
 
 
 def procesar_respuesta_verificacion(respuesta_xml, factura):

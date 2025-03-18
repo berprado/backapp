@@ -7,14 +7,14 @@ import streamlit.components.v1 as components
 from data_access import (
     fetch_comandas, fetch_metodos_pago, fetch_tipos_documento, fetch_cliente, 
     fetch_random_leyenda, guardar_factura_cabecera, guardar_factura_detalle, 
-    obtener_nombre_unidad_medida, obtener_motivos_anulacion, obtener_cuf_por_numero_factura
+    obtener_nombre_unidad_medida, obtener_motivos_anulacion, obtener_cuf_por_numero_factura 
 )
 from business_logic import calculate_totals, collect_product_lines, generate_invoice_link, generate_qr
 from invoice_xml_generator import generate_xml_invoice
 from num2words import num2words
 from database import SessionLocal
 from facturador.models import Cufd, Cliente
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 import re
 from datetime import datetime
 from decimal import Decimal
@@ -778,6 +778,38 @@ def monitorear_hilo_impresion(hilo):
         st.error(f"❌ Error durante el monitoreo del proceso: {str(e)}")
         printer_logger.exception("Error en monitorear_hilo_impresion")
         st.session_state['impresion_en_progreso'] = False
+
+def guardar_factura_en_bd(factura_cabecera_data, detalles_factura):
+    try:
+        # Intentar guardar la cabecera de la factura
+        guardar_factura_cabecera(factura_cabecera_data)
+        
+        # Si la cabecera se guardó correctamente, guardar los detalles
+        for detalle in detalles_factura:
+            guardar_factura_detalle(detalle)
+        
+        return True, "Factura guardada correctamente"
+    except SQLAlchemyError as e:
+        facturacion_logger.error(f"Error SQL al guardar la factura: {e}")
+        
+        # Verificar si es un error de columna faltante para tipoEmision
+        if "Unknown column 'tipoEmision'" in str(e):
+            facturacion_logger.warning("La columna tipoEmision no existe. Se requiere actualizar la estructura de la base de datos.")
+            st.error("""
+                **Error de estructura de base de datos**
+                
+                Se requiere actualizar la estructura de la tabla factura_cabecera.
+                Por favor, ejecute el script SQL que se encuentra en:
+                `c:\\Users\\Bernardo\\Desktop\\backapp\\facturador\\sql\\alter_factura_cabecera.sql`
+                
+                Este script añadirá las columnas necesarias para el manejo de contingencias.
+            """)
+            return False, "Error: Se requiere actualizar la estructura de la base de datos."
+        
+        return False, f"Error al guardar la factura: {str(e)}"
+    except Exception as e:
+        facturacion_logger.error(f"Error general al guardar la factura: {e}")
+        return False, f"Error al guardar la factura: {str(e)}"
 
 def main():
     message_placeholder = st.empty()

@@ -183,6 +183,16 @@ class FacturaCabecera(Base):
     motivoAnulacion = Column(Text)
     enlaceSiat = Column(String(255))
     codigoRecepcion = Column(String(255))
+    tipoEmision = Column(String(20), nullable=False, default='ONLINE')
+    codigoEvento = Column(String(10))
+    descripcionEvento = Column(String(255))
+    fechaInicioEvento = Column(DateTime)
+    fechaFinEvento = Column(DateTime)
+    idPaquete = Column(String(50))
+    estadoPaquete = Column(String(20))
+    numeroSecuencia = Column(Integer)
+    estadoContingencia = Column(String(20))
+    fechaSincronizacion = Column(DateTime)
   
 
     def to_dict(self):
@@ -235,7 +245,17 @@ class FacturaCabecera(Base):
             'anuladaPor': self.anuladaPor,
             'motivoAnulacion': self.motivoAnulacion,
             'enlaceSiat': self.enlaceSiat,
-            'codigoRecepcion': self.codigoRecepcion
+            'codigoRecepcion': self.codigoRecepcion,
+            'tipoEmision': self.tipoEmision,
+            'codigoEvento': self.codigoEvento,
+            'descripcionEvento': self.descripcionEvento,
+            'fechaInicioEvento': self.fechaInicioEvento.isoformat() if self.fechaInicioEvento else None,
+            'fechaFinEvento': self.fechaFinEvento.isoformat() if self.fechaFinEvento else None,
+            'idPaquete': self.idPaquete,
+            'estadoPaquete': self.estadoPaquete,
+            'numeroSecuencia': self.numeroSecuencia,
+            'estadoContingencia': self.estadoContingencia,
+            'fechaSincronizacion': self.fechaSincronizacion.isoformat() if self.fechaSincronizacion else None,
         }
 
 

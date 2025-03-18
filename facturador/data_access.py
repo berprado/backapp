@@ -18,6 +18,7 @@ from typing import List, Dict, Union
 from sqlalchemy.exc import SQLAlchemyError
 import logging
 from sqlalchemy.orm import Session
+from sqlalchemy import inspect
 from datetime import datetime
 from zeep import Client
 from logger_config import get_logger
@@ -121,58 +122,86 @@ def guardar_factura_cabecera(cabecera: Dict[str, Union[str, float, int]]) -> Non
 
     session = SessionLocal()
     try:
-        query = FacturaCabecera.__table__.insert().values(
-            nitEmisor=cabecera['nitEmisor'],
-            razonSocialEmisor=cabecera['razonSocialEmisor'],
-            municipio=cabecera['municipio'],
-            telefono=cabecera['telefono'],
-            numeroFactura=cabecera['numeroFactura'],
-            cuf=cabecera['cuf'],
-            cufd=cabecera['cufd'],
-            codigoSucursal=cabecera['codigoSucursal'],
-            direccion=cabecera['direccion'],
-            codigoPuntoVenta=cabecera['codigoPuntoVenta'],
-            fechaEmision=cabecera['fechaEmision'],
-            nombreRazonSocial=cabecera['nombreRazonSocial'],
-            codigoTipoDocumentoIdentidad=cabecera['codigoTipoDocumentoIdentidad'],
-            numeroDocumento=cabecera['numeroDocumento'],
-            complemento=cabecera['complemento'],
-            codigoCliente=cabecera['codigoCliente'],
-            codigoMetodoPago=cabecera['codigoMetodoPago'],
-            numeroTarjeta=cabecera['numeroTarjeta'],
-            montoTotal=cabecera['montoTotal'],
-            montoTotalSujetoIva=cabecera['montoTotalSujetoIva'],
-            codigoMoneda=cabecera.get('codigoMoneda', 1),
-            tipoCambio=cabecera.get('tipoCambio', 1.00),
-            montoTotalMoneda=cabecera['montoTotalMoneda'],
-            montoGiftCard=cabecera.get('montoGiftCard'),
-            descuentoAdicional=cabecera.get('descuentoAdicional', 0.00),
-            codigoExcepcion=cabecera.get('codigoExcepcion'),
-            cafc=cabecera.get('cafc'),
-            leyenda=cabecera['leyenda'],
-            usuario=cabecera['usuario'],
-            codigoDocumentoSector=cabecera.get('codigoDocumentoSector', 1),
-            estadoValidacion=cabecera.get('estadoValidacion', 'VALIDADA'),
-            fechaCreacion=cabecera.get('fechaCreacion', 'CURRENT_TIMESTAMP'),
-            creadoPor=cabecera.get('creadoPor', 'ADMIN'),
-            fechaActualizacion=cabecera.get('fechaActualizacion', 'CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'),
-            actualizadoPor=cabecera.get('actualizadoPor', 'ADMIN'),
-            detallesFirmaDigital=cabecera.get('detallesFirmaDigital'),
-            mensajeError=cabecera.get('mensajeError'),
-            fechaValidacion=cabecera.get('fechaValidacion'),
-            resultadoValidacion=cabecera.get('resultadoValidacion'),
-            estadoFirma=cabecera.get('estadoFirma', 'Pendiente'),
-            mensajeErrorFirma=cabecera.get('mensajeErrorFirma'),
-            fechaErrorFirma=cabecera.get('fechaErrorFirma'),
-            intentosFirma=cabecera.get('intentosFirma', 0),
-            estado=cabecera.get('estado', 'Activa'),
-            fechaAnulacion=cabecera.get('fechaAnulacion'),
-            anuladaPor=cabecera.get('anuladaPor'),
-            motivoAnulacion=cabecera.get('motivoAnulacion')
-        )
+        # Crear un diccionario con los valores básicos que sabemos que existen en la tabla
+        values = {
+            "nitEmisor": cabecera['nitEmisor'],
+            "razonSocialEmisor": cabecera['razonSocialEmisor'],
+            "municipio": cabecera['municipio'],
+            "telefono": cabecera['telefono'],
+            "numeroFactura": cabecera['numeroFactura'],
+            "cuf": cabecera['cuf'],
+            "cufd": cabecera['cufd'],
+            "codigoSucursal": cabecera['codigoSucursal'],
+            "direccion": cabecera['direccion'],
+            "codigoPuntoVenta": cabecera['codigoPuntoVenta'],
+            "fechaEmision": cabecera['fechaEmision'],
+            "nombreRazonSocial": cabecera['nombreRazonSocial'],
+            "codigoTipoDocumentoIdentidad": cabecera['codigoTipoDocumentoIdentidad'],
+            "numeroDocumento": cabecera['numeroDocumento'],
+            "complemento": cabecera['complemento'],
+            "codigoCliente": cabecera['codigoCliente'],
+            "codigoMetodoPago": cabecera['codigoMetodoPago'],
+            "numeroTarjeta": cabecera['numeroTarjeta'],
+            "montoTotal": cabecera['montoTotal'],
+            "montoTotalSujetoIva": cabecera['montoTotalSujetoIva'],
+            "codigoMoneda": cabecera.get('codigoMoneda', 1),
+            "tipoCambio": cabecera.get('tipoCambio', 1.00),
+            "montoTotalMoneda": cabecera['montoTotalMoneda'],
+            "montoGiftCard": cabecera.get('montoGiftCard'),
+            "descuentoAdicional": cabecera.get('descuentoAdicional', 0.00),
+            "codigoExcepcion": cabecera.get('codigoExcepcion'),
+            "cafc": cabecera.get('cafc'),
+            "leyenda": cabecera['leyenda'],
+            "usuario": cabecera['usuario'],
+            "codigoDocumentoSector": cabecera.get('codigoDocumentoSector', 1),
+            "estadoValidacion": cabecera.get('estadoValidacion', 'VALIDADA'),
+            "fechaCreacion": datetime.now(),  # Usar datetime en lugar de string
+            "creadoPor": cabecera.get('creadoPor', 'ADMIN'),
+            "actualizadoPor": cabecera.get('actualizadoPor', 'ADMIN'),
+            "detallesFirmaDigital": cabecera.get('detallesFirmaDigital'),
+            "mensajeError": cabecera.get('mensajeError'),
+            "fechaValidacion": cabecera.get('fechaValidacion'),
+            "resultadoValidacion": cabecera.get('resultadoValidacion'),
+            "estadoFirma": cabecera.get('estadoFirma', 'Pendiente'),
+            "mensajeErrorFirma": cabecera.get('mensajeErrorFirma'),
+            "fechaErrorFirma": cabecera.get('fechaErrorFirma'),
+            "intentosFirma": cabecera.get('intentosFirma', 0),
+            "estado": cabecera.get('estado', 'Activa'),
+            "fechaAnulacion": cabecera.get('fechaAnulacion'),
+            "anuladaPor": cabecera.get('anuladaPor'),
+            "motivoAnulacion": cabecera.get('motivoAnulacion'),
+            "enlaceSiat": cabecera.get('enlaceSiat'),
+            "codigoRecepcion": cabecera.get('codigoRecepcion')
+        }
+
+        # Intentar añadir campos de contingencia si existen en la tabla
+        try:
+            # Verificar si las columnas existen en la tabla
+            insp = inspect(engine)
+            columns = insp.get_columns('factura_cabecera')
+            column_names = [col['name'] for col in columns]
+            
+            # Solo añadir columnas que existen en la tabla
+            contingency_fields = [
+                'tipoEmision', 'codigoEvento', 'descripcionEvento', 'fechaInicioEvento',
+                'fechaFinEvento', 'idPaquete', 'estadoPaquete', 'numeroSecuencia',
+                'estadoContingencia', 'fechaSincronizacion'
+            ]
+            
+            for field in contingency_fields:
+                if field in column_names and field in cabecera:
+                    values[field] = cabecera.get(field)
+            
+            logging.debug(f"Campos de contingencia detectados y añadidos: {[f for f in contingency_fields if f in column_names]}")
+        except Exception as e:
+            logging.warning(f"No se pudieron verificar columnas de contingencia: {str(e)}")
+            # Continuar sin añadir campos de contingencia
+
+        # Ejecutar la inserción con los campos que sabemos que existen
+        query = FacturaCabecera.__table__.insert().values(**values)
         session.execute(query)
         session.commit()
-        logging.info(f"Cabecera almacenada exitosamente: {cabecera}")
+        logging.info(f"Cabecera almacenada exitosamente: {cabecera['numeroFactura']}")
     except SQLAlchemyError as e:
         session.rollback()
         logging.error(f"Error al guardar la cabecera de la factura: {e}")
@@ -392,6 +421,8 @@ def obtener_cuf_por_numero_factura(numero_factura):
         else:
             return None, None
     except Exception as e:
-        return None, str(e)
+        logger.error(f"Error al consultar factura #{numero_factura}: {str(e)}")
+        logger.error(traceback.format_exc())
+        return None, None  # Devolver None, None en lugar de None, str(e)
     finally:
         session.close()

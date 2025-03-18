@@ -143,8 +143,14 @@ def anular_factura(numero_factura, descripcion_motivo):
         facturacion_logger.info(f"Iniciando anulación de la factura {numero_factura}")
         cuf, factura = obtener_cuf_por_numero_factura(numero_factura)
 
+        # Verificar si la factura no se encontró o si hubo un error
         if factura is None:
             return False, "No se encontró la factura especificada."
+        
+        # Verificar si factura es un mensaje de error (str)
+        if isinstance(factura, str):
+            facturacion_logger.error(f"Error al obtener la factura: {factura}")
+            return False, f"Error al recuperar la factura: {factura}"
 
         # Verificar si la factura está revertida y bloquear una nueva anulación
         if factura.estado == "Valida" and factura.fechaValidacion is not None:
@@ -170,3 +176,4 @@ def anular_factura(numero_factura, descripcion_motivo):
     except Exception as e:
         facturacion_logger.error(f"Error al anular factura {numero_factura}: {e}")
         facturacion_logger.error(traceback.format_exc())
+        return False, f"Error durante la anulación: {str(e)}"
