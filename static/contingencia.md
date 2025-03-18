@@ -1,4 +1,5 @@
-A continuación, se presenta una guía integral para la implementación y manejo correcto de las contingencias y la emisión masiva de facturas en la modalidad de facturación electrónica en Bolivia. Esta guía integra la información normativa y los lineamientos técnicos que hemos documentado previamente, complementados con el contenido de los archivos adjuntos.
+A continuación, se presenta una guía integral para la implementación y manejo correcto de las contingencias y la emisión masiva de facturas en la modalidad de facturación electrónica en Bolivia. 
+Esta guía integra la información normativa y los lineamientos técnicos que hemos documentado previamente, complementados con el contenido de los archivos adjuntos.
 
 ---
 
@@ -25,7 +26,7 @@ El sistema debe monitorear de forma constante el servicio de comunicación con e
 Tras varios intentos (por lo general, un par de veces) y sin lograr una respuesta positiva, se determina que existe un problema de comunicación. En ese caso, se debe cambiar al modo **"Fuera de Línea"** para continuar las operaciones de facturación sin interrumpir el negocio.
 
 > “Si ... la respuesta continúa siendo la misma indica que el servicio específico que estamos requiriendo tiene algún problema, por lo que para dar continuidad a nuestras operaciones debemos ingresar a Fuera de Línea. Se recomienda permanecer en fuera de línea por un tiempo prudencial ... (no mayor a dos horas)”  
-> citeturn0file0
+
 
 ### b. Procedimiento Durante el Ingreso a Contingencia
 
@@ -42,7 +43,7 @@ Tras varios intentos (por lo general, un par de veces) y sin lograr una respuest
    - Una vez recuperada la comunicación, obtener un nuevo CUFD, **registrar el evento significativo** y proceder con el envío de los paquetes de facturas generadas durante la contingencia.
 
 > “Si ... la respuesta continúa siendo la misma ... debemos ingresar a Fuera de Línea y emitir facturas utilizando el último CUFD válido, pues en casos como este la duración del CUFD se amplía hasta a 72 horas.”  
-> citeturn0file0
+
 
 ---
 
@@ -93,7 +94,7 @@ El proceso se divide en dos etapas: **durante la contingencia** y **posterior a 
   - Todas las facturas emitidas se guardan individualmente para ser agrupadas en un paquete cuando se restablezca la conexión.
 
 > “Se recurre a la emisión de Facturas fuera de línea ... las facturas se emiten individualmente y se agrupan en paquetes de hasta 500 documentos fiscales, para que luego de superada la contingencia se envíen a la Administración Tributaria.”  
-> citeturn0file2
+
 
 ### Etapa 2: Envío de Facturas Emitidas Durante la Contingencia
 
@@ -121,7 +122,7 @@ El proceso se divide en dos etapas: **durante la contingencia** y **posterior a 
    - Mantener un registro de facturas sin código de respuesta para, posteriormente, consumir el servicio de verificación de estado y proceder a la anulación en caso necesario.
 
 > “Una vez superada la contingencia ... recuperar las facturas almacenadas, formar paquetes, comprimir con Gzip, obtener el HASH y enviar los paquetes consumiendo el servicio ‘Recepción de Paquetes de facturas electrónicas o computarizadas’.”  
-> citeturn0file2
+
 
 ---
 
@@ -145,8 +146,7 @@ Si la contingencia impide el uso del sistema informático (por falla de hardware
      - Comprimir, obtener el HASH y enviar mediante el servicio de recepción de paquetes, incluyendo el CAFC de las facturas transcritas.
 
 > “En caso de que no pueda utilizarse el sistema informático por falla ... se deberán emitir facturas manuales de contingencia previamente aprovisionadas, superada la contingencia estas deberán ser transcritas utilizando para ello el CUFD que estaba vigente al ingresar en contingencia y enviadas a la Administración Tributaria.”  
-> citeturn0file1  
-> citeturn0file2
+
 
 ---
 
@@ -175,7 +175,7 @@ Si la contingencia impide el uso del sistema informático (por falla de hardware
   - Una vez exitosa, registrar el evento significativo y enviar los paquetes de facturas pendientes.
 
 > “Si al consumir el servicio de solicitud de CUFD ... debemos ingresar a Fuera de Línea y emitir facturas utilizando el último CUFD válido.”  
-> citeturn0file0
+
 
 ---
 
@@ -201,7 +201,7 @@ Si la contingencia impide el uso del sistema informático (por falla de hardware
   Consultar periódicamente la documentación oficial del SIAT y los anexos técnicos para estar al tanto de actualizaciones normativas o técnicas que puedan afectar los procesos de contingencia y envío masivo.
 
 > “Como buena práctica, debe mantenerse un registro de facturas sin código de respuesta, a objeto de que una vez superada la contingencia las mismas se verifiquen consumiendo el servicio verificaciónEstadoFactura ...”  
-> citeturn0file2
+
 
 ---
 
