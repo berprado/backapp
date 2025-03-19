@@ -219,7 +219,7 @@ def guardar_factura_detalle(detalle: Dict[str, Union[str, float, int]]) -> None:
     # Crear una nueva sesión
     session = SessionLocal()
     try:
-        query = factura_detalle_table.insert().values(
+        nuevo_detalle = FacturaDetalle(
             numeroFactura=detalle['numeroFactura'],
             actividadEconomica=detalle.get('actividadEconomica', '56110'),
             codigoProductoSin=detalle.get('codigoProductoSin', 99100),
@@ -230,15 +230,14 @@ def guardar_factura_detalle(detalle: Dict[str, Union[str, float, int]]) -> None:
             precioUnitario=detalle['precioUnitario'],
             montoDescuento=detalle.get('montoDescuento', 0.00),
             subTotal=detalle['subTotal'],
-            numeroSerie=detalle['numeroSerie'] if detalle['numeroSerie'] is not None else None,
-            numeroImei=detalle['numeroImei'] if detalle['numeroImei'] is not None else None
+            numeroSerie=detalle['numeroSerie'] if detalle.get('numeroSerie') is not None else None,
+            numeroImei=detalle['numeroImei'] if detalle.get('numeroImei') is not None else None
         )
-        with session.begin():
-            session.execute(query)
-        session.commit()  # Confirmar la transacción
+        session.add(nuevo_detalle)
+        session.commit()
         logging.info(f"Detalle almacenado exitosamente: {detalle}")
     except SQLAlchemyError as e:
-        session.rollback()  # Revertir la transacción en caso de error
+        session.rollback()
         logging.error(f"Error al guardar el detalle de la factura: {e}")
         raise
     finally:
@@ -424,5 +423,98 @@ def obtener_cuf_por_numero_factura(numero_factura):
         logger.error(f"Error al consultar factura #{numero_factura}: {str(e)}")
         logger.error(traceback.format_exc())
         return None, None  # Devolver None, None en lugar de None, str(e)
+    finally:
+        session.close()
+
+# Nueva función para obtener facturas pendientes de validación
+@st.cache_data(ttl=60)  # Caché por 60 segundos para no sobrecargar la BD
+def obtener_facturas_por_estado(estado=None, page=1, per_page=10):
+    """
+    Obtiene facturas filtradas por estado de validación.
+    
+    Args:
+        estado: Estado de validación a filtrar ('PENDIENTE', 'VALIDADA', 'ANULADA' o None para todas)
+        page: Número de página para paginación
+        per_page: Cantidad de registros por página
+        
+    Returns:
+        tuple: (facturas, total_registros, mensaje_error)
+    """
+    session = SessionLocal()
+    try:
+        query = session.query(FacturaCabecera)
+        
+        # Aplicar filtros según el estado solicitado
+        if estado == "PENDIENTE":
+            query = query.filter(FacturaCabecera.resultadoValidacion.is_(None))
+        elif estado == "VALIDADA":
+            query = query.filter(FacturaCabecera.resultadoValidacion == "VALIDADA")
+        elif estado == "ANULADA":
+            # Una factura puede tener estado "Anulada" o resultadoValidacion "ANULADA"
+            query = query.filter((FacturaCabecera.estado == "Anulada") | 
+                                 (FacturaCabecera.resultadoValidacion == "ANULADA"))
+        
+        # Obtener el conteo total de registros para la paginación
+        total = query.count()
+        
+        # Aplicar ordenamiento y paginación
+        facturas = query.order_by(FacturaCabecera.fechaEmision.desc())\
+                        .offset((page - 1) * per_page)\
+                        .limit(per_page)\
+                        .all()
+        
+        # Convertir a diccionarios para usar en la interfaz
+        facturas_dict = [
+            {
+                "numeroFactura": f.numeroFactura,
+                "cuf": f.cuf,
+                "fechaEmision": f.fechaEmision,
+                "nombreRazonSocial": f.nombreRazonSocial,
+                "numeroDocumento": f.numeroDocumento,
+                "montoTotal": float(f.montoTotal),
+                "estadoValidacion": f.estadoValidacion,
+                "resultadoValidacion": f.resultadoValidacion,
+                "estado": f.estado
+            } for f in facturas
+        ]
+        
+        return facturas_dict, total, None
+    except Exception as e:
+        logger.error(f"Error al obtener facturas: {str(e)}")
+        logger.error(traceback.format_exc())
+        return [], 0, f"Error al obtener facturas: {str(e)}"
+    finally:
+        session.close()
+
+# Nueva función para obtener una factura completa con sus detalles
+def obtener_factura_completa(numero_factura):
+    """
+    Obtiene una factura y sus detalles por número de factura.
+    
+    Args:
+        numero_factura: Número de factura a buscar
+        
+    Returns:
+        tuple: (cabecera, detalles, error)
+    """
+    session = SessionLocal()
+    try:
+        # Obtener la cabecera de la factura
+        cabecera = session.query(FacturaCabecera).filter_by(numeroFactura=numero_factura).first()
+        if not cabecera:
+            return None, None, "Factura no encontrada"
+        
+        # Obtener los detalles de la factura
+        detalles = session.query(FacturaDetalle).filter_by(numeroFactura=numero_factura).all()
+        
+        # Convertir a diccionarios
+        cabecera_dict = cabecera.to_dict()
+        detalles_dict = [detalle.to_dict() for detalle in detalles]
+        
+        return cabecera_dict, detalles_dict, None
+    except Exception as e:
+        logger.error(f"Error al obtener factura completa #{numero_factura}: {str(e)}")
+        logger.error(traceback.format_exc())
+        return None, None, f"Error: {str(e)}"
     finally:
         session.close()

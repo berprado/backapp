@@ -7,7 +7,8 @@ import streamlit.components.v1 as components
 from data_access import (
     fetch_comandas, fetch_metodos_pago, fetch_tipos_documento, fetch_cliente, 
     fetch_random_leyenda, guardar_factura_cabecera, guardar_factura_detalle, 
-    obtener_nombre_unidad_medida, obtener_motivos_anulacion, obtener_cuf_por_numero_factura 
+    obtener_nombre_unidad_medida, obtener_motivos_anulacion, obtener_cuf_por_numero_factura,
+    obtener_facturas_por_estado, obtener_factura_completa  # Importar nuevas funciones
 )
 from business_logic import calculate_totals, collect_product_lines, generate_invoice_link, generate_qr
 from invoice_xml_generator import generate_xml_invoice
@@ -822,7 +823,21 @@ def main():
     # Pestaña 2: Ver Facturas Generadas
     with tab2:
         st.header("Facturas Generadas")
-        st.write("Aquí se mostrarán las facturas generadas.")   
+        
+        # Crear pestañas para diferentes estados de facturas
+        facturas_tabs = st.tabs(["Todas", "Pendientes", "Validadas", "Anuladas"])
+        
+        with facturas_tabs[0]:
+            mostrar_lista_facturas("TODAS")
+        
+        with facturas_tabs[1]:
+            mostrar_lista_facturas("PENDIENTE")
+            
+        with facturas_tabs[2]:
+            mostrar_lista_facturas("VALIDADA")
+            
+        with facturas_tabs[3]:
+            mostrar_lista_facturas("ANULADA")
     
     # Pestaña 3: Validar NIT
     with tab3:
@@ -1299,6 +1314,219 @@ def main():
                 enlace = generate_invoice_link(nit_emisor, st.session_state['cuf'], st.session_state['ultima_factura'])
                 st.link_button("Consultar factura", enlace)
 
-if __name__ == "__main__":
-    initialize_print_state()
-    main()
+def mostrar_lista_facturas(estado):
+    # Parámetros para la paginación con clave específica para cada estado
+    page_key = f'page_{estado}'
+    if page_key not in st.session_state:
+        st.session_state[page_key] = 1
+    page = st.session_state[page_key]
+    per_page = 10
+    
+    # Obtener facturas según el estado
+    facturas, total, error = obtener_facturas_por_estado(
+        estado if estado != "TODAS" else None, 
+        page, 
+        per_page
+    )
+    
+    # Mostrar mensaje de error si ocurrió alguno
+    if error:
+        st.error(error)
+        return
+    
+    # Calcular total de páginas
+    total_pages = (total + per_page - 1) // per_page
+    
+    # Mostrar información de paginación
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col1:
+        # Añadir key única basada en el estado
+        if st.button("◀ Anterior", key=f"prev_{estado}", disabled=(page <= 1)):
+            st.session_state[page_key] -= 1
+            st.rerun()
+    
+    with col2:
+        st.write(f"Página {page} de {max(1, total_pages)} (Total: {total} facturas)")
+    
+    with col3:
+        # Añadir key única basada en el estado
+        if st.button("Siguiente ▶", key=f"next_{estado}", disabled=(page >= total_pages)):
+            st.session_state[page_key] += 1
+            st.rerun()
+    
+    # Si no hay facturas, mostrar mensaje
+    if not facturas:
+        if estado == "PENDIENTE":
+            st.info("No hay facturas pendientes de validación")
+        else:
+            st.info(f"No hay facturas en estado '{estado}'")
+        return
+    
+    # Crear un DataFrame para mostrar en forma de tabla
+    import pandas as pd
+    df_data = []
+    for f in facturas:
+        # Determinar el estado para mostrar
+        estado_mostrar = "⏱️ Pendiente" if f["resultadoValidacion"] is None else \
+                        "✅ Validada" if f["resultadoValidacion"] == "VALIDADA" else \
+                        "❌ Anulada" if f["estado"] == "Anulada" else \
+                        "❓ Desconocido"
+        
+        df_data.append({
+            "Nº Factura": f["numeroFactura"],
+            "Fecha": f["fechaEmision"].strftime("%d/%m/%Y %H:%M"),
+            "Cliente": f["nombreRazonSocial"],
+            "Monto": f"{f['montoTotal']:.2f} Bs.",
+            "Estado": estado_mostrar
+        })
+    
+    # Crear un DataFrame para mostrar en forma de tabla
+    import pandas as pd
+    df = pd.DataFrame(df_data)
+    # Mostrar tabla con facturas
+    # Mostrar tabla con facturas
+    st.dataframe(
+        df, 
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Nº Factura": st.column_config.Column(
+                "Nº Factura",
+                width="small",
+            ),
+            "Fecha": st.column_config.Column(
+                "Fecha",
+                width="medium",
+            ),
+            "Cliente": st.column_config.Column(
+                "Cliente",
+                width="large",
+            ),
+            "Monto": st.column_config.Column(
+                "Monto",
+                width="small",
+            ),
+            "Estado": st.column_config.Column(
+                "Estado",
+                width="small",
+            ),
+        }
+    )
+    
+    # Clave específica para la selección actual
+    # Sección para acciones con facturasestado}"
+    col1, col2 = st.columns(2)
+    # Sección para acciones con facturas
+    with col1:
+        # Seleccionar factura para ver detalles con key única
+        factura_seleccionada = st.selectbox(
+            "Seleccione una factura para ver detalles",
+            options=[f["numeroFactura"] for f in facturas],
+            format_func=lambda x: f"Factura #{x}",
+            key=f"select_{estado}"  # Añadida key única
+        )
+    
+    with col2:
+        # Botones de acciones
+        st.write("Acciones:")
+        col_a, col_b, col_c = st.columns(3)
+        with col_a:
+            if st.button("Ver Detalles", key=f"ver_{estado}"):
+                st.session_state['factura_detalle'] = factura_seleccionada
+                st.rerun()
+        
+        with col_b:
+            if st.button("Verificar Estado", key=f"verificar_{estado}"):
+                with st.spinner("Verificando estado..."):
+                    exito, mensaje = verificar_estado_factura(factura_seleccionada)
+                    if exito:
+                        st.success(mensaje)
+                    else:
+                        st.error(mensaje)
+        
+        with col_c:
+            if estado != "ANULADA":
+                if st.button("Anular", key=f"anular_{estado}"):
+                    st.session_state['factura_anular'] = factura_seleccionada
+                    st.rerun()
+    
+    # Mostrar detalles de la factura si está seleccionada
+    if 'factura_detalle' in st.session_state:
+        factura_numero = st.session_state['factura_detalle']
+        cabecera, detalles, error = obtener_factura_completa(factura_numero)
+        if error:
+            st.error(error)
+        elif cabecera:
+            with st.expander(f"Detalles de Factura #{factura_numero}", expanded=True):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.write("**Datos de la Factura:**")
+                    st.write(f"**Fecha:** {cabecera['fechaEmision'].strftime('%d/%m/%Y %H:%M:%S')}")
+                    st.write(f"**Cliente:** {cabecera['nombreRazonSocial']}")
+                    st.write(f"**NIT/CI:** {cabecera['numeroDocumento']}")
+                    st.write(f"**Estado:** {cabecera['estado']}")
+                    st.write(f"**Validación:** {cabecera['estadoValidacion'] or 'Pendiente'}")
+                
+                with col2:
+                    st.write("**Datos Económicos:**")
+                    st.write(f"**Monto Total:** {float(cabecera['montoTotal']):.2f} Bs.")
+                    st.write(f"**Descuento:** {float(cabecera['descuentoAdicional']):.2f} Bs.")
+                    st.write(f"**Método Pago:** {cabecera['codigoMetodoPago']}")
+                    # Generar enlace para ver la factura en el portal SIAT
+                    nit_emisor = int(os.getenv('NIT'))
+                    enlace = generate_invoice_link(nit_emisor, cabecera['cuf'], cabecera['numeroFactura'])
+                    st.link_button("Ver en SIAT", enlace)
+                
+                # Mostrar tabla de los productos
+                if detalles:
+                    st.write("**Productos:**")
+                    items = []
+                    for detalle in detalles:
+                        items.append({
+                            "Código": detalle['codigoProducto'],
+                            "Descripción": detalle['descripcion'],
+                            "Cantidad": float(detalle['cantidad']),
+                            "Precio Unit.": float(detalle['precioUnitario']),
+                            "Subtotal": float(detalle['subTotal'])
+                        })
+                    
+                    import pandas as pd
+                    df_detalles = pd.DataFrame(items)
+                    st.dataframe(df_detalles, use_container_width=True, hide_index=True)
+                
+                # Botón para cerrar los detalles con key única
+                if st.button("Cerrar Detalles", key=f"cerrar_detalles_{estado}"):
+                    del st.session_state['factura_detalle']
+                    st.rerun()
+    
+        # Verificación masiva de facturas pendientes
+        if estado == "PENDIENTE" and facturas:
+            st.write("---")
+            st.subheader("Verificación Masiva")
+                    
+            # Añadir key única
+            if st.button("Verificar todas las facturas pendientes", key=f"verificar_todas_{estado}"):
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                total_facturas = len(facturas)
+                verificadas_ok = 0
+                
+                for i, factura in enumerate(facturas):
+                    # Actualizar el estado para mostrar mensaje de éxito
+                    status_text.text(f"Verificando factura #{factura['numeroFactura']}...")
+                    try:
+                        exito, _ = verificar_estado_factura(factura['numeroFactura'])
+                        if exito:
+                            verificadas_ok += 1
+                    except Exception as e:
+                        pass
+                    # Actualizar barra de progreso
+                    progress_bar.progress((i + 1) / total_facturas)
+                status_text.text(f"Verificación completada: {verificadas_ok} de {total_facturas} actualizadas correctamente.")
+                
+                # Recargar la página para mostrar los nuevos estados
+                st.button("Actualizar lista", key=f"actualizar_{estado}", on_click=st.rerun)
+    
+    if __name__ == "__main__":
+        initialize_print_state()
+        main()

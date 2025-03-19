@@ -2,6 +2,7 @@ import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import requests
+import streamlit as st  # Añadir esta importación para usar st.cache_data
 import xml.etree.ElementTree as ET
 from dotenv import load_dotenv
 from database import SessionLocal
@@ -60,6 +61,8 @@ def enviar_solicitud_verificacion(cuf):
         return False, f"An error occurred: {e}"
 
 
+# Añadir decorador de caché al inicio de la función
+@st.cache_data(ttl=120)  # Caché por 2 minutos
 def verificar_estado_factura(numero_factura):
     cuf, factura = obtener_cuf_por_numero_factura(numero_factura)
 
