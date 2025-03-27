@@ -10,10 +10,10 @@ from requests import Session
 from database import SessionLocal
 from facturador.models import FacturaCabecera, Cufd
 from facturador.offline_billing import update_invoice_status_after_sending
-from logger_config import get_contingency_logger
+from facturador.logger_config import get_logger  # Cambiar esta importación
 from dotenv import load_dotenv
 
-logger = get_contingency_logger()
+logger = get_logger('contingency')  # Usar el logger general con nombre específico
 load_dotenv()
 
 class BatchSender:

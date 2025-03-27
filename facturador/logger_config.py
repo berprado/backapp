@@ -200,3 +200,41 @@ def get_zeeper_logger():
         Logger: Logger de zeeper
     """
     return get_logger('zeeper')
+
+def get_contingency_logger():
+    """
+    Obtiene un logger configurado para el módulo de contingencia
+    
+    Returns:
+        logging.Logger: Logger configurado para contingencias
+    """
+    return _get_custom_logger('contingency', 'logs/contingency.log')
+
+def _get_custom_logger(name, log_file):
+    """
+    Crea un logger personalizado con un handler de archivo
+    
+    Args:
+        name (str): Nombre del logger
+        log_file (str): Ruta del archivo de log
+        
+    Returns:
+        logging.Logger: Logger configurado
+    """
+    logger = logging.getLogger(f'facturador.{name}')
+    logger.setLevel(logging.INFO)
+    
+    # Verificar si ya tiene handlers para evitar duplicados
+    if not logger.handlers:
+        # Crear file handler para escribir en archivo
+        file_handler = logging.FileHandler(log_file, encoding='utf-8')
+        file_handler.setLevel(logging.INFO)
+        
+        # Crear el formatter
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s')
+        file_handler.setFormatter(formatter)
+        
+        # Añadir el handler al logger
+        logger.addHandler(file_handler)
+    
+    return logger

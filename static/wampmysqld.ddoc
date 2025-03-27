@@ -18,18 +18,8 @@
     <Header />
     <Title>wampmysqld</Title>
     <TitleImage>logo.svg</TitleImage>
-    <Style>bootstrap/Default.css</Style>
-    <FileFormat>Pdf</FileFormat>
-    <FormatOptions d3p1:type="PdfOptionsSerializationModel" xmlns:d3p1="http://www.w3.org/2001/XMLSchema-instance">
-      <PaperKind>A4</PaperKind>
-      <PaperSize>
-        <Width>595.440063</Width>
-        <Height>841.68</Height>
-      </PaperSize>
-      <Landscape>false</Landscape>
-      <FontScale>100</FontScale>
-      <PageNumbering>true</PageNumbering>
-    </FormatOptions>
+    <Style>bootstrap/Default Dark.css</Style>
+    <FileFormat>Html</FileFormat>
     <OpenAfterGeneration>true</OpenAfterGeneration>
     <AppendTimestamp>true</AppendTimestamp>
     <Path>C:\Users\Bernardo\Documents</Path>
@@ -38,6 +28,12 @@
   <IncludedSection>
     <Section Uid="Root[Project].CoverPage[CoverPage]" Included="true" />
     <Section Uid="Root[Project].List[Servers].Server[wampmysqld].List[Databases].Database[adminerp_copy]" Included="true" />
-    <Section Uid="Root[Project].List[Servers].Server[wampmysqld].List[Databases].Database[adminerp_copy].List[Tables]" Included="true" />
+    <Section Uid="Root[Project].List[Servers].Server[wampmysqld].List[Databases].Database[adminerp_copy].List[Tables]" Included="false" />
+    <Section Uid="Root[Project].List[Servers].Server[wampmysqld].List[Databases].Database[adminerp_copy].List[Tables].Table[alm_categoria]" Included="true" />
+    <Section Uid="Root[Project].List[Servers].Server[wampmysqld].List[Databases].Database[adminerp_copy].List[Tables].Table[alm_producto]" Included="true" />
+    <Section Uid="Root[Project].List[Servers].Server[wampmysqld].List[Databases].Database[adminerp_copy].List[Tables].Table[bar_combo_coctel]" Included="true" />
+    <Section Uid="Root[Project].List[Servers].Server[wampmysqld].List[Databases].Database[adminerp_copy].List[Tables].Table[bar_detalle_combo_bar]" Included="true" />
+    <Section Uid="Root[Project].List[Servers].Server[wampmysqld].List[Databases].Database[adminerp_copy].List[Tables].Table[ope_precio_venta]" Included="true" />
+    <Section Uid="Root[Project].List[Servers].Server[wampmysqld].List[Databases].Database[adminerp_copy].List[Views]" Included="false" />
   </IncludedSection>
 </SerializationModel>

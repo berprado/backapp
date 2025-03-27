@@ -5,9 +5,9 @@ from requests import Session
 from database import SessionLocal
 from facturador.models import SincronizarParametricaEventosSignificativos
 from dotenv import load_dotenv
-from logger_config import get_contingency_logger
+from facturador.logger_config import get_logger  # Cambiar esta importación
 
-logger = get_contingency_logger()
+logger = get_logger('contingency')  # Usar el logger general con nombre específico
 load_dotenv()
 
 def register_significant_event(event_code, description, start_time, end_time, cufd=None):

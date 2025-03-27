@@ -13,259 +13,322 @@ from logger_config import get_response_logger
 # Obtener el logger específico para este módulo
 logger = get_response_logger()
 
-def parse_siat_response(response_content: bytes) -> Tuple[bool, Dict[str, Any]]:
+def save_xml_response(xml_content, force_save=False, operation_type=None):
     """
-    Parsea la respuesta XML del servidor SIAT y extrae la información relevante.
+    Guarda el XML de respuesta en un archivo para depuración
     
     Args:
-        response_content: Contenido de la respuesta en bytes
-        
-    Returns:
-        Tuple con (éxito, datos_respuesta)
-    """
-    try:
-        # Guardar respuesta cruda para diagnóstico
-        response_dir = "logs/responses"
-        os.makedirs(response_dir, exist_ok=True)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        raw_response_path = f"{response_dir}/response_{timestamp}.xml"
-        
-        with open(raw_response_path, "wb") as f:
-            f.write(response_content)
-        
-        logger.info(f"Respuesta XML guardada en {raw_response_path}")
-        
-        # Continuar con el procesamiento normal
-        root = ET.fromstring(response_content)
-        ns = {'soap': 'http://schemas.xmlsoap.org/soap/envelope/', 
-              'ns2': 'https://siat.impuestos.gob.bo/'}
-        
-        # Buscar el elemento de respuesta usando namespace
-        respuesta_servicio = root.find('.//ns2:RespuestaServicioFacturacion', ns)
-        
-        # Si no lo encuentra con namespace, intentar sin namespace (más flexible)
-        if respuesta_servicio is None:
-            respuesta_servicio = root.find('.//RespuestaServicioFacturacion')
-        
-        if respuesta_servicio is None:
-            # Intentar extraer mensajes de error SOAP si existe
-            fault = root.find('.//soap:Fault', ns)
-            if fault is not None:
-                fault_code = fault.find('faultcode')
-                fault_string = fault.find('faultstring')
-                error_msg = f"Error SOAP: {fault_string.text if fault_string is not None else 'Desconocido'}"
-                return False, {
-                    'error': error_msg,
-                    'codigo': fault_code.text if fault_code is not None else 'Desconocido',
-                    'xml_content': response_content.decode('utf-8', errors='replace'),
-                    'raw_response_path': raw_response_path
-                }
-            
-            return False, {
-                'error': 'No se encontró el elemento RespuestaServicioFacturacion',
-                'xml_content': response_content.decode('utf-8', errors='replace'),
-                'raw_response_path': raw_response_path
-            }
-        
-        # Extraer campos individuales con manejo de errores
-        resultado = {'raw_response_path': raw_response_path}
-        
-        # Lista de campos a extraer
-        campos_requeridos = ['codigoDescripcion', 'codigoEstado', 'transaccion']
-        campos_opcionales = ['codigoRecepcion']  # Puede no existir en respuestas de rechazo
-        
-        # Procesar campos requeridos
-        for campo in campos_requeridos:
-            elemento = respuesta_servicio.find(campo)
-            if elemento is not None:
-                # Para transaccion, convertir a booleano
-                if campo == 'transaccion':
-                    resultado[campo] = elemento.text.lower() == 'true'
-                else:
-                    resultado[campo] = elemento.text
-            else:
-                logger.error(f"Campo requerido {campo} no encontrado en la respuesta")
-                return False, {
-                    'error': f"La respuesta no contiene el campo requerido {campo}",
-                    'xml_content': response_content.decode('utf-8', errors='replace'),
-                    'raw_response_path': raw_response_path
-                }
-        
-        # Procesar campos opcionales
-        for campo in campos_opcionales:
-            elemento = respuesta_servicio.find(campo)
-            if elemento is not None:
-                resultado[campo] = elemento.text
-            else:
-                # Si la transacción fue exitosa pero falta un campo opcional crítico, es un error grave
-                if resultado.get('transaccion', False) and campo == 'codigoRecepcion':
-                    logger.error(f"ERROR CRÍTICO: La transacción reporta éxito pero falta el código de recepción")
-                    logger.error(f"Contenido XML: {response_content.decode('utf-8', errors='replace')[:500]}...")
-                    
-                    # Esta es una inconsistencia grave - la factura podría haberse registrado sin código de recepción
-                    return False, {
-                        'error': f"La transacción reporta éxito pero falta el código de recepción. Contacte soporte técnico.",
-                        'codigo_estado': resultado.get('codigoEstado', 'Desconocido'),
-                        'codigo_descripcion': resultado.get('codigoDescripcion', 'Desconocido'),
-                        'transaccion': resultado.get('transaccion'),
-                        'xml_content': response_content.decode('utf-8', errors='replace'),
-                        'raw_response_path': raw_response_path
-                    }
-                else:
-                    logger.info(f"Campo opcional {campo} no encontrado en la respuesta")
-                resultado[campo] = None
-        
-        # Extraer mensajes de error si existen
-        resultado['mensajes'] = []
-        
-        # Método 1: Buscar elementos mensajesList directamente como hijos
-        mensajes_list_elements = respuesta_servicio.findall('mensajesList')
-        
-        if mensajes_list_elements:
-            for mensaje_list in mensajes_list_elements:
-                codigo = mensaje_list.find('codigo')
-                descripcion = mensaje_list.find('descripcion')
-                
-                if codigo is not None and descripcion is not None:
-                    resultado['mensajes'].append({
-                        'codigo': codigo.text,
-                        'descripcion': descripcion.text
-                    })
-        
-        # Análisis adicional de la respuesta si no hay mensajes y la transacción es falsa
-        if not resultado['mensajes'] and resultado.get('transaccion') is False:
-            # Buscar en toda la respuesta por patrones de error comunes
-            texto_respuesta = response_content.decode('utf-8', errors='replace')
-            
-            # Problemas comunes:
-            problemas_conocidos = {
-                r'CUFD.+fuera\s+de\s+tolerancia': 'El CUFD proporcionado está fuera de tolerancia o expirado.',
-                r'fecha.+envio.+invalido': 'La fecha de envío es inválida. Verifique la sincronización del reloj del servidor.',
-                r'inconsistencia.+datos': 'Hay inconsistencias en los datos enviados. Verifique los montos y datos fiscales.',
-                r'NITs\s+iguales': 'El sistema puede estar rechazando la factura porque el NIT emisor y receptor son iguales.'
-            }
-            
-            for patron, descripcion in problemas_conocidos.items():
-                if re.search(patron, texto_respuesta, re.IGNORECASE):
-                    resultado['mensajes'].append({
-                        'codigo': 'ANALISIS',
-                        'descripcion': descripcion
-                    })
-        
-        # Información de diagnóstico adicional
-        if not resultado['transaccion']:
-            resultado['diagnostico'] = {
-                'fecha_hora_servidor': datetime.now().isoformat(),
-                'codigo_estado': resultado.get('codigoEstado'),
-                'descripcion_estado': resultado.get('codigoDescripcion')
-            }
-            
-            # Añadir contexto sobre posibles causas comunes según el código de estado
-            codigo_estado = resultado.get('codigoEstado')
-            if codigo_estado:
-                if codigo_estado == '902':
-                    resultado['diagnostico']['causa_probable'] = "Rechazo general. Revise los mensajes específicos."
-                elif codigo_estado == '904':
-                    resultado['diagnostico']['causa_probable'] = "La factura tiene observaciones que deben corregirse."
-                elif codigo_estado == '906':
-                    resultado['diagnostico']['causa_probable'] = "Error en el formato o estructura del XML enviado."
-        
-        return True, resultado
+        xml_content: Contenido XML de la respuesta
+        force_save: Si es True, siempre guarda el archivo independiente de la configuración
+        operation_type: Tipo de operación (ej. 'verification', 'invoice', 'anulacion')
     
+    Returns:
+        str: Ruta del archivo guardado o None si no se guardó
+    """
+    # Verificar si debemos guardar esta respuesta según configuración
+    if not force_save:
+        # Obtener configuración del archivo .env o de la configuración de la aplicación
+        from dotenv import load_dotenv
+        import os
+        load_dotenv()
+        
+        # Nivel de detalle para guardar respuestas (valores posibles: all, errors_only, important, none)
+        save_level = os.getenv('XML_RESPONSE_SAVE_LEVEL', 'errors_only')
+        
+        # Lista de tipos de operaciones consideradas "importantes"
+        important_operations = ['invoice', 'anulacion', 'cufd', 'evento_significativo']
+        
+        # Decidir si guardar basado en la configuración
+        if save_level == 'none':
+            return None
+        elif save_level == 'errors_only':
+            # Verificar si hay un error en la respuesta
+            if b'<transaccion>true</transaccion>' in xml_content:
+                return None  # Es una respuesta exitosa, no la guardamos
+        elif save_level == 'important':
+            # Solo guardar operaciones importantes
+            if operation_type not in important_operations and not force_save:
+                return None
+    
+    # Si llegamos aquí, debemos guardar el archivo
+    # Crear directorio logs/responses si no existe
+    os.makedirs("logs/responses", exist_ok=True)
+    
+    # Obtener timestamp para nombre de archivo
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # Incluir tipo de operación en el nombre si está disponible
+    op_prefix = f"{operation_type}_" if operation_type else ""
+    filepath = f"logs/responses/{op_prefix}response_{timestamp}.xml"
+    
+    # Guardar el XML en un archivo
+    with open(filepath, "wb") as f:
+        f.write(xml_content)
+    
+    logger.info(f"Respuesta XML guardada en {filepath}")
+    return filepath
+
+def parse_siat_response(content, operation_type=None, force_save=False):
+    """
+    Parsea una respuesta SOAP del SIAT para extraer información relevante
+    
+    Args:
+        content: Contenido de respuesta XML del servicio SIAT
+        operation_type: Tipo de operación que generó esta respuesta
+        force_save: Si es True, siempre guarda la respuesta en archivo
+    
+    Returns:
+        tuple: (exito: bool, datos: dict) - Indicador de éxito y datos extraídos
+    """
+    # Guardar la respuesta para depuración si corresponde
+    save_xml_response(content, force_save=force_save, operation_type=operation_type)
+    
+    try:
+        # Parse el XML
+        root = ET.fromstring(content)
+        
+        # Extraer la respuesta basada en namespaces comunes en respuestas SOAP
+        namespaces = {
+            'soap': 'http://schemas.xmlsoap.org/soap/envelope/',
+            'ns2': 'https://siat.impuestos.gob.bo/'
+        }
+        
+        # Verificar si es una respuesta de verificarComunicacion (estructura especial)
+        is_verification = False
+        verification_elements = root.findall('.//ns2:verificarComunicacionResponse', namespaces)
+        if verification_elements:
+            is_verification = True
+        
+        # Proceso especial para respuestas de verificación de comunicación
+        if is_verification:
+            # Buscar directamente el elemento 'transaccion', independiente de su contenedor
+            transaction_elements = root.findall('.//*transaccion')
+            if transaction_elements:
+                transaccion = transaction_elements[0].text.lower() == 'true'
+                
+                # Buscar elementos de mensajes (solo presente en algunos servicios)
+                mensaje_elements = root.findall('.//*mensajesList')
+                codigo = None
+                descripcion = None
+                
+                if mensaje_elements:
+                    codigo_elements = root.findall('.//*codigo')
+                    descripcion_elements = root.findall('.//*descripcion')
+                    
+                    if codigo_elements:
+                        codigo = codigo_elements[0].text
+                    
+                    if descripcion_elements:
+                        descripcion = descripcion_elements[0].text
+                
+                # Creamos una estructura normalizada
+                return True, {
+                    'transaccion': transaccion,
+                    'codigoEstado': codigo,
+                    'codigoDescripcion': descripcion
+                }
+            else:
+                # No se encontró el elemento 'transaccion'
+                logger.error("No se encontró el elemento 'transaccion' en la respuesta de verificación")
+                return False, {
+                    'error': "No se encontró el elemento 'transaccion' en la respuesta",
+                    'xml_content': content.decode('utf-8') if isinstance(content, bytes) else content
+                }
+        
+        # Buscar elementos RespuestaServicioFacturacion (respuesta específica de facturación)
+        facturacion_elements = root.findall('.//RespuestaServicioFacturacion')
+        if facturacion_elements:
+            facturacion_element = facturacion_elements[0]
+            
+            # Preparar diccionario de respuesta
+            response_data = {}
+            
+            # Extraer campos comunes
+            for field in ['transaccion', 'codigoEstado', 'codigoDescripcion', 'codigoRecepcion']:
+                element = facturacion_element.find(f'.//{field}')
+                if element is not None:
+                    # Convertir 'transaccion' a booleano
+                    if field == 'transaccion':
+                        response_data[field] = (element.text.lower() == 'true')
+                    else:
+                        response_data[field] = element.text
+            
+            # Si no se encontró una transacción, asumir error
+            if 'transaccion' not in response_data:
+                logger.warning("No se encontró el elemento 'transaccion' en RespuestaServicioFacturacion")
+                response_data['transaccion'] = False
+            
+            return True, response_data
+        
+        # Proceso para respuestas regulares de operaciones SIAT
+        respuesta_elements = root.findall('.//ns2:*Response', namespaces)
+        
+        if not respuesta_elements:
+            # Buscar diferentes patrones de nombres de respuesta
+            respuesta_elements = root.findall('.//*Response')
+        
+        if respuesta_elements:
+            respuesta = respuesta_elements[0]
+            
+            # Obtener el nodo 'return' que contiene la respuesta principal
+            return_elements = respuesta.findall('.//return')
+            
+            if return_elements:
+                return_element = return_elements[0]
+                
+                # Buscar elementos principales en la respuesta
+                transaccion_element = return_element.find('.//transaccion')
+                codigo_estado_element = return_element.find('.//codigoEstado')
+                
+                # Preparar diccionario de respuesta
+                response_data = {}
+                
+                # Extraer transacción
+                if transaccion_element is not None:
+                    response_data['transaccion'] = (transaccion_element.text.lower() == 'true')
+                
+                # Extraer código de estado
+                if codigo_estado_element is not None:
+                    response_data['codigoEstado'] = codigo_estado_element.text
+                
+                # Extraer mensajes
+                mensajes_list = return_element.findall('.//mensajesList')
+                if mensajes_list:
+                    mensajes = []
+                    for mensaje in mensajes_list:
+                        codigo = mensaje.find('.//codigo')
+                        descripcion = mensaje.find('.//descripcion')
+                        
+                        if codigo is not None and descripcion is not None:
+                            mensajes.append({
+                                'codigo': codigo.text,
+                                'descripcion': descripcion.text
+                            })
+                    
+                    response_data['mensajes'] = mensajes
+                    
+                    # Si existe un primer mensaje, extraer como código y descripción principal
+                    if mensajes:
+                        response_data['codigoEstado'] = response_data.get('codigoEstado', mensajes[0]['codigo'])
+                        response_data['codigoDescripcion'] = mensajes[0]['descripcion']
+                
+                # Extraer otros campos comunes
+                for field in ['codigoRecepcion', 'cuf', 'fechaRecepcion']:
+                    element = return_element.find(f'.//{field}')
+                    if element is not None:
+                        response_data[field] = element.text
+                
+                # Buscar elementos de facturas/documentos
+                facturas_elements = return_element.findall('.//codigosFacturas')
+                if facturas_elements:
+                    facturas = []
+                    for factura in facturas_elements:
+                        codigo_fact = factura.find('.//codigoFactura')
+                        codigo_rec = factura.find('.//codigoRecepcion')
+                        
+                        if codigo_fact is not None and codigo_rec is not None:
+                            facturas.append({
+                                'codigoFactura': codigo_fact.text,
+                                'codigoRecepcion': codigo_rec.text
+                            })
+                    
+                    response_data['facturas'] = facturas
+                
+                return True, response_data
+            else:
+                logger.error("No se encontró el elemento 'return' en la respuesta")
+                return False, {
+                    'error': "No se encontró el elemento 'return' en la respuesta",
+                    'xml_content': content.decode('utf-8') if isinstance(content, bytes) else content
+                }
+        else:
+            # Antes de reportar un error, buscar cualquier elemento que pueda contener información útil
+            potential_elements = [
+                './/RespuestaServicioFacturacion',
+                './/return',
+                './/respuesta'
+            ]
+            
+            for xpath in potential_elements:
+                elements = root.findall(xpath)
+                if elements:
+                    element = elements[0]
+                    response_data = {}
+                    
+                    # Intentar extraer campos comunes
+                    for field in ['transaccion', 'codigoEstado', 'codigoDescripcion', 'codigoRecepcion']:
+                        field_elem = element.find(f'.//{field}')
+                        if field_elem is not None:
+                            if field == 'transaccion':
+                                response_data[field] = (field_elem.text.lower() == 'true')
+                            else:
+                                response_data[field] = field_elem.text
+                    
+                    # Si encontramos al menos 'transaccion', considerar éxito
+                    if 'transaccion' in response_data:
+                        logger.info(f"Se encontró un elemento alternativo válido: {xpath}")
+                        return True, response_data
+            
+            logger.error("No se encontró un elemento Response en la respuesta SOAP")
+            return False, {
+                'error': "No se encontró un elemento Response en la respuesta SOAP",
+                'xml_content': content.decode('utf-8') if isinstance(content, bytes) else content
+            }
     except ET.ParseError as e:
-        logger.error(f"Error al parsear XML: {e}")
+        logger.error(f"Error al parsear el XML: {e}")
         return False, {
-            'error': f"Error al parsear el XML de respuesta: {str(e)}",
-            'traceback': traceback.format_exc(),
-            'xml_content_sample': response_content[:1000].decode('utf-8', errors='replace')
+            'error': f"Error al parsear el XML: {e}",
+            'xml_content': content.decode('utf-8') if isinstance(content, bytes) else content
         }
     except Exception as e:
-        logger.error(f"Error inesperado: {e}")
+        logger.error(f"Error inesperado al procesar la respuesta: {e}")
         return False, {
-            'error': f"Error inesperado al procesar la respuesta: {str(e)}",
-            'traceback': traceback.format_exc()
+            'error': f"Error inesperado al procesar la respuesta: {e}",
+            'xml_content': content.decode('utf-8') if isinstance(content, bytes) else content
         }
 
-def display_siat_response(response_data: Dict[str, Any], message_placeholder) -> bool:
+def display_siat_response(response_data, placeholder):
     """
-    Muestra la respuesta del SIAT de manera adecuada en la interfaz de Streamlit.
+    Muestra la respuesta del SIAT de manera amigable en la interfaz
     
     Args:
-        response_data: Datos de la respuesta procesada
-        message_placeholder: Placeholder de Streamlit para mostrar mensajes
-        
+        response_data (dict): Datos extraídos de la respuesta
+        placeholder: Placeholder de Streamlit para mostrar mensajes
+    
     Returns:
-        Boolean indicando si la transacción fue exitosa
+        bool: Éxito de la operación
     """
-    if 'error' in response_data:
-        message_placeholder.error(f"❌ Error en la respuesta: {response_data['error']}")
+    # Verificar transacción exitosa
+    if response_data.get('transaccion'):
+        # Obtener código de recepción si existe
+        codigo_recepcion = response_data.get('codigoRecepcion', '')
+        fecha_recepcion = response_data.get('fechaRecepcion', '')
         
-        # Si hay información adicional de diagnóstico, mostrarla en un área expandible
-        diagnostico = {}
-        for k, v in response_data.items():
-            if k not in ['error', 'traceback', 'xml_content', 'xml_content_sample', 'raw_response_path']:
-                diagnostico[k] = v
+        if codigo_recepcion:
+            placeholder.success(f"✅ Operación exitosa: Código de recepción {codigo_recepcion}")
+            if fecha_recepcion:
+                placeholder.info(f"📅 Fecha de recepción: {fecha_recepcion}")
+        else:
+            placeholder.success(f"✅ Operación exitosa")
         
-        if diagnostico:
-            with st.expander("Información de diagnóstico"):
-                for k, v in diagnostico.items():
-                    st.text(f"{k}: {v}")
+        # Mostrar detalles adicionales si existen
+        if 'codigoEstado' in response_data:
+            placeholder.info(f"🔵 Código de estado: {response_data['codigoEstado']}")
+            
+        if 'codigoDescripcion' in response_data:
+            placeholder.info(f"📝 Descripción: {response_data['codigoDescripcion']}")
         
-        # Mostrar ruta del archivo de respuesta para referencia
-        if 'raw_response_path' in response_data:
-            with st.expander("Datos técnicos para soporte"):
-                st.info(f"Respuesta completa guardada en: {response_data['raw_response_path']}")
-        
-        return False
-    
-    transaccion_exitosa = response_data.get('transaccion', False)
-    codigo_descripcion = response_data.get('codigoDescripcion', 'Sin descripción')
-    codigo_estado = response_data.get('codigoEstado', 'Sin código')
-    
-    if transaccion_exitosa:
-        mensaje_exito = f":heavy_check_mark: FACTURA {codigo_descripcion}"
-        if response_data.get('codigoRecepcion'):
-            mensaje_exito += f" (Código de recepción: {response_data['codigoRecepcion']})"
-        message_placeholder.success(mensaje_exito)
         return True
     else:
-        # Mostrar mensaje principal de error
-        error_message = f"❌ FACTURA NO VALIDADA: {codigo_descripcion} (Código: {codigo_estado})"
-        message_placeholder.error(error_message)
+        # Mostrar errores
+        mensaje = "❌ La operación no fue exitosa"
         
-        # Mostrar detalles de errores si existen
-        mensajes = response_data.get('mensajes', [])
-        if mensajes:
-            error_details = [{"Código": m['codigo'], "Descripción": m['descripcion']} for m in mensajes]
-            st.error("Detalles del error:")
-            st.table(error_details)
-            
-            # Agregar información sobre posibles soluciones según los códigos de error
-            soluciones = []
-            for m in mensajes:
-                codigo = m['codigo']
-                if codigo == '123':
-                    soluciones.append("• El CUFD está vencido o es inválido. Solicite un nuevo CUFD.")
-                elif codigo == '935':
-                    soluciones.append("• La fecha de envío está fuera del rango permitido. Verifique la sincronización de la hora del servidor.")
-                elif codigo == 'ANALISIS':
-                    soluciones.append(f"• {m['descripcion']}")
-            
-            if soluciones:
-                st.info("**Posibles soluciones:**\n" + "\n".join(soluciones))
+        if 'codigoDescripcion' in response_data:
+            mensaje += f": {response_data['codigoDescripcion']}"
+        elif 'mensajes' in response_data and response_data['mensajes']:
+            mensaje += f": {response_data['mensajes'][0]['descripcion']}"
         
-        # Si hay información de diagnóstico, mostrarla en un área expandible
-        if 'diagnostico' in response_data:
-            with st.expander("Información de diagnóstico adicional"):
-                st.json(response_data['diagnostico'])
-        
-        # Mostrar ruta del archivo de respuesta para referencia
-        if 'raw_response_path' in response_data:
-            with st.expander("Datos técnicos para soporte"):
-                st.info(f"Respuesta completa guardada en: {response_data['raw_response_path']}")
-        
-        # Informar sobre siguientes pasos
-        st.warning("Por favor, corrija los errores y vuelva a intentar generar la factura.")
+        placeholder.error(mensaje)
         return False
 
 # Mapa ampliado de códigos de error y sus soluciones

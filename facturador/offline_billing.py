@@ -4,10 +4,10 @@ import logging
 from datetime import datetime
 from database import SessionLocal
 from facturador.models import FacturaCabecera, FacturaDetalle
-from logger_config import get_contingency_logger, get_facturacion_logger
+from facturador.logger_config import get_logger  # Cambiar esta importación
 
-logger = get_contingency_logger()
-facturacion_logger = get_facturacion_logger()
+logger = get_logger('contingency')  # Usar el logger general con nombre específico
+facturacion_logger = get_logger('facturacion')
 
 def mark_invoice_as_contingency(numero_factura):
     """
@@ -243,5 +243,154 @@ def update_invoice_status_after_sending(numero_factura, codigo_recepcion, estado
         logger.error(f"Error al actualizar factura {numero_factura}: {str(e)}")
         return False
     
+    finally:
+        session.close()
+
+import os
+import sys
+from datetime import datetime
+from sqlalchemy.exc import SQLAlchemyError
+from database import SessionLocal
+from facturador.models import FacturaCabecera, FacturaDetalle, Cufd
+from facturador.logger_config import get_logger  # Cambiar esta importación
+
+# Obtener logger para este módulo
+logger = get_logger('contingency')  # Usar el logger general con nombre específico
+
+def prepare_invoice_for_offline(factura_cabecera_data, detalles_factura):
+    """
+    Prepara una factura para ser emitida en modo offline durante contingencia
+    
+    Args:
+        factura_cabecera_data (dict): Datos de la cabecera de la factura
+        detalles_factura (list): Lista de detalles de la factura
+        
+    Returns:
+        tuple: (bool, str) - (éxito, mensaje)
+    """
+    try:
+        # Marcar la factura como emitida en contingencia
+        factura_cabecera_data["tipoEmision"] = "2"  # 2 = Fuera de línea
+        factura_cabecera_data["estadoFirma"] = "CONTINGENCIA"
+        
+        # Obtener info de contingencia si existe
+        from facturador.contingency_manager import get_contingency_manager
+        contingency_manager = get_contingency_manager()
+        status = contingency_manager.get_status()
+        
+        # Añadir info de contingencia si está disponible
+        if status["contingency_active"] and status["contingency_start_time"]:
+            factura_cabecera_data["codigoEvento"] = status["event_type"]
+            factura_cabecera_data["descripcionEvento"] = status["event_description"]
+            factura_cabecera_data["fechaInicioEvento"] = status["contingency_start_time"]
+            
+        # Guardar la factura en la base de datos
+        session = SessionLocal()
+        try:
+            # Intentar guardar la cabecera de la factura
+            new_factura = FacturaCabecera(**factura_cabecera_data)
+            session.add(new_factura)
+            session.flush()
+            
+            # Si la cabecera se guardó correctamente, guardar los detalles
+            for detalle in detalles_factura:
+                new_detalle = FacturaDetalle(**detalle)
+                session.add(new_detalle)
+            
+            session.commit()
+            logger.info(f"Factura #{factura_cabecera_data['numeroFactura']} guardada para emisión offline")
+            return True, "Factura guardada correctamente para emisión offline"
+        except SQLAlchemyError as e:
+            session.rollback()
+            logger.error(f"Error SQL al guardar la factura offline: {e}")
+            return False, f"Error al guardar la factura: {str(e)}"
+        finally:
+            session.close()
+            
+    except Exception as e:
+        logger.error(f"Error general al preparar factura offline: {e}")
+        return False, f"Error al preparar factura offline: {str(e)}"
+
+def save_invoice_xml(numero_factura, cuf, xml_content):
+    """
+    Guarda el XML de una factura emitida offline
+    
+    Args:
+        numero_factura (int): Número de factura
+        cuf (str): CUF de la factura
+        xml_content (str): Contenido XML de la factura
+        
+    Returns:
+        tuple: (bool, str) - (éxito, mensaje)
+    """
+    try:
+        # Crear directorio si no existe
+        os.makedirs("xmls_offline", exist_ok=True)
+        
+        # Guardar el XML
+        filename = f"xmls_offline/factura_{numero_factura}_{cuf}.xml"
+        with open(filename, "w", encoding='utf-8') as f:
+            f.write(xml_content)
+        
+        logger.info(f"XML de factura offline guardado: {filename}")
+        return True, f"XML guardado en {filename}"
+    except Exception as e:
+        logger.error(f"Error al guardar XML de factura offline: {e}")
+        return False, f"Error al guardar XML: {str(e)}"
+
+def get_pending_invoices():
+    """
+    Obtiene todas las facturas pendientes de envío
+    
+    Returns:
+        list: Lista de facturas pendientes
+    """
+    session = SessionLocal()
+    try:
+        facturas = session.query(FacturaCabecera).filter(
+            FacturaCabecera.estadoFirma == "CONTINGENCIA"
+        ).all()
+        return [f.to_dict() for f in facturas]
+    except Exception as e:
+        logger.error(f"Error al obtener facturas pendientes: {e}")
+        return []
+    finally:
+        session.close()
+
+def update_invoice_status_after_sending(numero_factura, codigo_recepcion, estado):
+    """
+    Actualiza el estado de una factura después de enviarla al SIN
+    
+    Args:
+        numero_factura (int): Número de factura
+        codigo_recepcion (str): Código de recepción del SIN
+        estado (str): Nuevo estado de la factura
+        
+    Returns:
+        bool: True si se actualizó correctamente, False en caso contrario
+    """
+    session = SessionLocal()
+    try:
+        factura = session.query(FacturaCabecera).filter(
+            FacturaCabecera.numeroFactura == numero_factura
+        ).first()
+        
+        if factura:
+            factura.codigoRecepcion = codigo_recepcion
+            factura.estadoFirma = "FIRMADO"
+            factura.resultadoValidacion = estado
+            factura.fechaValidacion = datetime.now()
+            factura.fechaSincronizacion = datetime.now()
+            session.commit()
+            
+            logger.info(f"Factura #{numero_factura} actualizada con estado {estado}")
+            return True
+        else:
+            logger.warning(f"No se encontró la factura #{numero_factura}")
+            return False
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error al actualizar estado de factura #{numero_factura}: {e}")
+        return False
     finally:
         session.close()

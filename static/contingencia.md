@@ -69,7 +69,7 @@ Según la información normativa y el archivo de eventos, los principales evento
   Si el sistema no es operativo, se deben emitir facturas manuales de contingencia preaprobadas, que posteriormente serán transcritas al sistema.
 
 > “De producirse una contingencia, pero el sistema informático continúa operativo, éste deberá cambiar a la emisión de facturas fuera de línea ... En caso de que no pueda utilizarse el sistema informático ... se deberán emitir facturas manuales de contingencia previamente aprovisionadas.”  
-> citeturn0file1
+
 
 ### b. Registro del Evento Significativo
 
@@ -240,5 +240,3 @@ Integrar estos procesos siguiendo los lineamientos aquí descritos—apoyándose
 ---
 
 Esta guía integra los conceptos teóricos y prácticos necesarios para una correcta implementación, brindando una referencia clara para el desarrollo y operación del sistema de facturación electrónica en situaciones de contingencia.
-
-¿Te gustaría profundizar en algún aspecto en particular o necesitas ejemplos de código para alguna de estas etapas?
