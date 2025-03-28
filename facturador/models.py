@@ -300,6 +300,8 @@ class ProductoSiat(Base):
     __tablename__ = 'productos_siat'
     __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tipo_origen = Column(Enum('producto', 'combo', name='tipo_origen_enum'), nullable=False)  # Campo faltante
+    id_origen = Column(Integer, nullable=True)  # Campo faltante
     categoria = Column(String(255), nullable=True)
     codigo = Column(String(191), nullable=False, unique=True)  # Ajustar la longitud del VARCHAR y agregar unique
     codigo_sin = Column(Integer, nullable=True)
@@ -317,11 +319,13 @@ class ProductoSiat(Base):
     def to_dict(self):
         return {
             "id": self.id,
+            "tipo_origen": self.tipo_origen,  # Incluir el nuevo campo
+            "id_origen": self.id_origen,      # Incluir el nuevo campo
             "categoria": self.categoria,
             "codigo": self.codigo,
             "codigo_sin": self.codigo_sin,
             "nombre": self.nombre,
-            "precio_venta": float(self.precio_venta),
+            "precio_venta": float(self.precio_venta) if self.precio_venta else None,
             "codigo_unidad_medida": self.codigo_unidad_medida,
             "unidad_medida": self.unidad_medida,  # Incluir unidad_medida
             "unidad_medida_sin": self.unidad_medida_sin,
@@ -330,7 +334,57 @@ class ProductoSiat(Base):
             "fecha_actualizacion": self.fecha_actualizacion.isoformat() if self.fecha_actualizacion else None,
             "estado_sincronizacion": self.estado_sincronizacion
         }
-    
+
+class BarComboCoctel(Base):
+    __tablename__ = 'bar_combo_coctel'
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    nombre = Column(String(255), nullable=False)
+    codigo = Column(String(255), nullable=False)
+    descripcion = Column(String(255), nullable=True)
+    id_categoria = Column(Integer, ForeignKey('alm_categoria.id'), nullable=True)
+    id_barra = Column(Integer, ForeignKey('bar_barra.id'), nullable=True)
+    usuario_reg = Column(String(255), nullable=False)
+    fecha_reg = Column(Date, nullable=True)
+    fecha_mod = Column(Date, nullable=True)
+    estado = Column(String(3), nullable=False)
+
+    # Relaciones
+    categoria = relationship("AlmCategoria", foreign_keys=[id_categoria])
+    barra = relationship("BarBarra", foreign_keys=[id_barra])
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "codigo": self.codigo,
+            "descripcion": self.descripcion,
+            "id_categoria": self.id_categoria,
+            "id_barra": self.id_barra,
+            "usuario_reg": self.usuario_reg,
+            "fecha_reg": self.fecha_reg.isoformat() if self.fecha_reg else None,
+            "fecha_mod": self.fecha_mod.isoformat() if self.fecha_mod else None,
+            "estado": self.estado
+        }
+
+# También necesitamos definir las clases para las tablas relacionadas 
+class AlmCategoria(Base):
+    __tablename__ = 'alm_categoria'
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True)
+    # Añadir otros campos según sea necesario
+    # Este es un modelo mínimo para establecer la relación
+
+class BarBarra(Base):
+    __tablename__ = 'bar_barra'
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True)
+    # Añadir otros campos según sea necesario
+    # Este es un modelo mínimo para establecer la relación
+
 class PuntoVenta(Base):
     __tablename__ = 'punto_venta'
     __table_args__ = {'extend_existing': True}
