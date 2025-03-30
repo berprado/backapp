@@ -27,5 +27,6 @@
             }
         }
     ],
-    "github.copilot.chat.testGeneration.instructions": []
+    "github.copilot.chat.testGeneration.instructions": [],
+    "github.copilot.chat.codesearch.enabled": false
 }

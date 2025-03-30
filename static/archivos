@@ -1,0 +1,55 @@
+── __init__.py
+    └── **anulacion.py
+    └── app - Copy.log
+    └── app.log
+    └── batch_sender.py
+    └── **business_logic.py
+    └── compact_pdf_generator.py
+    └── **config.py
+    └── contingency_manager.py
+    └── contingency_state.json
+    └── **cufd.py
+    └── **cuis.py
+    └── **data_access.py
+    └── **database.py
+    └── debug_factura_.html
+    └── **estado_factura.py
+    └── export.py
+    └── factura_84_247.pdf
+    └── factura_pdf.py
+    └── factura_print.py
+    └── factura_xml.py
+    └── factura_xml1.py
+    └── formatos.py
+    └── **generate_cuf.py
+    └── generate_pdf.py
+    └── invoice_exporter.py
+    └── invoice_log - Copy.log
+    └── invoice_log.log
+    └── invoice_number.txt
+    └── **invoice_templates.py
+    └── **invoice_xml_generator.py
+    └── **logger_config.py
+    └── main.py
+    └── **models.py
+    └── offline_billing.py
+    └── print_invoice.py
+    └── printer_debug.log
+    └── **printer_utils.py
+    └── proceso_anulacion.py
+    └── **response_handler.py
+    └── **reversion.py
+    └── **siat_pdf.py
+    └── significant_events.py
+    └── sincro_productos.py
+    └── thermal_printer - Copy.log
+    └── thermal_printer.log
+    └── **thermal_printer.py
+    └── ui_copy.log
+    └── ui_copy.py
+    └── **verifica_stream.py
+    └── verificacion.py
+    └── verificador.py
+    └── verificanit.py
+    └── verinit_conex.py
+    └── zeeper.py

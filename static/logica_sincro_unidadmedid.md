@@ -1,3 +1,29 @@
+Actualmente, para obtener la unidad de medida de cada producto desde la tabla `productos_siat`, se sigue la siguiente lógica:
+
+1. **Definir la Función de Acceso a Datos**:
+   - Se crea una función en el módulo de acceso a datos (`data_access.py`) que toma como parámetros el código del producto y una sesión de la base de datos.
+   - Esta función consulta la tabla `productos_siat` para encontrar el registro que coincide con el código del producto proporcionado.
+
+2. **Consulta a la Base de Datos**:
+   - Dentro de la función, se utiliza la sesión de la base de datos para ejecutar una consulta que busca el producto por su código.
+   - Si se encuentra el producto, se extrae el valor de la columna `unidad_medida`.
+
+3. **Manejo de Resultados**:
+   - Si el producto se encuentra y tiene un valor en la columna `unidad_medida`, se devuelve este valor.
+   - Si el producto no se encuentra o no tiene un valor definido para `unidad_medida`, se devuelve un valor predeterminado, como "Unidadxxx.".
+
+4. **Integración en la Lógica de Negocio**:
+   - La función de acceso a datos se llama desde la lógica de negocio cuando se necesita obtener la unidad de medida para un producto específico.
+   - Esto puede ocurrir, por ejemplo, al generar una factura, donde se necesita incluir la unidad de medida de cada producto en los detalles de la factura.
+
+5. **Uso en Generación de Facturas**:
+   - Al generar la factura, se recorre la lista de productos y se llama a la función de acceso a datos para obtener la unidad de medida de cada producto.
+   - La unidad de medida obtenida se incluye en los detalles de la factura.
+
+Esta lógica asegura que la unidad de medida de cada producto se obtenga de manera consistente y se manejen adecuadamente los casos en los que la unidad de medida no esté definida.
+
+
+
 Para lograr la sincronización entre las tablas `productos_siat` y `bar_combo_coctel` y asegurar que la columna `unidad_medida` en `productos_siat` se actualice correctamente con la primera palabra de la columna `descripcion` de `bar_combo_coctel`, se deben realizar las siguientes modificaciones:
 
 1. **Modificación en el Modelo de Datos**:

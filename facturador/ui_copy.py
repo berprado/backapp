@@ -51,7 +51,7 @@ from reversion import enviar_solicitud_reversion, procesar_respuesta_reversion
 from facturador.response_handler import parse_siat_response, display_siat_response
 
 # Impresión y exportación
-from facturador.export import imprimir_recibo
+#from facturador.export import imprimir_recibo
 from invoice_templates import generate_compact_html_invoice
 from facturador.thermal_printer import ThermalPrinter
 from facturador.siat_pdf import html_to_pdf
