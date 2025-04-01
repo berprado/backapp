@@ -16,7 +16,7 @@
             "port": 3306,
             "ssl": false,
             "username": "root",
-            "password": "",
+            "password": "admin123.",
             "savePassword": "secretStorage",
             "database": "adminerp_copy",
             "readOnly": false,

@@ -83,9 +83,11 @@ def enviar_solicitud_anulacion(cuf, cufd, codigo_motivo):
 
     solicitud_xml = construir_solicitud_anulacion(cuf, cufd, codigo_motivo)
     try:
-        response = requests.post(url, headers=headers, data=solicitud_xml)
+        response = requests.post(url, headers=headers, data=solicitud_xml, timeout=45)  # Set timeout explicitly
         response.raise_for_status()
         return True, response.content
+    except requests.exceptions.Timeout:
+        return False, "Error inesperado: Timeout al intentar conectar con el servicio de anulación."
     except requests.exceptions.HTTPError as http_err:
         return False, f"HTTP error occurred: {http_err}"
     except Exception as e:
