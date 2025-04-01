@@ -1,4 +1,4 @@
-Con la información completa de los archivos proporcionados, el plan para corregir las inconsistencias en la lógica y manejo de contingencias y eventos significativos se detalla a continuación:
+Gracias por proporcionar los archivos y la información adicional. Ahora puedo ajustar el plan de corrección con mayor precisión, teniendo en cuenta las tablas y modelos relacionados con la base de datos. Aquí está el plan actualizado:
 
 ---
 
@@ -104,6 +104,18 @@ Con la información completa de los archivos proporcionados, el plan para correg
 
 ---
 
+### **6. Validaciones en Base de Datos**
+#### **Problema**:
+- Falta de validaciones en las tablas relacionadas con eventos significativos y facturación.
+- **Corrección**:
+  - Validar que los registros en `sincronizarparametricaeventossignificativos` no estén duplicados.
+  - Asegurar que las facturas en `factura_cabecera` tengan un estado coherente con el modo de emisión.
+- **Archivos a modificar**:
+  - models.py
+  - tablas_eventos_significativos.sql
+
+---
+
 ### **Acciones Adicionales**
 1. **Pruebas Unitarias e Integración**:
    - Implementar pruebas para validar las correcciones realizadas, especialmente en el manejo de contingencias y eventos significativos.
@@ -116,3 +128,4 @@ Con la información completa de los archivos proporcionados, el plan para correg
 
 ---
 
+¿Deseas que comience con alguna corrección específica o que implemente todo el plan?
