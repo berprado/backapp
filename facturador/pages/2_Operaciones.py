@@ -138,7 +138,7 @@ def main():
                         st.info("El sistema enviará las facturas pendientes automáticamente")
                         st.rerun()
                     else:
-                        st.error("❌ No se pudo desactivar el modo contingencia")
+                        st.error("Error al desactivar el modo contingencia. Consulte los logs para más detalles.")
         else:
             # Opciones para activar manualmente
             st.info("Sistema en modo normal (sin contingencia)")
@@ -166,17 +166,16 @@ def main():
                 
                 # Botón para activar
                 if st.button("Activar modo contingencia", type="primary", key="activate_contingency"):
-                    if not description:
-                        st.warning("Por favor, ingrese una descripción para el evento")
+                    if not selected_event or not description:
+                        st.error("Debe seleccionar un tipo de evento y proporcionar una descripción.")
                     else:
                         with st.spinner("Activando modo contingencia..."):
                             # Obtener código del evento seleccionado
                             event_code = event_options[selected_event]
-                            event_type = SignificantEventType(event_code)
                             
                             # Activar contingencia
                             success = contingency_manager.activate_contingency(
-                                event_type=event_type,
+                                event_type=event_code,
                                 description=description
                             )
                             
@@ -190,7 +189,7 @@ def main():
                                 """)
                                 st.rerun()
                             else:
-                                st.error("❌ No se pudo activar el modo contingencia")
+                                st.error("Error al activar el modo contingencia. Consulte los logs para más detalles.")
         
         # Información sobre el modo contingencia
         with st.expander("¿Qué es el modo contingencia?"):

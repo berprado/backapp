@@ -303,45 +303,48 @@ class ContingencyManager:
             bool: True si se activó correctamente, False en caso contrario
         """
         try:
+            # Validar entradas
+            if not event_type or not description:
+                logger.error("Se requieren el tipo de evento y la descripción para activar la contingencia.")
+                return False
+
             # Verificar si ya estamos en contingencia
             if self.status == ContingencyStatus.CONTINGENCY:
                 logger.warning("Ya estamos en modo contingencia")
-                return True
-            
+                return False
+
             logger.info(f"Activando modo contingencia: {event_type.name}")
-            
+
             # Actualizar estado
             self.status = ContingencyStatus.CONTINGENCY
             self.contingency_start_time = datetime.now()
             self.event_type = event_type
-            self.event_description = description or f"Contingencia activada por {event_type.name}"
-            
+            self.event_description = description
+
             # Guardar el CUFD actual para usarlo en la contingencia
             session = SessionLocal()
             try:
                 cufd_record = session.query(Cufd).filter(Cufd.vigente == 1).first()
-                if cufd_record:
-                    self.cufd_contingency = cufd_record.codigo
-                    logger.info(f"CUFD de contingencia almacenado: {self.cufd_contingency}")
-                else:
-                    logger.error("No se encontró un CUFD válido para usar en contingencia")
+                if not cufd_record:
+                    logger.error("No se encontró un CUFD válido para activar la contingencia.")
                     return False
+                self.cufd_contingency = cufd_record.codigo
             finally:
                 session.close()
-            
+
             # Guardar estado
             self._save_state()
-                
+
             # Iniciar monitoreo si no está activo
             self.start_monitoring()
-             
-            logger.info("Modo contingencia activado correctamente")
+
+            logger.info("Modo contingencia activado correctamente.")
             return True
-            
+
         except Exception as e:
             logger.error(f"Error al activar modo contingencia: {e}")
             return False
-    
+
     def deactivate_contingency(self) -> bool:
         """
         Desactiva el modo contingencia manualmente
@@ -352,24 +355,27 @@ class ContingencyManager:
         try:
             # Verificar si estamos en contingencia
             if self.status != ContingencyStatus.CONTINGENCY:
-                logger.warning(f"No estamos en modo contingencia, estado actual: {self.status.value}")
+                logger.warning("El sistema no está en modo contingencia.")
                 return False
-            
-            logger.info("Desactivando modo contingencia manualmente")
-            
+
+            logger.info("Desactivando modo contingencia manualmente.")
+
             # Registrar evento significativo
-            self.register_significant_event()
-            
+            success, message = self.register_significant_event()
+            if not success:
+                logger.error(f"Error al registrar evento significativo: {message}")
+                return False
+
             # Actualizar estado
             self.status = ContingencyStatus.RECOVERING
             self._save_state()
-                
+
             # Activar el envío de facturas pendientes
             self.sync_pending_invoices()
-             
-            logger.info("Modo contingencia desactivado correctamente")
+
+            logger.info("Modo contingencia desactivado correctamente.")
             return True
-            
+
         except Exception as e:
             logger.error(f"Error al desactivar modo contingencia: {e}")
             return False

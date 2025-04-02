@@ -1461,7 +1461,19 @@ def mostrar_lista_facturas(estado):
                 col1, col2 = st.columns(2)
                 with col1:
                     st.write("**Datos de la Factura:**")
-                    st.write(f"**Fecha:** {cabecera['fechaEmision'].strftime('%d/%m/%Y %H:%M:%S')}")
+                    # Convertir 'fechaEmision' a un objeto datetime antes de usar strftime
+                    fecha_emision = cabecera['fechaEmision']
+                    if isinstance(fecha_emision, str):
+                        try:
+                            fecha_emision = datetime.fromisoformat(fecha_emision)
+                        except ValueError:
+                            st.error("Formato de fecha inválido en 'fechaEmision'.")
+                            fecha_emision = None
+
+                    if fecha_emision:
+                        st.write(f"**Fecha:** {fecha_emision.strftime('%d/%m/%Y %H:%M:%S')}")
+                    else:
+                        st.write("**Fecha:** No disponible")
                     st.write(f"**Cliente:** {cabecera['nombreRazonSocial']}")
                     st.write(f"**NIT/CI:** {cabecera['numeroDocumento']}")
                     st.write(f"**Estado:** {cabecera['estado']}")

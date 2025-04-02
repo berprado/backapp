@@ -164,42 +164,51 @@ class BatchSender:
     
     def send_batch(self, xml_path, compressed_path, cufd_code):
         """
-        Envía un lote de facturas al servicio de recepción de paquetes
-        
+        Sends a batch of invoices to the SIAT system.
+
         Args:
-            xml_path (str): Ruta del archivo XML
-            compressed_path (str): Ruta del archivo comprimido
-            cufd_code (str): Código CUFD vigente
-            
+            xml_path (str): Path to the XML file.
+            compressed_path (str): Path to the compressed file.
+            cufd_code (str): Current CUFD code.
+
         Returns:
-            tuple: (bool, dict) Éxito y datos de respuesta
+            tuple: (bool, dict) Success and response data.
         """
         try:
-            # Calcular el hash del archivo comprimido
+            # Validate inputs
+            if not os.path.exists(xml_path):
+                logger.error(f"XML file not found: {xml_path}")
+                return False, {"error": "XML file not found."}
+
+            if not os.path.exists(compressed_path):
+                logger.error(f"Compressed file not found: {compressed_path}")
+                return False, {"error": "Compressed file not found."}
+
+            if not cufd_code:
+                logger.error("CUFD code is required but not provided.")
+                return False, {"error": "CUFD code is missing."}
+
+            # Calculate the hash of the compressed file
             hash_archivo = self.calculate_hash(compressed_path)
             if not hash_archivo:
-                return False, {"error": "No se pudo calcular el hash del archivo"}
-            
-            # Codificar el archivo en base64
+                return False, {"error": "Failed to calculate file hash."}
+
+            # Encode the file in base64
             archivo_base64 = self.encode_file_to_base64(compressed_path)
             if not archivo_base64:
-                return False, {"error": "No se pudo codificar el archivo en base64"}
-            
-            # Crear el cliente SOAP
+                return False, {"error": "Failed to encode file to base64."}
+
+            # Create the SOAP client
             client = Client(
                 self.wsdl_url,
                 transport=Transport(session=self.soap_session)
             )
-            
-            # Obtener el cafc si existe para las facturas
-            cafc = None
-            # Si se necesita CAFC, aquí se implementaría la lógica para obtenerlo
-            
-            # Preparar la solicitud
+
+            # Prepare the request
             solicitud = {
                 'codigoAmbiente': os.getenv('CODIGO_AMBIENTE'),
                 'codigoDocumentoSector': os.getenv('CODIGO_DOCUMENTO_SECTOR'),
-                'codigoEmision': 2,  # Fuera de línea
+                'codigoEmision': 2,  # Offline mode
                 'codigoModalidad': os.getenv('CODIGO_MODALIDAD'),
                 'codigoPuntoVenta': os.getenv('CODIGO_PUNTO_VENTA'),
                 'codigoSistema': os.getenv('CODIGO_SISTEMA'),
@@ -210,240 +219,33 @@ class BatchSender:
                 'tipoFacturaDocumento': os.getenv('TIPO_FACTURA_DOCUMENTO'),
                 'archivo': archivo_base64,
                 'hashArchivo': hash_archivo,
-                'cantidadFacturas': len(os.path.basename(xml_path).split('_')),
-                'cafc': cafc
+                'cantidadFacturas': len(os.path.basename(xml_path).split('_'))
             }
-            
-            # Enviar la solicitud
-            logger.info(f"Enviando lote de facturas al servicio web...")
-            response = client.service.recepcionPaqueteFactura(**solicitud)
-            
-            # Procesar la respuesta
-            if response and hasattr(response, 'transaccion') and response.transaccion:
-                logger.info(f"Lote enviado exitosamente. Código de recepción: {response.codigoRecepcion}")
-                return True, helpers.serialize_object(response)
-            else:
-                error_msg = "Error desconocido al enviar lote"
-                if hasattr(response, 'mensajesList') and response.mensajesList:
-                    error_msg = response.mensajesList[0].descripcion
-                
-                logger.error(f"Error al enviar lote: {error_msg}")
-                return False, {"error": error_msg}
-        
+
+            # Retry mechanism
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    logger.info(f"Attempt {attempt + 1} to send batch...")
+                    response = client.service.recepcionPaqueteFactura(**solicitud)
+
+                    # Process the response
+                    if response and hasattr(response, 'transaccion') and response.transaccion:
+                        logger.info(f"Batch sent successfully. Reception code: {response.codigoRecepcion}")
+                        return True, helpers.serialize_object(response)
+                    else:
+                        error_msg = "Unknown error while sending batch."
+                        if hasattr(response, 'mensajesList') and response.mensajesList:
+                            error_msg = response.mensajesList[0].descripcion
+
+                        logger.error(f"Error sending batch: {error_msg}")
+                        return False, {"error": error_msg}
+
+                except Exception as e:
+                    logger.error(f"Exception during batch sending attempt {attempt + 1}: {str(e)}")
+
+            return False, {"error": "Failed to send batch after multiple attempts."}
+
         except Exception as e:
-            logger.error(f"Excepción al enviar lote: {str(e)}")
+            logger.error(f"Exception in send_batch: {str(e)}")
             return False, {"error": str(e)}
-    
-    def validate_batch(self, codigo_recepcion, cufd_code):
-        """
-        Valida el estado de un paquete enviado
-        
-        Args:
-            codigo_recepcion (str): Código de recepción del paquete
-            cufd_code (str): Código CUFD vigente
-            
-        Returns:
-            tuple: (bool, dict) Éxito y datos de respuesta
-        """
-        try:
-            # Crear el cliente SOAP
-            client = Client(
-                self.wsdl_url,
-                transport=Transport(session=self.soap_session)
-            )
-            
-            # Preparar la solicitud
-            solicitud = {
-                'codigoAmbiente': os.getenv('CODIGO_AMBIENTE'),
-                'codigoSistema': os.getenv('CODIGO_SISTEMA'),
-                'nit': os.getenv('NIT'),
-                'cuis': os.getenv('CUIS'),
-                'cufd': cufd_code,
-                'codigoSucursal': os.getenv('CODIGO_SUCURSAL'),
-                'codigoPuntoVenta': os.getenv('CODIGO_PUNTO_VENTA'),
-                'codigoRecepcion': codigo_recepcion
-            }
-            
-            # Enviar la solicitud
-            logger.info(f"Validando estado del paquete {codigo_recepcion}...")
-            response = client.service.validacionRecepcionPaqueteFactura(**solicitud)
-            
-            # Procesar la respuesta
-            if response and hasattr(response, 'transaccion'):
-                success = response.transaccion
-                codigo_estado = getattr(response, 'codigoEstado', None)
-                
-                result = {
-                    'success': success,
-                    'codigo_estado': codigo_estado,
-                    'full_response': helpers.serialize_object(response)
-                }
-                
-                if success:
-                    estado_text = ""
-                    if codigo_estado == 901:
-                        estado_text = "PENDIENTE"
-                    elif codigo_estado == 902:
-                        estado_text = "RECHAZADO"
-                    elif codigo_estado == 903:
-                        estado_text = "OBSERVADO"
-                    elif codigo_estado == 904:
-                        estado_text = "VALIDADO PARCIAL"
-                    elif codigo_estado == 905:
-                        estado_text = "VALIDADO"
-                    
-                    logger.info(f"Estado del paquete: {estado_text} ({codigo_estado})")
-                    
-                    # Procesar facturas validadas
-                    if hasattr(response, 'listaCodigosRespuestas') and response.listaCodigosRespuestas:
-                        self.process_validated_invoices(response.listaCodigosRespuestas)
-                
-                return True, result
-            else:
-                error_msg = "Error desconocido al validar paquete"
-                if hasattr(response, 'mensajesList') and response.mensajesList:
-                    error_msg = response.mensajesList[0].descripcion
-                
-                logger.error(f"Error al validar paquete: {error_msg}")
-                return False, {"error": error_msg}
-        
-        except Exception as e:
-            logger.error(f"Excepción al validar paquete: {str(e)}")
-            return False, {"error": str(e)}
-    
-    def process_validated_invoices(self, lista_codigos):
-        """
-        Procesa la lista de códigos de respuesta de facturas
-        
-        Args:
-            lista_codigos: Lista de códigos de respuesta de SIAT
-        """
-        try:
-            for codigo_resp in lista_codigos:
-                if hasattr(codigo_resp, 'codigoFactura') and hasattr(codigo_resp, 'codigoRecepcion'):
-                    numero_factura = codigo_resp.codigoFactura
-                    codigo_recepcion = codigo_resp.codigoRecepcion
-                    
-                    # Actualizar el estado de la factura en la base de datos
-                    if codigo_recepcion:
-                        success = update_invoice_status_after_sending(
-                            numero_factura, 
-                            codigo_recepcion, 
-                            "VALIDADA"
-                        )
-                        
-                        if success:
-                            logger.info(f"Factura {numero_factura} actualizada con código {codigo_recepcion}")
-                        else:
-                            logger.warning(f"No se pudo actualizar la factura {numero_factura}")
-        
-        except Exception as e:
-            logger.error(f"Error al procesar facturas validadas: {str(e)}")
-    
-    def send_all_pending_invoices(self):
-        """
-        Envía todas las facturas pendientes en lotes
-        
-        Returns:
-            dict: Resultados del proceso de envío
-        """
-        try:
-            # Preparar los lotes
-            batches = self.prepare_batches()
-            if not batches:
-                return {
-                    "success": True,
-                    "message": "No hay facturas pendientes para enviar",
-                    "batches_sent": 0,
-                    "invoices_sent": 0
-                }
-            
-            # Obtener el CUFD vigente
-            cufd_record = self.session.query(Cufd).filter(Cufd.vigente == 1).first()
-            if not cufd_record:
-                return {
-                    "success": False,
-                    "message": "No se encontró un CUFD válido",
-                    "batches_sent": 0,
-                    "invoices_sent": 0
-                }
-            
-            cufd_code = cufd_record.codigo
-            
-            # Resultados
-            results = {
-                "success": True,
-                "batches_sent": 0,
-                "batches_results": [],
-                "invoices_sent": 0
-            }
-            
-            # Procesar cada lote
-            for i, batch in enumerate(batches):
-                logger.info(f"Procesando lote {i+1} de {len(batches)} ({len(batch)} facturas)")
-                
-                # Crear el archivo de lote
-                xml_path, compressed_path = self.create_batch_file(batch)
-                if not xml_path or not compressed_path:
-                    batch_result = {
-                        "batch_number": i+1,
-                        "success": False,
-                        "message": "Error al crear el archivo de lote",
-                        "invoices": len(batch)
-                    }
-                    results["batches_results"].append(batch_result)
-                    continue
-                
-                # Enviar el lote
-                success, response = self.send_batch(xml_path, compressed_path, cufd_code)
-                
-                batch_result = {
-                    "batch_number": i+1,
-                    "success": success,
-                    "invoices": len(batch)
-                }
-                
-                if success:
-                    results["batches_sent"] += 1
-                    results["invoices_sent"] += len(batch)
-                    
-                    # Obtener código de recepción
-                    codigo_recepcion = response.get('codigoRecepcion')
-                    batch_result["codigo_recepcion"] = codigo_recepcion
-                    
-                    # Validar el lote después de un breve tiempo
-                    time.sleep(2)  # Esperar 2 segundos para dar tiempo al sistema
-                    
-                    validation_success, validation_response = self.validate_batch(codigo_recepcion, cufd_code)
-                    batch_result["validation"] = {
-                        "success": validation_success,
-                        "codigo_estado": validation_response.get('codigo_estado') if validation_success else None,
-                        "message": "Validación exitosa" if validation_success else validation_response.get('error')
-                    }
-                else:
-                    batch_result["message"] = response.get('error', 'Error desconocido')
-                
-                results["batches_results"].append(batch_result)
-            
-            # Actualizar el resultado general
-            if results["batches_sent"] == 0:
-                results["success"] = False
-                results["message"] = "No se pudo enviar ningún lote"
-            else:
-                results["message"] = f"Se enviaron {results['batches_sent']} de {len(batches)} lotes ({results['invoices_sent']} facturas)"
-            
-            return results
-        
-        except Exception as e:
-            logger.error(f"Error general en send_all_pending_invoices: {str(e)}")
-            return {
-                "success": False,
-                "message": f"Error general: {str(e)}",
-                "batches_sent": 0,
-                "invoices_sent": 0
-            }
-    
-    def close(self):
-        """Cierra la sesión de la base de datos"""
-        if self.session:
-            self.session.close()

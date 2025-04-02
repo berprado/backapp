@@ -12,36 +12,46 @@ load_dotenv()
 
 def register_significant_event(event_code, description, start_time, end_time, cufd=None):
     """
-    Registra un evento significativo en el sistema del SIAT
-    
+    Registers a significant event in the SIAT system.
+
     Args:
-        event_code (int): Código del evento significativo
-        description (str): Descripción del evento
-        start_time (str): Fecha y hora de inicio (formato: YYYY-MM-DDTHH:MM:SS.SSS)
-        end_time (str): Fecha y hora de fin (formato: YYYY-MM-DDTHH:MM:SS.SSS)
-        cufd (str, optional): CUFD utilizado durante el evento. Si es None, se usa el vigente.
-    
+        event_code (int): Code of the significant event.
+        description (str): Description of the event.
+        start_time (str): Start date and time (format: YYYY-MM-DDTHH:MM:SS.SSS).
+        end_time (str): End date and time (format: YYYY-MM-DDTHH:MM:SS.SSS).
+        cufd (str, optional): CUFD used during the event. If None, the current CUFD is used.
+
     Returns:
-        tuple: (success, message) donde success es un booleano y message es un mensaje descriptivo
+        tuple: (success, message) where success is a boolean and message is a descriptive message.
     """
     session = SessionLocal()
     try:
-        # Obtener CUFD si no se proporcionó
+        # Validate inputs
+        if not event_code or not description or not start_time or not end_time:
+            logger.error("All parameters (event_code, description, start_time, end_time) are required.")
+            return False, "Missing required parameters."
+
+        # Ensure end_time is after start_time
+        if datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%f") <= datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%f"):
+            logger.error("End time must be after start time.")
+            return False, "End time must be after start time."
+
+        # Obtain CUFD if not provided
         if not cufd:
             from facturador.models import Cufd
             cufd_record = session.query(Cufd).filter(Cufd.vigente == 1).first()
             if not cufd_record:
-                return False, "No se encontró un CUFD válido"
+                return False, "No valid CUFD found."
             cufd = cufd_record.codigo
-        
-        # Preparar la conexión SOAP
+
+        # Prepare the SOAP connection
         soap_session = Session()
         soap_session.headers.update({'apikey': os.getenv('API_KEY')})
         wsdl_url = os.getenv('WSDL_URL_OPERACIONES')
-        
+
         client = Client(wsdl_url, transport=Transport(session=soap_session))
-        
-        # Preparar la solicitud
+
+        # Prepare the request
         solicitud = {
             'codigoAmbiente': os.getenv('CODIGO_AMBIENTE'),
             'codigoSistema': os.getenv('CODIGO_SISTEMA'),
@@ -55,12 +65,12 @@ def register_significant_event(event_code, description, start_time, end_time, cu
             'fechaInicio': start_time,
             'fechaFin': end_time
         }
-        
-        # Enviar la solicitud
+
+        # Send the request
         response = client.service.registroEventoSignificativo(**solicitud)
-        
+
         if response and hasattr(response, 'transaccion') and response.transaccion:
-            # Guardar el evento en la base de datos
+            # Save the event in the database
             nuevo_evento = SincronizarParametricaEventosSignificativos(
                 codigoClasificador=event_code,
                 descripcion=description,
@@ -69,20 +79,20 @@ def register_significant_event(event_code, description, start_time, end_time, cu
                 cufd=cufd,
                 fecha_registro=datetime.now()
             )
-            
+
             session.add(nuevo_evento)
             session.commit()
-            
-            return True, f"Evento registrado con éxito. Código: {event_code}"
+
+            return True, f"Event registered successfully. Code: {event_code}"
         else:
-            error_msg = "Error desconocido al registrar evento"
+            error_msg = "Unknown error while registering event."
             if hasattr(response, 'mensajesList') and response.mensajesList:
                 error_msg = response.mensajesList[0].descripcion
-            
-            return False, f"Error al registrar evento: {error_msg}"
-    
+
+            return False, f"Error registering event: {error_msg}"
+
     except Exception as e:
-        logger.error(f"Excepción al registrar evento significativo: {str(e)}")
+        logger.error(f"Exception while registering significant event: {str(e)}")
         return False, f"Error: {str(e)}"
     finally:
         session.close()
@@ -158,29 +168,18 @@ def query_siat_significant_events():
         # Enviar la solicitud
         response = client.service.consultaEventoSignificativo(**solicitud)
         
-        if response and hasattr(response, 'transaccion') and response.transaccion:
-            events = []
-            
-            if hasattr(response, 'listaCodigos') and response.listaCodigos:
-                for evento in response.listaCodigos:
-                    events.append({
-                        'codigoEvento': evento.codigoEvento,
-                        'descripcionEvento': evento.descripcionEvento,
-                        'fechaInicio': evento.fechaInicio,
-                        'fechaFin': evento.fechaFin,
-                        'cufdEvento': evento.cufdEvento
-                    })
-            
-            return True, events
+        if response and hasattr(response, 'transaccion'):
+            if response.transaccion:
+                return True, response.eventos
+            else:
+                error_msg = "Error desconocido al consultar eventos."
+                if hasattr(response, 'mensajesList') and response.mensajesList:
+                    error_msg = response.mensajesList[0].descripcion
+                return False, error_msg
         else:
-            error_msg = "Error desconocido al consultar eventos"
-            if hasattr(response, 'mensajesList') and response.mensajesList:
-                error_msg = response.mensajesList[0].descripcion
-            
-            return False, f"Error al consultar eventos: {error_msg}"
-    
+            return False, "No se recibió respuesta válida del servicio."
     except Exception as e:
-        logger.error(f"Excepción al consultar eventos significativos: {str(e)}")
+        logger.error(f"Error al consultar eventos significativos en SIAT: {str(e)}")
         return False, f"Error: {str(e)}"
     finally:
         session.close()
