@@ -161,12 +161,11 @@ def query_siat_significant_events():
             'nit': os.getenv('NIT'),
             'cuis': os.getenv('CUIS'),
             'cufd': cufd_record.codigo,
-            'codigoSucursal': os.getenv('CODIGO_SUCURSAL'),
-            'codigoPuntoVenta': os.getenv('CODIGO_PUNTO_VENTA')
+            'codigoSucursal': os.getenv('CODIGO_SUCURSAL')  # Agregar el elemento requerido
         }
         
         # Enviar la solicitud
-        response = client.service.consultaEventoSignificativo(**solicitud)
+        response = client.service.consultaEventoSignificativo(SolicitudConsultaEvento=solicitud)
         
         if response and hasattr(response, 'transaccion'):
             if response.transaccion:

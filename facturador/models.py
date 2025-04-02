@@ -183,7 +183,7 @@ class FacturaCabecera(Base):
     motivoAnulacion = Column(Text)
     enlaceSiat = Column(String(255))
     codigoRecepcion = Column(String(255))
-    tipoEmision = Column(String(20), nullable=False, default='ONLINE')
+    tipoEmision = Column(String(10), nullable=False, default='ONLINE')
     codigoEvento = Column(String(10))
     descripcionEvento = Column(String(255))
     fechaInicioEvento = Column(DateTime)
