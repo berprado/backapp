@@ -68,3 +68,5 @@ mysql_data/
 # Archivos de MySQL Workbench
 *.mwb
 
+__pycache__/
+*.pyc
