@@ -56,7 +56,7 @@ class ContingencyManager:
         """Inicializa el gestor de contingencias"""
         self.status = ContingencyStatus.NORMAL
         self.monitoring_thread = None
-        self.stop_monitoring = False
+        self.stop_monitoring_flag = False
         self.contingency_start_time = None
         self.last_check_time = None
         self.event_type = None
@@ -223,7 +223,7 @@ class ContingencyManager:
         """Bucle de monitoreo de la conexión con el SIAT"""
         logger.info("Iniciando bucle de monitoreo de conexión")
         
-        while not self.stop_monitoring:
+        while not self.stop_monitoring_flag:
             try:
                 # Verificar conexión
                 all_ok, problem_services = self.check_connection()
@@ -277,7 +277,7 @@ class ContingencyManager:
             logger.info("El monitoreo ya está activo")
             return
         
-        self.stop_monitoring = False
+        self.stop_monitoring_flag = False
         self.monitoring_thread = threading.Thread(
             target=self._monitoring_loop, 
             daemon=True,
@@ -289,7 +289,7 @@ class ContingencyManager:
     def stop_monitoring(self) -> None:
         """Detiene el monitoreo de la conexión con el SIAT"""
         if self.monitoring_thread and self.monitoring_thread.is_alive():
-            self.stop_monitoring = True
+            self.stop_monitoring_flag = True
             self.monitoring_thread.join(timeout=5)
             logger.info("Monitoreo de conexión detenido")
 
