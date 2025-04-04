@@ -1,5 +1,7 @@
 import os
 import sys
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import time
 import json
 import threading
@@ -544,3 +546,61 @@ def get_contingency_manager():
     if _instance is None:
         _instance = ContingencyManager()
     return _instance
+
+def check_connectivity():
+    """
+    Verifica si hay conexión a internet y si el servidor remoto es accesible.
+
+    Returns:
+        tuple: (is_connected, server_accessible)
+    """
+    try:
+        # Verificar conexión a internet con un tiempo de espera más alto
+        requests.get("https://www.google.com", timeout=10)
+        is_connected = True
+    except requests.ConnectionError:
+        is_connected = False
+    except requests.exceptions.ReadTimeout:
+        print("Timeout al intentar conectar con Google. Asumiendo que no hay conexión a internet.")
+        is_connected = False
+
+    server_accessible = False
+    if is_connected:
+        try:
+            # Verificar acceso al servidor remoto (ejemplo: URL del WSDL)
+            wsdl_url = os.getenv('WSDL_URL_OPERACIONES')
+            requests.get(wsdl_url, timeout=10)
+            server_accessible = True
+        except requests.ConnectionError:
+            server_accessible = False
+        except requests.exceptions.ReadTimeout:
+            print("Timeout al intentar conectar con el servidor remoto. Asumiendo que no está accesible.")
+            server_accessible = False
+
+    return is_connected, server_accessible
+
+def handle_offline_mode():
+    """
+    Maneja el modo offline activando la lógica de contingencia.
+    """
+    print("Entrando en modo offline. Registrando evento significativo de contingencia.")
+
+    # Registrar evento significativo en la base de datos
+    session = SessionLocal()
+    try:
+        evento = SincronizarParametricaEventosSignificativos(
+            codigoClasificador=1,  # Código de evento para corte de internet
+            descripcion="Corte del servicio de Internet",
+            fecha_creacion=datetime.now(),
+            estado_sincronizacion="pendiente"
+        )
+        session.add(evento)
+        session.commit()
+        print("Evento significativo registrado localmente.")
+    except Exception as e:
+        print(f"Error al registrar el evento significativo: {e}")
+    finally:
+        session.close()
+
+    # Aquí se puede implementar la lógica para emitir facturas offline
+    print("Operando en modo offline. Las facturas se generarán y almacenarán localmente.")

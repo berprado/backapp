@@ -10,6 +10,89 @@ from facturador.logger_config import get_logger  # Cambiar esta importación
 logger = get_logger('contingency')  # Usar el logger general con nombre específico
 load_dotenv()
 
+# Configuración del cliente SOAP
+WSDL_URL = os.getenv('WSDL_URL_OPERACIONES')
+API_KEY = os.getenv('API_KEY')
+
+session = Session()
+session.headers.update({
+    'apikey': API_KEY
+})
+transport = Transport(session=session)
+client = Client(WSDL_URL, transport=transport)
+
+def registro_evento_significativo(codigo_ambiente, codigo_sistema, nit, cuis, cufd, codigo_sucursal, codigo_punto_venta, codigo_evento, descripcion, fecha_inicio_evento, fecha_fin_evento, cufd_evento):
+    """
+    Registra un evento significativo en el sistema del SIN.
+
+    Args:
+        codigo_ambiente (int): Código del ambiente (1: Producción, 2: Piloto).
+        codigo_sistema (str): Código del sistema autorizado.
+        nit (int): NIT del emisor.
+        cuis (str): Código único de identificación de sucursal.
+        cufd (str): CUFD vigente.
+        codigo_sucursal (int): Código de la sucursal (0 para casa matriz).
+        codigo_punto_venta (int): Código del punto de venta (0 si no aplica).
+        codigo_evento (int): Código del tipo de evento.
+        descripcion (str): Descripción del evento.
+        fecha_inicio_evento (str): Fecha de inicio del evento (formato ISO 8601).
+        fecha_fin_evento (str): Fecha de fin del evento (formato ISO 8601).
+        cufd_evento (str): CUFD usado durante la contingencia.
+
+    Returns:
+        dict: Respuesta del servicio.
+    """
+    try:
+        response = client.service.registroEventoSignificativo(
+            codigoAmbiente=codigo_ambiente,
+            codigoSistema=codigo_sistema,
+            nit=nit,
+            cuis=cuis,
+            cufd=cufd,
+            codigoSucursal=codigo_sucursal,
+            codigoPuntoVenta=codigo_punto_venta,
+            codigoEvento=codigo_evento,
+            descripcion=descripcion,
+            fechaInicioEvento=fecha_inicio_evento,
+            fechaFinEvento=fecha_fin_evento,
+            cufdEvento=cufd_evento
+        )
+        return response
+    except Exception as e:
+        return {"error": str(e)}
+
+def consulta_evento_significativo(codigo_ambiente, codigo_sistema, nit, cuis, cufd, codigo_sucursal, codigo_punto_venta, fecha_evento):
+    """
+    Consulta los eventos significativos registrados en el sistema del SIN.
+
+    Args:
+        codigo_ambiente (int): Código del ambiente (1: Producción, 2: Piloto).
+        codigo_sistema (str): Código del sistema autorizado.
+        nit (int): NIT del emisor.
+        cuis (str): Código único de identificación de sucursal.
+        cufd (str): CUFD vigente.
+        codigo_sucursal (int): Código de la sucursal (0 para casa matriz).
+        codigo_punto_venta (int): Código del punto de venta (0 si no aplica).
+        fecha_evento (str): Fecha del evento (formato ISO 8601).
+
+    Returns:
+        dict: Respuesta del servicio.
+    """
+    try:
+        response = client.service.consultaEventoSignificativo(
+            codigoAmbiente=codigo_ambiente,
+            codigoSistema=codigo_sistema,
+            nit=nit,
+            cuis=cuis,
+            cufd=cufd,
+            codigoSucursal=codigo_sucursal,
+            codigoPuntoVenta=codigo_punto_venta,
+            fechaEvento=fecha_evento
+        )
+        return response
+    except Exception as e:
+        return {"error": str(e)}
+
 def register_significant_event(event_code, description, start_time, end_time, cufd=None):
     """
     Registers a significant event in the SIAT system.
@@ -44,13 +127,6 @@ def register_significant_event(event_code, description, start_time, end_time, cu
                 return False, "No valid CUFD found."
             cufd = cufd_record.codigo
 
-        # Prepare the SOAP connection
-        soap_session = Session()
-        soap_session.headers.update({'apikey': os.getenv('API_KEY')})
-        wsdl_url = os.getenv('WSDL_URL_OPERACIONES')
-
-        client = Client(wsdl_url, transport=Transport(session=soap_session))
-
         # Prepare the request
         solicitud = {
             'codigoAmbiente': os.getenv('CODIGO_AMBIENTE'),
@@ -67,7 +143,20 @@ def register_significant_event(event_code, description, start_time, end_time, cu
         }
 
         # Send the request
-        response = client.service.registroEventoSignificativo(**solicitud)
+        response = registro_evento_significativo(
+            int(os.getenv('CODIGO_AMBIENTE')),
+            os.getenv('CODIGO_SISTEMA'),
+            int(os.getenv('NIT')),
+            os.getenv('CUIS'),
+            cufd,
+            int(os.getenv('CODIGO_SUCURSAL')),
+            int(os.getenv('CODIGO_PUNTO_VENTA')),
+            event_code,
+            description,
+            start_time,
+            end_time,
+            cufd
+        )
 
         if response and hasattr(response, 'transaccion') and response.transaccion:
             # Save the event in the database
@@ -140,13 +229,6 @@ def query_siat_significant_events():
         tuple: (success, data) donde success es un booleano y data contiene los eventos o un mensaje de error
     """
     try:
-        # Preparar la conexión SOAP
-        soap_session = Session()
-        soap_session.headers.update({'apikey': os.getenv('API_KEY')})
-        wsdl_url = os.getenv('WSDL_URL_OPERACIONES')
-        
-        client = Client(wsdl_url, transport=Transport(session=soap_session))
-        
         # Obtener CUFD vigente
         session = SessionLocal()
         from facturador.models import Cufd
@@ -155,17 +237,16 @@ def query_siat_significant_events():
             return False, "No se encontró un CUFD válido"
         
         # Preparar la solicitud
-        solicitud = {
-            'codigoAmbiente': os.getenv('CODIGO_AMBIENTE'),
-            'codigoSistema': os.getenv('CODIGO_SISTEMA'),
-            'nit': os.getenv('NIT'),
-            'cuis': os.getenv('CUIS'),
-            'cufd': cufd_record.codigo,
-            'codigoSucursal': os.getenv('CODIGO_SUCURSAL')  # Agregar el elemento requerido
-        }
-        
-        # Enviar la solicitud
-        response = client.service.consultaEventoSignificativo(SolicitudConsultaEvento=solicitud)
+        response = consulta_evento_significativo(
+            int(os.getenv('CODIGO_AMBIENTE')),
+            os.getenv('CODIGO_SISTEMA'),
+            int(os.getenv('NIT')),
+            os.getenv('CUIS'),
+            cufd_record.codigo,
+            int(os.getenv('CODIGO_SUCURSAL')),
+            int(os.getenv('CODIGO_PUNTO_VENTA')),
+            datetime.now().isoformat()
+        )
         
         if response and hasattr(response, 'transaccion'):
             if response.transaccion:

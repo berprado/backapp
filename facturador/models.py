@@ -519,10 +519,10 @@ class SincronizarParametricaEventosSignificativos(Base):
     fecha_creacion = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp())
     fecha_sincronizacion = Column(TIMESTAMP, nullable=True)
     estado_sincronizacion = Column(String(10), nullable=True)
+    fecha_registro = Column(TIMESTAMP, nullable=True)  # Adding the missing attribute
 
     __table_args__ = (
         UniqueConstraint('codigoClasificador', name='uq_codigoClasificador'), {'extend_existing': True}
-        
     )
 
     def to_dict(self):
@@ -532,7 +532,8 @@ class SincronizarParametricaEventosSignificativos(Base):
             "descripcion": self.descripcion,
             "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
             "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
-            "estado_sincronizacion": self.estado_sincronizacion
+            "estado_sincronizacion": self.estado_sincronizacion,
+            "fecha_registro": self.fecha_registro.isoformat() if self.fecha_registro else None  # Include in dictionary
         }
     
 class SincronizarActividades(Base):

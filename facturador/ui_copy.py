@@ -101,32 +101,44 @@ def es_telefono_valido(telefono):
 
 load_dotenv()
 
-session = Session()
-session.headers.update({'apikey': os.getenv('API_KEY')})
+from contingency_manager import check_connectivity
 
-wsdl_url = os.getenv('WSDL_URL_CODIGOS')
-client = Client(wsdl_url, transport=Transport(session=session))
+# Verificar conectividad antes de inicializar el cliente SOAP
+is_connected, server_accessible = check_connectivity()
 
-def verificar_nit(nit):
-    
-    solicitud_verificar_nit = {
-        'codigoAmbiente': os.getenv('CODIGO_AMBIENTE'),
-        'codigoModalidad': os.getenv('CODIGO_MODALIDAD'),
-        'codigoSistema': os.getenv('CODIGO_SISTEMA'),
-        'codigoSucursal': os.getenv('CODIGO_SUCURSAL'),
-        'cuis': os.getenv('CUIS'),
-        'nit': os.getenv('NIT'),
-        'nitParaVerificacion': nit
-    }
+if is_connected and server_accessible:
+    session = Session()
+    session.headers.update({'apikey': os.getenv('API_KEY')})
 
-    try:
-        response = client.service.verificarNit(SolicitudVerificarNit=solicitud_verificar_nit)
-        if response.transaccion:
-            return True, response.mensajesList[0].descripcion
-        else:
-            return False, "Verifica el NIT o elige otro Tipo de Documento."
-    except Exception as e:
-        return False, f"Ocurrió un error: {str(e)}"
+    wsdl_url = os.getenv('WSDL_URL_CODIGOS')
+    client = Client(wsdl_url, transport=Transport(session=session))
+else:
+    client = None  # No inicializar el cliente SOAP en modo offline
+
+# Asegurarse de que las funciones dependientes del cliente SOAP manejen el caso de client=None
+if client:
+    def verificar_nit(nit):
+        solicitud_verificar_nit = {
+            'codigoAmbiente': os.getenv('CODIGO_AMBIENTE'),
+            'codigoModalidad': os.getenv('CODIGO_MODALIDAD'),
+            'codigoSistema': os.getenv('CODIGO_SISTEMA'),
+            'codigoSucursal': os.getenv('CODIGO_SUCURSAL'),
+            'cuis': os.getenv('CUIS'),
+            'nit': os.getenv('NIT'),
+            'nitParaVerificacion': nit
+        }
+
+        try:
+            response = client.service.verificarNit(SolicitudVerificarNit=solicitud_verificar_nit)
+            if response.transaccion:
+                return True, response.mensajesList[0].descripcion
+            else:
+                return False, "Verifica el NIT o elige otro Tipo de Documento."
+        except Exception as e:
+            return False, f"Ocurrió un error: {str(e)}"
+else:
+    def verificar_nit(nit):
+        return False, "No se puede verificar el NIT en modo offline"
 
 def validar_factura_cabecera(factura_cabecera_data):
     required_fields = [
