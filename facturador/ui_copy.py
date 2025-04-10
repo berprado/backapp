@@ -53,8 +53,8 @@ from facturador.response_handler import parse_siat_response, display_siat_respon
 # Impresión y exportación
 #from facturador.export import imprimir_recibo
 from invoice_templates import generate_compact_html_invoice
-from facturador.thermal_printer import ThermalPrinter
-from facturador.siat_pdf import html_to_pdf
+from thermal_printer import ThermalPrinter
+from siat_pdf import html_to_pdf
 import threading
 
 # Configuración de logger
