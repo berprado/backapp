@@ -344,11 +344,11 @@ def main():
                 events_data = []
                 for event in events:
                     events_data.append({
-                        "Código": event['codigo'],
-                        "Descripción": event['descripcion'],
-                        "Inicio": format_datetime(event['fecha_inicio']),
-                        "Fin": format_datetime(event['fecha_fin']),
-                        "Registro": format_datetime(event['fecha_registro'])
+                        "Código": event.get('codigo', 'N/A'),  # Usar 'N/A' si 'codigo' no está presente
+                        "Descripción": event.get('descripcion', 'N/A'),
+                        "Inicio": format_datetime(event.get('fecha_inicio')),
+                        "Fin": format_datetime(event.get('fecha_fin')),
+                        "Registro": format_datetime(event.get('fecha_registro'))
                     })
                 
                 df = pd.DataFrame(events_data)

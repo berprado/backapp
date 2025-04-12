@@ -88,3 +88,5 @@ class Comanda_Cat(Base):
             "codigo": self.codigo,
             "categoria_nombre": self.categoria_nombre
         }
+
+

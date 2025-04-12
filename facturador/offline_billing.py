@@ -394,3 +394,101 @@ def update_invoice_status_after_sending(numero_factura, codigo_recepcion, estado
         return False
     finally:
         session.close()
+
+import streamlit as st
+from database import SessionLocal
+from facturador.models import SincronizarParametricaEventosSignificativos, EventoSignificativoRegistrado, Cufd
+from facturador.logger_config import get_logger
+
+logger = get_logger('contingency')
+
+def register_significant_event_ui():
+    """
+    Interfaz para registrar un evento significativo antes de operar en modo offline.
+    """
+    st.subheader("Registrar Evento Significativo")
+    session = SessionLocal()
+
+    try:
+        # Obtener eventos significativos sincronizados
+        eventos = session.query(SincronizarParametricaEventosSignificativos).all()
+        if not eventos:
+            st.error("No se encontraron eventos significativos sincronizados. Por favor, sincronice los datos.")
+            return False
+
+        # Crear opciones para el selectbox
+        opciones_eventos = {f"{evento.codigoClasificador} - {evento.descripcion}": evento.codigoClasificador for evento in eventos}
+        evento_seleccionado = st.selectbox("Seleccione el evento significativo:", list(opciones_eventos.keys()))
+
+        # Botón para registrar el evento
+        if st.button("Registrar Evento"):
+            codigo_evento = opciones_eventos[evento_seleccionado]
+            descripcion_evento = next(evento.descripcion for evento in eventos if evento.codigoClasificador == codigo_evento)
+
+            # Obtener el CUFD vigente
+            cufd_record = session.query(Cufd).filter(Cufd.vigente == 1).first()
+            if not cufd_record or not cufd_record.codigo:
+                st.error("No se encontró un CUFD vigente. Por favor, solicite un CUFD antes de continuar.")
+                return False
+
+            # Registrar el evento en la base de datos
+            nuevo_evento = EventoSignificativoRegistrado(
+                codigo_evento=codigo_evento,
+                descripcion=descripcion_evento,
+                fecha_inicio=datetime.now(),
+                fecha_fin=None,  # Se actualizará cuando termine la contingencia
+                cufd=cufd_record.codigo,
+                fecha_registro=datetime.now()
+            )
+            session.add(nuevo_evento)
+            session.commit()
+            st.success(f"Evento significativo '{descripcion_evento}' registrado correctamente con ID {nuevo_evento.id}.")
+            return True
+
+    except Exception as e:
+        logger.error(f"Error al registrar evento significativo: {e}")
+        st.error("Ocurrió un error al registrar el evento significativo.")
+        return False
+
+    finally:
+        session.close()
+
+def offline_main():
+    """
+    Interfaz para la emisión de facturas en modo offline.
+    """
+    st.title("Facturación en Modo Offline")
+    st.info("Está operando en modo contingencia. Las facturas se generarán y almacenarán localmente.")
+
+    # Registrar evento significativo antes de permitir la facturación
+    if not register_significant_event_ui():
+        return
+
+    # Formulario para generar facturas
+    with st.form("offline_invoice_form"):
+        cliente = st.text_input("Nombre del Cliente", placeholder="Ingrese el nombre del cliente")
+        nit_ci = st.text_input("NIT/CI del Cliente", placeholder="Ingrese el NIT o CI del cliente")
+        monto_total = st.number_input("Monto Total (Bs)", min_value=0.0, step=0.01)
+        descripcion = st.text_area("Descripción", placeholder="Ingrese la descripción de la factura")
+        
+        submit_button = st.form_submit_button("Generar Factura")
+
+    if submit_button:
+        if not cliente or not nit_ci or monto_total <= 0:
+            st.error("Por favor, complete todos los campos obligatorios.")
+        else:
+            # Lógica para guardar la factura en modo offline
+            factura_cabecera_data = {
+                "nombreRazonSocial": cliente,
+                "numeroDocumento": nit_ci,
+                "montoTotal": monto_total,
+                "descripcion": descripcion,
+                "estadoFirma": "CONTINGENCIA",
+                "tipoEmision": 2,  # Emisión offline
+                "fechaEmision": datetime.now()
+            }
+            success, message = save_offline_invoice(factura_cabecera_data, [])
+            if success:
+                st.success(message)
+            else:
+                st.error(message)

@@ -183,16 +183,10 @@ class FacturaCabecera(Base):
     motivoAnulacion = Column(Text)
     enlaceSiat = Column(String(255))
     codigoRecepcion = Column(String(255))
-    tipoEmision = Column(String(10), nullable=False, default='ONLINE')
-    codigoEvento = Column(String(10))
-    descripcionEvento = Column(String(255))
-    fechaInicioEvento = Column(DateTime)
-    fechaFinEvento = Column(DateTime)
-    idPaquete = Column(String(50))
-    estadoPaquete = Column(String(20))
-    numeroSecuencia = Column(Integer)
-    estadoContingencia = Column(String(20))
-    fechaSincronizacion = Column(DateTime)
+    codigoEvento = Column(Integer, ForeignKey('eventos_significativos_registrados.id'), nullable=True, comment='ID del evento significativo relacionado')
+
+    # Relación con eventos significativos registrados
+    evento_significativo = relationship("EventoSignificativoRegistrado", backref="facturas")
   
 
     def to_dict(self):
@@ -246,16 +240,7 @@ class FacturaCabecera(Base):
             'motivoAnulacion': self.motivoAnulacion,
             'enlaceSiat': self.enlaceSiat,
             'codigoRecepcion': self.codigoRecepcion,
-            'tipoEmision': self.tipoEmision,
-            'codigoEvento': self.codigoEvento,
-            'descripcionEvento': self.descripcionEvento,
-            'fechaInicioEvento': self.fechaInicioEvento.isoformat() if self.fechaInicioEvento else None,
-            'fechaFinEvento': self.fechaFinEvento.isoformat() if self.fechaFinEvento else None,
-            'idPaquete': self.idPaquete,
-            'estadoPaquete': self.estadoPaquete,
-            'numeroSecuencia': self.numeroSecuencia,
-            'estadoContingencia': self.estadoContingencia,
-            'fechaSincronizacion': self.fechaSincronizacion.isoformat() if self.fechaSincronizacion else None,
+            'codigoEvento': self.codigoEvento
         }
 
 
@@ -300,8 +285,6 @@ class ProductoSiat(Base):
     __tablename__ = 'productos_siat'
     __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, autoincrement=True)
-    tipo_origen = Column(Enum('producto', 'combo', name='tipo_origen_enum'), nullable=False)  # Campo faltante
-    id_origen = Column(Integer, nullable=True)  # Campo faltante
     categoria = Column(String(255), nullable=True)
     codigo = Column(String(191), nullable=False, unique=True)  # Ajustar la longitud del VARCHAR y agregar unique
     codigo_sin = Column(Integer, nullable=True)
@@ -319,13 +302,11 @@ class ProductoSiat(Base):
     def to_dict(self):
         return {
             "id": self.id,
-            "tipo_origen": self.tipo_origen,  # Incluir el nuevo campo
-            "id_origen": self.id_origen,      # Incluir el nuevo campo
             "categoria": self.categoria,
             "codigo": self.codigo,
             "codigo_sin": self.codigo_sin,
             "nombre": self.nombre,
-            "precio_venta": float(self.precio_venta) if self.precio_venta else None,
+            "precio_venta": float(self.precio_venta),
             "codigo_unidad_medida": self.codigo_unidad_medida,
             "unidad_medida": self.unidad_medida,  # Incluir unidad_medida
             "unidad_medida_sin": self.unidad_medida_sin,
@@ -334,57 +315,7 @@ class ProductoSiat(Base):
             "fecha_actualizacion": self.fecha_actualizacion.isoformat() if self.fecha_actualizacion else None,
             "estado_sincronizacion": self.estado_sincronizacion
         }
-
-class BarComboCoctel(Base):
-    __tablename__ = 'bar_combo_coctel'
-    __table_args__ = {'extend_existing': True}
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    nombre = Column(String(255), nullable=False)
-    codigo = Column(String(255), nullable=False)
-    descripcion = Column(String(255), nullable=True)
-    id_categoria = Column(Integer, ForeignKey('alm_categoria.id'), nullable=True)
-    id_barra = Column(Integer, ForeignKey('bar_barra.id'), nullable=True)
-    usuario_reg = Column(String(255), nullable=False)
-    fecha_reg = Column(Date, nullable=True)
-    fecha_mod = Column(Date, nullable=True)
-    estado = Column(String(3), nullable=False)
-
-    # Relaciones
-    categoria = relationship("AlmCategoria", foreign_keys=[id_categoria])
-    barra = relationship("BarBarra", foreign_keys=[id_barra])
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "nombre": self.nombre,
-            "codigo": self.codigo,
-            "descripcion": self.descripcion,
-            "id_categoria": self.id_categoria,
-            "id_barra": self.id_barra,
-            "usuario_reg": self.usuario_reg,
-            "fecha_reg": self.fecha_reg.isoformat() if self.fecha_reg else None,
-            "fecha_mod": self.fecha_mod.isoformat() if self.fecha_mod else None,
-            "estado": self.estado
-        }
-
-# También necesitamos definir las clases para las tablas relacionadas 
-class AlmCategoria(Base):
-    __tablename__ = 'alm_categoria'
-    __table_args__ = {'extend_existing': True}
-
-    id = Column(Integer, primary_key=True)
-    # Añadir otros campos según sea necesario
-    # Este es un modelo mínimo para establecer la relación
-
-class BarBarra(Base):
-    __tablename__ = 'bar_barra'
-    __table_args__ = {'extend_existing': True}
-
-    id = Column(Integer, primary_key=True)
-    # Añadir otros campos según sea necesario
-    # Este es un modelo mínimo para establecer la relación
-
+    
 class PuntoVenta(Base):
     __tablename__ = 'punto_venta'
     __table_args__ = {'extend_existing': True}
@@ -512,23 +443,53 @@ class SincronizarParametricaTipoEmision(Base):
     
 class SincronizarParametricaEventosSignificativos(Base):
     __tablename__ = 'sincronizarparametricaeventossignificativos'
-    __table_args__ = {'schema': 'adminerp_copy', 'extend_existing': True}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    codigoClasificador = Column(String(10), nullable=False, unique=True)
+    codigoClasificador = Column(String(5), nullable=False, unique=True)
     descripcion = Column(String(255), nullable=True)
-    fecha_creacion = Column(TIMESTAMP, server_default=func.current_timestamp(), nullable=False)
+    fecha_creacion = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp())
     fecha_sincronizacion = Column(TIMESTAMP, nullable=True)
     estado_sincronizacion = Column(String(10), nullable=True)
 
+    __table_args__ = (
+        UniqueConstraint('codigoClasificador', name='uq_codigoClasificador'), {'extend_existing': True}
+        
+    )
+
     def to_dict(self):
         return {
-            'id': self.id,
-            'codigoClasificador': self.codigoClasificador,
-            'descripcion': self.descripcion,
-            'fecha_creacion': self.fecha_creacion.isoformat() if self.fecha_creacion else None,
-            'fecha_sincronizacion': self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
-            'estado_sincronizacion': self.estado_sincronizacion
+            "id": self.id,
+            "codigoClasificador": self.codigoClasificador,
+            "descripcion": self.descripcion,
+            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
+            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
+            "estado_sincronizacion": self.estado_sincronizacion
+        }
+
+class EventoSignificativoRegistrado(Base):
+    __tablename__ = 'eventos_significativos_registrados'
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    codigo_evento = Column(String(10), ForeignKey('sincronizarparametricaeventossignificativos.codigoClasificador'), nullable=False)
+    descripcion = Column(String(255), nullable=False)
+    fecha_inicio = Column(DateTime, nullable=False)
+    fecha_fin = Column(DateTime, nullable=False)
+    cufd = Column(String(100), nullable=False)
+    fecha_registro = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    # Relación con el catálogo de eventos significativos
+    tipo_evento = relationship("SincronizarParametricaEventosSignificativos", backref="eventos_registrados")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "codigo_evento": self.codigo_evento,
+            "descripcion": self.descripcion,
+            "fecha_inicio": self.fecha_inicio.isoformat() if self.fecha_inicio else None,
+            "fecha_fin": self.fecha_fin.isoformat() if self.fecha_fin else None,
+            "cufd": self.cufd,
+            "fecha_registro": self.fecha_registro.isoformat() if self.fecha_registro else None
         }
     
 class SincronizarActividades(Base):
@@ -762,7 +723,6 @@ class SincronizarParametricaTipoMetodoPago(Base):
     descripcion = Column(String(255), nullable=True)
     fecha_creacion = Column(DateTime, nullable=True)
     fecha_sincronizacion = Column(DateTime, nullable=True)
-    estado_sincronizacion = Column(String(10), nullable=True)  # Se añade esta columna
 
     __table_args__ = (
         UniqueConstraint('codigoClasificador', name='uq_codigoClasificador'), {'extend_existing': True})
@@ -773,8 +733,7 @@ class SincronizarParametricaTipoMetodoPago(Base):
             "codigoClasificador": self.codigoClasificador,
             "descripcion": self.descripcion,
             "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
-            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
-            "estado_sincronizacion": self.estado_sincronizacion  # Se añade al diccionario
+            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None
         }
     
 class SincronizarParametricaTipoDocumentoIdentidad(Base):
@@ -822,6 +781,7 @@ class SincronizarListaLeyendasFactura(Base):
             "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
             "estado_sincronizacion": self.estado_sincronizacion
         }
+
 class SincronizacionEstado(Base):
     __tablename__ = "sincronizacion_estado"
     __table_args__ = {'extend_existing': True}
@@ -834,3 +794,4 @@ class SincronizacionEstado(Base):
             "id": self.id,
             "ultima_sincronizacion": self.ultima_sincronizacion.isoformat() if self.ultima_sincronizacion else None
         }
+        

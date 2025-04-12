@@ -1,10 +1,10 @@
+import os  # Add this import to fix the UnboundLocalError
 import xml.etree.ElementTree as ET
 from typing import Dict, Any, Tuple, List, Optional
 import streamlit as st
 import traceback
 from datetime import datetime
 import re
-import os
 from pprint import pformat
 
 # Importar el logger configurado específico para este módulo
@@ -29,7 +29,6 @@ def save_xml_response(xml_content, force_save=False, operation_type=None):
     if not force_save:
         # Obtener configuración del archivo .env o de la configuración de la aplicación
         from dotenv import load_dotenv
-        import os
         load_dotenv()
         
         # Nivel de detalle para guardar respuestas (valores posibles: all, errors_only, important, none)

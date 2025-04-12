@@ -555,26 +555,20 @@ def check_connectivity():
         tuple: (is_connected, server_accessible)
     """
     try:
-        # Verificar conexión a internet con un tiempo de espera más alto
-        requests.get("https://www.google.com", timeout=10)
+        # Verificar conexión a internet
+        requests.get("https://www.google.com", timeout=5)
         is_connected = True
-    except requests.ConnectionError:
-        is_connected = False
-    except requests.exceptions.ReadTimeout:
-        print("Timeout al intentar conectar con Google. Asumiendo que no hay conexión a internet.")
+    except requests.RequestException:
         is_connected = False
 
     server_accessible = False
     if is_connected:
         try:
-            # Verificar acceso al servidor remoto (ejemplo: URL del WSDL)
+            # Verificar acceso al servidor remoto
             wsdl_url = os.getenv('WSDL_URL_OPERACIONES')
-            requests.get(wsdl_url, timeout=10)
+            requests.get(wsdl_url, timeout=5)
             server_accessible = True
-        except requests.ConnectionError:
-            server_accessible = False
-        except requests.exceptions.ReadTimeout:
-            print("Timeout al intentar conectar con el servidor remoto. Asumiendo que no está accesible.")
+        except requests.RequestException:
             server_accessible = False
 
     return is_connected, server_accessible
@@ -585,18 +579,37 @@ def handle_offline_mode():
     """
     print("Entrando en modo offline. Registrando evento significativo de contingencia.")
 
-    # Registrar evento significativo en la base de datos
+    # Registrar evento significativo en la tabla eventos_significativos_registrados
     session = SessionLocal()
     try:
-        evento = SincronizarParametricaEventosSignificativos(
-            codigoClasificador=1,  # Código de evento para corte de internet
-            descripcion="Corte del servicio de Internet",
-            fecha_creacion=datetime.now(),
-            estado_sincronizacion="pendiente"
+        # Obtener el evento significativo correspondiente al código 1 (Corte del servicio de Internet)
+        evento_significativo = session.query(SincronizarParametricaEventosSignificativos).filter(
+            SincronizarParametricaEventosSignificativos.codigoClasificador == "1"
+        ).first()
+
+        if not evento_significativo:
+            print("No se encontró el evento significativo con código 1 en la tabla sincronizada.")
+            return
+
+        # Obtener el CUFD vigente
+        cufd_record = session.query(Cufd).filter(Cufd.vigente == 1).first()
+        if not cufd_record or not cufd_record.codigo:
+            print("No se encontró un CUFD vigente. Por favor, solicite un CUFD antes de continuar.")
+            return
+
+        # Registrar el evento en la tabla eventos_significativos_registrados
+        from facturador.models import EventoSignificativoRegistrado
+        nuevo_evento = EventoSignificativoRegistrado(
+            codigo_evento=evento_significativo.codigoClasificador,
+            descripcion=evento_significativo.descripcion,
+            fecha_inicio=datetime.now(),
+            fecha_fin=datetime.now(),
+            cufd=cufd_record.codigo,
+            fecha_registro=datetime.now()
         )
-        session.add(evento)
+        session.add(nuevo_evento)
         session.commit()
-        print("Evento significativo registrado localmente.")
+        print("Evento significativo registrado correctamente en la tabla eventos_significativos_registrados.")
     except Exception as e:
         print(f"Error al registrar el evento significativo: {e}")
     finally:

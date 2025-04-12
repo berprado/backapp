@@ -3,7 +3,7 @@ from datetime import datetime
 from zeep import Client, Transport
 from requests import Session
 from database import SessionLocal
-from facturador.models import SincronizarParametricaEventosSignificativos
+from facturador.models import EventoSignificativoRegistrado
 from dotenv import load_dotenv
 from facturador.logger_config import get_logger  # Cambiar esta importación
 
@@ -19,7 +19,12 @@ session.headers.update({
     'apikey': API_KEY
 })
 transport = Transport(session=session)
-client = Client(WSDL_URL, transport=transport)
+
+try:
+    client = Client(WSDL_URL, transport=transport)
+except Exception as e:
+    logger.error(f"Error initializing SOAP client: {e}")
+    client = None  # Set client to None to indicate offline mode
 
 def registro_evento_significativo(codigo_ambiente, codigo_sistema, nit, cuis, cufd, codigo_sucursal, codigo_punto_venta, codigo_evento, descripcion, fecha_inicio_evento, fecha_fin_evento, cufd_evento):
     """
@@ -107,6 +112,10 @@ def register_significant_event(event_code, description, start_time, end_time, cu
     Returns:
         tuple: (success, message) where success is a boolean and message is a descriptive message.
     """
+    if not client:
+        logger.warning("SOAP client is not initialized. Operating in offline mode.")
+        return False, "Cannot register event in offline mode."
+
     session = SessionLocal()
     try:
         # Validate inputs
@@ -127,22 +136,7 @@ def register_significant_event(event_code, description, start_time, end_time, cu
                 return False, "No valid CUFD found."
             cufd = cufd_record.codigo
 
-        # Prepare the request
-        solicitud = {
-            'codigoAmbiente': os.getenv('CODIGO_AMBIENTE'),
-            'codigoSistema': os.getenv('CODIGO_SISTEMA'),
-            'nit': os.getenv('NIT'),
-            'cuis': os.getenv('CUIS'),
-            'cufd': cufd,
-            'codigoSucursal': os.getenv('CODIGO_SUCURSAL'),
-            'codigoPuntoVenta': os.getenv('CODIGO_PUNTO_VENTA'),
-            'codigoEvento': event_code,
-            'descripcion': description,
-            'fechaInicio': start_time,
-            'fechaFin': end_time
-        }
-
-        # Send the request
+        # Send the request to SIAT
         response = registro_evento_significativo(
             int(os.getenv('CODIGO_AMBIENTE')),
             os.getenv('CODIGO_SISTEMA'),
@@ -160,15 +154,14 @@ def register_significant_event(event_code, description, start_time, end_time, cu
 
         if response and hasattr(response, 'transaccion') and response.transaccion:
             # Save the event in the database
-            nuevo_evento = SincronizarParametricaEventosSignificativos(
-                codigoClasificador=event_code,
+            nuevo_evento = EventoSignificativoRegistrado(
+                codigo_evento=event_code,
                 descripcion=description,
                 fecha_inicio=datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%f"),
                 fecha_fin=datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%f"),
                 cufd=cufd,
                 fecha_registro=datetime.now()
             )
-
             session.add(nuevo_evento)
             session.commit()
 
@@ -186,6 +179,7 @@ def register_significant_event(event_code, description, start_time, end_time, cu
     finally:
         session.close()
 
+
 def get_significant_events(limit=50):
     """
     Obtiene los eventos significativos registrados
@@ -194,32 +188,26 @@ def get_significant_events(limit=50):
         limit (int): Límite de eventos a retornar
         
     Returns:
-        list: Lista de eventos significativos
+        list: Lista de eventos significativos registrados
     """
     session = SessionLocal()
     try:
-        events = session.query(SincronizarParametricaEventosSignificativos)\
-            .order_by(SincronizarParametricaEventosSignificativos.fecha_registro.desc())\
+        events = session.query(EventoSignificativoRegistrado)\
+            .order_by(EventoSignificativoRegistrado.fecha_registro.desc())\
             .limit(limit)\
             .all()
         
         result = []
         for event in events:
-            result.append({
-                'codigo': event.codigoClasificador,
-                'descripcion': event.descripcion,
-                'fecha_inicio': event.fecha_inicio,
-                'fecha_fin': event.fecha_fin,
-                'cufd': event.cufd,
-                'fecha_registro': event.fecha_registro
-            })
+            result.append(event.to_dict())
         
         return result
     except Exception as e:
-        logger.error(f"Error al obtener eventos significativos: {str(e)}")
+        logger.error(f"Error al obtener eventos significativos registrados: {str(e)}")
         return []
     finally:
         session.close()
+
 
 def query_siat_significant_events():
     """
@@ -228,9 +216,9 @@ def query_siat_significant_events():
     Returns:
         tuple: (success, data) donde success es un booleano y data contiene los eventos o un mensaje de error
     """
+    session = SessionLocal()
     try:
         # Obtener CUFD vigente
-        session = SessionLocal()
         from facturador.models import Cufd
         cufd_record = session.query(Cufd).filter(Cufd.vigente == 1).first()
         if not cufd_record:
