@@ -147,6 +147,10 @@ def get_printer_logger():
     """
     return get_logger('printer')
 
+def get_eventos_logger():
+    return _get_custom_logger('eventos', 'logs/eventos_significativos.log')
+
+
 def get_facturacion_logger():
     """
     Obtiene el logger para operaciones de facturación.

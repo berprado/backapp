@@ -1,0 +1,169 @@
+
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <title>Factura # 110</title>
+        <style>
+            @page {
+                size: 88mm 297mm;
+                margin: 0;
+                    }
+            body {
+                font-family: monospace;
+                font-size: 10px;
+                width: 88mm;
+                margin: 0;
+                padding: 4px;
+            }
+            table {
+                width: 98%;
+                border-collapse: collapse;
+            }
+            th, td {
+                padding: 2px 3px;
+            }
+            .header {
+                text-align: center;
+                font-weight: bold;
+            }
+            .header1 {
+                font-size: 9px;
+                text-align: center;
+                font-weight: bold;
+            }
+            .detail {
+                text-align: left;
+                border-bottom: 1px dotted #ccc;
+            }
+            .amount {
+                text-align: right;
+                font-weight: bold;
+            }
+            .separator {
+                border-top: 1px dashed black;
+                margin: 3px 0;
+            }
+            .product-line {
+                border-bottom: 1px dotted #eee;
+            }
+            .totals {
+                margin-top: 5px;
+                border-top: 1px solid black;
+            }
+        </style>
+    </head>
+    <body>
+        <table>
+            <!-- Encabezado -->
+            <tr>
+                <th class="header" colspan="2" id="seccion_tipo_factura">
+                    <span id="tipo_factura_text">FACTURA</span><br>
+                    <span id="subtitulo_text">(CON DERECHO A CREDITO FISCAL)</span>
+                </th>
+            </tr>
+            <tr>
+                <td class="header" colspan="2" id="seccion_empresa_info">
+                    <span id="razon_social">BOLIVIAN FOODS & DRINKS S.R.L.</span><br>
+                    <span id="nombre_sucursal">CASA MATRIZ</span><br>
+                    <span id="codigo_punto_venta">Punto de Venta: 0</span>
+                </td>
+            </tr>
+            <tr>
+                <td class="header" colspan="2" id="seccion_direccion_info">
+                    <span id="direccion">AV. MONTENEGRO NRO. SN EDIF.: ARACELY PISO: PB DEPTO.: BLOQUE E7 ZONA/BARRIO: SAN MIGUEL</span><br>
+                    <span id="municipio">LA PAZ</span><br>
+                    <span id="telefono_empresa">Tel: 65560514</span>
+                </td>
+            </tr>
+            <tr><td class="separator" colspan="2"></td></tr>
+            
+            <!-- Información de la factura -->
+            <tr>
+                <td class="header" colspan="2">
+                    <strong id="texto_nit">NIT:</strong> <span id="nit">344096024</span><br>
+                    <strong id="texto_numero_factura">Factura N°:</strong> <span id="numero_factura">110</span>
+                </td>
+            </tr>
+            <tr>
+                <th class="header" colspan="2" id="texto_cuf">
+                    Código de Autorización:<br><span class="header1" id="cuf">178B43EFDB9CF969C8291B5FE68068E621664458C217CCF34774A1F74</span>
+                </th>
+            </tr>
+            <tr><td class="separator" colspan="2"></td></tr>
+            
+            <!-- Información del cliente -->
+            <tr>
+                <td class="header" colspan="2" id="seccion_cliente_info">
+                    <strong id="texto_nombre_mayusculas">Nombre/Razón Social:</strong> <span id="nombre_mayusculas">PEPE PERES</span><br>
+                    <strong id="texto_numero_documento">NIT/CI/CEX:</strong> <span id="numero_documento">123456</span><br>
+                    <strong id="texto_cod_cliente">Cod. Cliente:</strong> <span id="cod_cliente">123456</span><br>
+                    <strong id="texto_fecha_emision">Fecha de Emisión:</strong> <span id="fecha_emision">13/04/2025 00:54:59</span>
+                </td>
+            </tr>
+            <tr><td class="separator" colspan="2"></td></tr>
+            
+            <!-- Encabezado de productos -->
+            <tr>
+                <th class="header" colspan="2">DETALLE</th>
+            </tr>
+    
+            <tr class="seccion_product-line">
+                <td class="detail" id="detalle_70_info">
+                    <strong id="detalle_70_nombre">70 - C HAVANA CLUB 7A</strong><br>
+                    <span id="detalle_70_unidad">BOTELLA</span><br>
+                    <span id="detalle_70_cantidad">1.00 x 360.00 - 0</span>
+                </td>
+                <td class="amount" id="detalle_70_monto">
+                    360.00
+                </td>
+            </tr>
+        
+            <tr><td class="separator" colspan="2"></td></tr>
+            <tr class="totals">
+                <td class="detail">Sub Total:</td>
+                <td class="amount" id="subtotal">360.00</td>
+            </tr>
+            <tr>
+                <td class="detail">Descuento:</td>
+                <td class="amount" id="descuento_adicional">0.00</td>
+            </tr>
+            <tr>
+                <td class="detail">Total:</td>
+                <td class="amount" id="total">360.00</td>
+            </tr>
+            <tr>
+                <td class="detail">Gift Card:</td>
+                <td class="amount" id="giftcard">0.00</td>
+            </tr>
+            <tr>
+                <td class="detail">Monto a Pagar:</td>
+                <td class="amount" id="total_final">360.00</td>
+            </tr>
+            <tr>
+                <td class="detail">Imp. Base Cred. Fiscal:</td>
+                <td class="amount" id="iva_base">360.00</td>
+            </tr>
+            <tr>
+                <td colspan="2" class="header" id="total_en_palabras">
+                    Son: <span id="total_en_palabras_text"> Trescientos sesenta 00/100 bolivianos.</span>
+                </td>
+            </tr>
+            <tr><td class="separator" colspan="2"></td></tr>
+            <tr>
+                <th colspan="2" id="leyenda" class="header">
+                    <span style="font-weight:bold" id="leyenda_text">Ley N° 453: El proveedor deberá suministrar el servicio en las modalidades y términos ofertados o convenidos.</span>
+                </th>
+            </tr>
+                <tr>
+        <td class="tg-n17z" colspan="2">
+        <span class="tg-q5sf" id="legal">ESTA FACTURA CONTRIBUYE AL DESARROLLO DEL PAÍS, EL USO ILÍCITO SERÁ SANCIONADO PENALMENTE DE ACUERDO A LEY</span>
+        <br><br>
+        <span style="text-align:center; display:block;"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAeoAAAHqAQAAAADjFjCXAAAEBklEQVR4nO2dTW7jMAyFH8cGupSBOUCOYt9gztQj9Qb2UXqAAexlAAWcBUVJTucHsN1pAj8ujDr2ByUAQUqPlCqKHTZ920MDxIkTJ06cOHHixI/FJVmbPp06wG4nv4hICxkWf3U4bnTiZ8OhqqroVVV1buxit2NQRT83aq8Ajb+SifGpfzvxr8aXHL5wE2BpIQNugqm7CSZpoSMAGeBB8NDRiZ8Lb+/uBSG2igUAlhbo3zoAYYb0v9NYnvq3E38oXAbcJP0d1LxNX7v/NDrx0+BBVUcA6RKiXWw1gUUEcE9U1Xjw6MTPhcOXCgCAxpYPf7v4q1xNEN9sNq8rUzYFIhS45gwb7TNYrAvr2d1T/3biX4uLdAAmEUkCXdcopstVbHErIoLpkmKivXzg6MTPhluG1RGAxTVVn9JZNg0RqjP8YlO6JNoxwxLfhzeq49LC9BIsLTBdVHVEo0CIkAGNmlTXczVB/Bj8JjKEaL4mQ1BVfU8rVxn8JYtwr13Six/myxN/Ljw5kmqEFcMAwIth/k4qkEUAIaZbZlji2y35z+wqXVVkRarIlpTqn0UqJ8T32Ae9zuNaqfSbcpx6A7B68NS/nfhX4VWGTTGsKMLqS9oc/6wFxfIvvY74ZqtcCvApHcocrprrRZdZAud1xHdZcSSr9KeAl91xRi3f2UUZ64jvsirDls9GwBJu6QgwvdgWsvaUXkd8q/l6oVFvPMktw3PjfSgeCZO4wgxLfJ+lNWxYZ1MLc2nRmtYVM1A7Jr2O+FbznpOljZp6T9LyQfq5E/RvgE4CYPoR2ySxhJ+ih4xO/Jz4WhZGtWgw0WQEUAU3deWEsY74Drv3ptEbT0obp7ebrOZ/9Dri261STrIssipB+DQve2IqVdDriG+2SiXuc4ECVUW21PyLaMI6LPFd5hkWQNk3AWS9BI23m3jhn7GO+EGxbp1Ns2jihX/AC2Qp9TLWET8Gt12IFvDyflgAMgT3xNeLqkiXnz7Olyf+RHhWicuWCa0T6egtAEUvZh2W+CEqMQDA4lc/31o1qTjM9kCxAAI0UbB8V0zdfNDoxM+JV60lq0B291fd5Ondd4x1xLda5UiA96hXT2fA2+285zj3QdHriG8zXVvZAFsrd7Nvhc1TOsY64nvx+qzO5SW5nkW95UVlACDDerfsgaMTPyme62BpP+LyYjuudbSTnHLWtVx7ldTp+RBfnviz4avVRJaKzUKdYdNtfsAMS/w4fOpyL/F7aw4n0uFDV+f4KaMTPyt+E5FLtIPYvV6Rj5iwA4s/cXTiJ8Dvz2CvqhTlFIrSAjXmZQYzLPHtlvQSs9JV4vJdOvuk0XJqbKWz0OuIbzHRf7/zZ+N/ryNOnDhx4sSJE38U/BdzGDk6ywzD5QAAAABJRU5ErkJggg==" alt="Codigo QR" style="width:100px;height:100px;"></span>
+        <span class="tg-q5sf">"Este documento es la Representación Gráfica de un Documento Fiscal Digital emitido en una modalidad de facturación en línea"</span>
+        </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    
