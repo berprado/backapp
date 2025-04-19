@@ -60,7 +60,8 @@ estructura.md
 *.pyo
 
 # Directorios innecesarios o pruebas fuera del repositorio principal
-facturador/off/
+facturador/off/*
+facturador/cuarentena/*
 
 # Directorios de datos de MySQL si usas Docker
 mysql_data/

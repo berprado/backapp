@@ -29,7 +29,6 @@ def main():
     
     # Paso previo: intentar finalizar evento abierto si hay conexión
     logger.info("Verificando si hay eventos pendientes para finalizar")
-    finalizar_evento_si_conectado()
     resultado = finalizar_evento_si_conectado()
     if resultado:
         logger.info("Evento pendiente finalizado exitosamente")
