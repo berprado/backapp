@@ -7,6 +7,8 @@ if (parent_dir not in sys.path):
 
 import random
 import requests
+import json
+from datetime import datetime, timedelta
 import streamlit as st
 from database import SessionLocal, engine, URL_DATABASE
 from config import ENDPOINT_URL
@@ -39,15 +41,67 @@ engine = create_engine(URL_DATABASE)
 
 @st.cache_resource
 def fetch_comandas():
+    """
+    Obtiene las comandas desde el servidor.
+    Si el servidor no está disponible, intenta cargar desde caché.
+    
+    Returns:
+        tuple: (comandas, mensaje_error)
+    """
+    # Ruta para el archivo de caché
+    cache_dir = os.path.join(os.path.dirname(__file__), 'cache')
+    cache_file = os.path.join(cache_dir, 'comandas_cache.json')
+    
+    # Asegurarse de que el directorio de caché exista
+    if not os.path.exists(cache_dir):
+        try:
+            os.makedirs(cache_dir)
+        except Exception as e:
+            logger.error(f"Error al crear directorio de caché: {e}")
+    
     try:
-        logger.info("Obteniendo comandas")
-        response = requests.get(f"{ENDPOINT_URL}")
+        logger.info("Obteniendo comandas del servidor")
+        
+        # Timeout reducido para evitar bloqueos largos si el servidor no responde
+        response = requests.get(f"{ENDPOINT_URL}", timeout=5)
         response.raise_for_status()
-        return response.json(), None
-    except requests.exceptions.RequestException as e:
+        comandas = response.json()
+        
+        # Guardar en caché para uso futuro
+        try:
+            with open(cache_file, 'w', encoding='utf-8') as f:
+                json.dump({
+                    'timestamp': datetime.now().isoformat(),
+                    'comandas': comandas
+                }, f, ensure_ascii=False)
+            logger.info(f"Guardadas {len(comandas)} comandas en caché")
+        except Exception as e:
+            logger.warning(f"No se pudo guardar comandas en caché: {e}")
+        
+        return comandas, None
+        
+    except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
         logger.error(f"Error al obtener comandas: {e}")
         logger.error(traceback.format_exc())
-        return [], f"Error al obtener los id_comanda: {e}"
+        
+        # Intentar cargar desde caché si existe
+        try:
+            if os.path.exists(cache_file):
+                with open(cache_file, 'r', encoding='utf-8') as f:
+                    cache_data = json.load(f)
+                
+                # Verificar si el caché es reciente (menos de 24 horas)
+                cache_time = datetime.fromisoformat(cache_data['timestamp'])
+                if datetime.now() - cache_time < timedelta(hours=24):
+                    logger.info(f"Usando {len(cache_data['comandas'])} comandas desde caché")
+                    return cache_data['comandas'], "Servidor no disponible: usando datos en caché"
+                else:
+                    logger.warning(f"Caché de comandas expirado ({(datetime.now() - cache_time).total_seconds() / 3600:.1f} horas)")
+        except Exception as cache_error:
+            logger.error(f"Error al cargar comandas desde caché: {cache_error}")
+        
+        # Si llegamos aquí, no pudimos obtener comandas ni del servidor ni de caché
+        return [], f"Error al obtener comandas: {str(e)}"
 
 @st.cache_data
 def fetch_metodos_pago():
@@ -174,28 +228,27 @@ def guardar_factura_cabecera(cabecera: Dict[str, Union[str, float, int]]) -> Non
             "codigoRecepcion": cabecera.get('codigoRecepcion')
         }
 
-        # Intentar añadir campos de contingencia si existen en la tabla
-        try:
-            # Verificar si las columnas existen en la tabla
-            insp = inspect(engine)
-            columns = insp.get_columns('factura_cabecera')
-            column_names = [col['name'] for col in columns]
-            
-            # Solo añadir columnas que existen en la tabla
-            contingency_fields = [
-                'tipoEmision', 'codigoEvento', 'descripcionEvento', 'fechaInicioEvento',
-                'fechaFinEvento', 'idPaquete', 'estadoPaquete', 'numeroSecuencia',
-                'estadoContingencia', 'fechaSincronizacion'
-            ]
-            
-            for field in contingency_fields:
-                if field in column_names and field in cabecera:
-                    values[field] = cabecera.get(field)
-            
-            logging.debug(f"Campos de contingencia detectados y añadidos: {[f for f in contingency_fields if f in column_names]}")
-        except Exception as e:
-            logging.warning(f"No se pudieron verificar columnas de contingencia: {str(e)}")
-            # Continuar sin añadir campos de contingencia
+        # Agregar explícitamente los campos de contingencia que sabemos existen en la tabla
+        # Sabemos que estos existen porque vimos la estructura de la tabla
+        contingency_fields = {
+            'tipoEmision': cabecera.get('tipoEmision'),
+            'codigoEvento': cabecera.get('codigoEvento'),
+            'descripcionEvento': cabecera.get('descripcionEvento'),
+            'fechaInicioEvento': cabecera.get('fechaInicioEvento'),
+            'fechaFinEvento': cabecera.get('fechaFinEvento'),
+            'idPaquete': cabecera.get('idPaquete'),
+            'estadoPaquete': cabecera.get('estadoPaquete'),
+            'numeroSecuencia': cabecera.get('numeroSecuencia'),
+            'estadoContingencia': cabecera.get('estadoContingencia'),
+            'fechaSincronizacion': cabecera.get('fechaSincronizacion')
+        }
+        
+        # Filtrar campos None para evitar errores de tipo
+        for key, value in contingency_fields.items():
+            if value is not None:
+                values[key] = value
+                
+        logging.debug(f"Campos de contingencia añadidos: {[k for k, v in contingency_fields.items() if v is not None]}")
 
         # Ejecutar la inserción con los campos que sabemos que existen
         query = FacturaCabecera.__table__.insert().values(**values)

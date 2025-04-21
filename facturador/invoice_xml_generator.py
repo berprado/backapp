@@ -1,10 +1,10 @@
-import xml.etree.ElementTree as ET
 import os
 from datetime import datetime
 from typing import List, Dict, Optional, Tuple
 from dotenv import load_dotenv
 from data_access import guardar_factura_cabecera, guardar_factura_detalle, fetch_random_leyenda
 from logger_config import get_xml_logger
+import xml.etree.ElementTree as ET
 
 # Obtener el logger específico para XML
 logger = get_xml_logger()
@@ -51,10 +51,11 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
                          subtotal: float, total: float, codigo_moneda: int, tipo_cambio: float, 
                          monto_total_moneda: float, monto_giftcard: Optional[float], descuento_adicional: Optional[float], 
                          usuario: str, codigo_documento_sector: int, lineas_productos: List[Dict[str, str]],
-                         actividad_economica: str, codigo_producto_sin: str) -> Tuple[str, Dict, List[Dict]]:
+                         actividad_economica: str, codigo_producto_sin: str, tipo_emision: int = 1,
+                         evento_significativo: Optional[Dict] = None) -> Tuple[str, Dict, List[Dict]]:
 
     logger.info("Iniciando la generación del XML de la factura.")
-    logger.debug("Valores recibidos: nit_emisor=%s, razon_social_emisor=%s, municipio=%s, telefono=%s, numero_factura=%s, cuf=%s, cufd=%s, codigo_sucursal=%s, direccion=%s, codigo_punto_venta=%s, fecha_emision=%s, nombre_razon_social=%s, codigo_tipo_documento_identidad=%s, numero_documento=%s, complemento=%s, codigo_cliente=%s, codigo_metodo_pago=%s, ultimos_digitos_tarjeta=%s, subtotal=%s, total=%s, codigo_moneda=%s, tipo_cambio=%s, monto_total_moneda=%s, monto_giftcard=%s, descuento_adicional=%s, usuario=%s, codigo_documento_sector=%s, lineas_productos=%s", nit_emisor, razon_social_emisor, municipio, telefono, numero_factura, cuf, cufd, codigo_sucursal, direccion, codigo_punto_venta, fecha_emision, nombre_razon_social, codigo_tipo_documento_identidad, numero_documento, complemento, codigo_cliente, codigo_metodo_pago, ultimos_digitos_tarjeta, subtotal, total, codigo_moneda, tipo_cambio, monto_total_moneda, monto_giftcard, descuento_adicional, usuario, codigo_documento_sector, lineas_productos)
+    logger.debug("Valores recibidos: nit_emisor=%s, razon_social_emisor=%s, municipio=%s, telefono=%s, numero_factura=%s, cuf=%s, cufd=%s, codigo_sucursal=%s, direccion=%s, codigo_punto_venta=%s, fecha_emision=%s, nombre_razon_social=%s, codigo_tipo_documento_identidad=%s, numero_documento=%s, complemento=%s, codigo_cliente=%s, codigo_metodo_pago=%s, ultimos_digitos_tarjeta=%s, subtotal=%s, total=%s, codigo_moneda=%s, tipo_cambio=%s, monto_total_moneda=%s, monto_giftcard=%s, descuento_adicional=%s, usuario=%s, codigo_documento_sector=%s, tipo_emision=%s", nit_emisor, razon_social_emisor, municipio, telefono, numero_factura, cuf, cufd, codigo_sucursal, direccion, codigo_punto_venta, fecha_emision, nombre_razon_social, codigo_tipo_documento_identidad, numero_documento, complemento, codigo_cliente, codigo_metodo_pago, ultimos_digitos_tarjeta, subtotal, total, codigo_moneda, tipo_cambio, monto_total_moneda, monto_giftcard, descuento_adicional, usuario, codigo_documento_sector, tipo_emision)
 
     # Validar y formatear fechaEmision
     fecha_emision = validate_and_format_datetime(fecha_emision)
@@ -86,7 +87,7 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
     
     # Manejo de nillable para codigoPuntoVenta
     if codigo_punto_venta is not None:
-        ET.SubElement(cabecera, "codigoPuntoVenta").text = str(codigo_punto_venta)  # Punto de venta por defecto
+        ET.SubElement(cabecera, "codigoPuntoVenta").text = str(codigo_punto_venta)
     else:
         ET.SubElement(cabecera, "codigoPuntoVenta", attrib={"xsi:nil": "true"})
     
@@ -134,7 +135,13 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
     else:
         ET.SubElement(cabecera, "descuentoAdicional", attrib={"xsi:nil": "true"})
     
-    ET.SubElement(cabecera, "codigoExcepcion", attrib={"xsi:nil": "true"})
+    # Determinar codigoExcepcion (1 si es NIT y modo offline o si se establece manualmente)
+    if (tipo_emision == 2 and codigo_tipo_documento_identidad == 5) or \
+       ('excepcion_nit' in globals() and globals()['excepcion_nit']):
+        ET.SubElement(cabecera, "codigoExcepcion").text = "1"
+    else:
+        ET.SubElement(cabecera, "codigoExcepcion", attrib={"xsi:nil": "true"})
+    
     ET.SubElement(cabecera, "cafc", attrib={"xsi:nil": "true"})
     ET.SubElement(cabecera, "leyenda").text = leyenda
     ET.SubElement(cabecera, "usuario").text = usuario
@@ -166,12 +173,20 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
         'montoTotalMoneda': total / tipo_cambio,
         'montoGiftCard': monto_giftcard,
         'descuentoAdicional': descuento_adicional,
-        'codigoExcepcion': None,
+        'codigoExcepcion': 1 if (tipo_emision == 2 and codigo_tipo_documento_identidad == 5) or ('excepcion_nit' in globals() and globals()['excepcion_nit']) else None,
         'cafc': None,
         'leyenda': leyenda,
         'usuario': usuario,
-        'codigoDocumentoSector': codigo_documento_sector
+        'codigoDocumentoSector': codigo_documento_sector,
+        'tipoEmision': tipo_emision
     }
+    
+    # Añadir información del evento significativo si estamos en modo offline
+    if tipo_emision == 2 and evento_significativo:
+        cabecera_data['codigoEvento'] = evento_significativo['codigo_evento']
+        cabecera_data['descripcionEvento'] = evento_significativo['descripcion']
+        cabecera_data['fechaInicioEvento'] = evento_significativo['fecha_inicio']
+        cabecera_data['estadoContingencia'] = 'PENDIENTE'
 
     detalles_data = []
 

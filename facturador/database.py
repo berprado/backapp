@@ -2,6 +2,11 @@
 
 import os
 from dotenv import load_dotenv
+from datetime import datetime
+from logger_config import get_logger
+
+# Obtener el logger principal
+logger = get_logger()
 
 # ----------------------------------------
 # Cargar variables de entorno (.env)
@@ -48,7 +53,6 @@ if __name__ == "__main__":
 # 🛠️ PyMySQL directo (Contingencia y eventos)
 # ----------------------------------------
 import pymysql
-from datetime import datetime
 
 def conectar_db():
     """Conexión directa para queries críticos"""
@@ -116,3 +120,53 @@ def actualizar_evento_final(evento_id, fecha_fin, codigo_recepcion):
             WHERE id = %s
         """, (fecha_fin, codigo_recepcion, evento_id))
         db.commit()
+
+def obtener_facturas_por_evento(id_evento):
+    """
+    Obtiene todas las facturas asociadas a un evento significativo específico.
+    
+    Args:
+        id_evento (int): ID del evento significativo.
+        
+    Returns:
+        list: Lista de diccionarios con los datos de las facturas, o lista vacía si no hay resultados.
+    """
+    logger.debug(f"Obteniendo facturas para el evento #{id_evento}")
+    db = conectar_db()
+    try:
+        with db.cursor() as cursor:
+            cursor.execute("""
+                SELECT * FROM factura_cabecera 
+                WHERE codigoEvento = %s OR tipoEmision = '2'
+                ORDER BY fechaEmision DESC
+            """, (id_evento,))
+            facturas = cursor.fetchall()
+            
+        if facturas:
+            logger.info(f"Se encontraron {len(facturas)} facturas para el evento #{id_evento}")
+        else:
+            logger.info(f"No se encontraron facturas para el evento #{id_evento}")
+            
+        # Verificar si hay facturas offline que no estén en la BD 
+        # pero tienen el prefijo del evento en el nombre del archivo
+        if os.path.exists("offline"):
+            archivos = [
+                f for f in os.listdir("offline")
+                if (f.startswith(f"offline_{id_evento}_") or 
+                    f.startswith(f"factura_offline_{id_evento}_")) and 
+                f.endswith(".xml")
+            ]
+            
+            if archivos and not facturas:
+                logger.info(f"Se encontraron {len(archivos)} archivos XML para el evento #{id_evento} pero no facturas en la BD")
+                # Si hay archivos pero no facturas en BD, devolver información básica
+                return [{"numeroFactura": f.split('_')[2], "nombreRazonSocial": "Factura offline", "montoTotal": 0, 
+                         "fechaEmision": datetime.now()} for f in archivos]
+            
+        return facturas
+            
+    except Exception as e:
+        logger.error(f"Error al obtener facturas para el evento #{id_evento}: {e}")
+        return []
+    finally:
+        db.close()

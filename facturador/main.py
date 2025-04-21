@@ -27,114 +27,108 @@ st.set_page_config(
 def main():
     logger.info("Iniciando sistema de facturación")
     
-    # Paso previo: intentar finalizar evento abierto si hay conexión
-    logger.info("Verificando si hay eventos pendientes para finalizar")
+    # Paso previo: solo verificar conexión, sin finalizar eventos automáticamente
+    logger.info("Verificando estado de conectividad")
     resultado = finalizar_evento_si_conectado()
-    if resultado:
-        logger.info("Evento pendiente finalizado exitosamente")
-        st.success("✅ Se finalizó el evento pendiente y se comprimieron las facturas (si existían).")
-    else:
-        logger.warning("No se pudo finalizar el evento o el sistema aún está sin conexión")
-        st.warning("ℹ️ No se pudo finalizar el evento o el sistema aún está sin conexión.")
-    st.title("🧠 Inicializando Sistema de Facturación...")
-
-    # Paso 1: Verificar conexión
-    logger.info("Verificando conexión con el SIN")
-    mensaje, conectado, tipo_deducido = verificar_comunicacion()
-
-    if conectado:
-        logger.info("Conexión establecida con el SIN - iniciando modo online")
-        st.success("✅ Conexión establecida con el SIN.")
-        online_main()
-    else:
-        logger.warning(f"No se pudo conectar al SIN: {mensaje}. Tipo deducido: {tipo_deducido}")
-        st.error("❌ No se pudo conectar al SIN. Se activará la contingencia.")
-
-        # Paso 2: Verificar si ya hay un evento abierto
-        evento_existente = obtener_evento_abierto()
-        if evento_existente:
-            logger.info(f"Se encontró un evento activo existente (ID: {evento_existente['id']})")
-            st.info("ℹ️ Ya existe un evento registrado en modo contingencia.")
-        else:
-            # Paso 3: Registrar evento automáticamente
-            logger.info("Registrando evento significativo automáticamente")
-            st.warning("⚠️ Registrando evento significativo automáticamente...")
-
-            # Obtener CUFD vigente
-            cufd = get_cufd_vigente()
-            if not cufd:
-                logger.error("No se pudo obtener el CUFD vigente para registrar el evento")
-                st.error("❌ No se pudo obtener CUFD vigente para registrar el evento.")
-            else:
-                eventos_parametricos = get_eventos_parametricos()
-                tipos = {e["codigoClasificador"]: e["descripcion"] for e in eventos_parametricos}
-                tipo_evento = tipo_deducido if tipo_deducido in tipos else "5"
-                descripcion = tipos.get(tipo_evento, "Evento no identificado automáticamente")
-                
-                logger.info(f"Registrando evento automático: tipo={tipo_evento}, descripción={descripcion}")
-                
-                ahora = datetime.now()
-                insertar_evento_local(
-                    codigo_evento=tipo_evento,
-                    descripcion=descripcion,
-                    fecha_inicio=ahora,
-                    cufd=cufd
-                )
-                
-                logger.info(f"Evento registrado exitosamente: tipo={tipo_evento}, inicio={ahora}")
-                st.success(f"✅ Evento registrado localmente: {descripcion}")
-
-        # Paso 4: Cargar la interfaz offline
-        logger.info("Activando modo offline de facturación")
-        st.warning("🛠️ Activando modo offline de facturación...")
-
+    
+    # Verificar si hay evento activo
+    evento_activo = obtener_evento_abierto()
+    if evento_activo:
+        logger.info(f"Evento activo detectado: #{evento_activo['id']}, tipo={evento_activo['codigo_evento']}")
+        st.warning(f"""
+        ⚠️ **MODO CONTINGENCIA ACTIVO** ⚠️
         
-        # Mostrar formulario si hay evento activo
-        evento = obtener_evento_abierto()
-        if evento:
-            logger.info(f"Mostrando formulario para facturación offline asociada al evento #{evento['id']}")
-            with st.form("form_factura_offline"):
-                st.subheader("📋 Ingresar factura offline")
-                numero_factura = st.text_input("Número de Factura")
-                nombre = st.text_input("Nombre o Razón Social")
-                documento = st.text_input("Número de Documento")
-                monto = st.number_input("Monto Total", min_value=0.0, format="%.2f")
-                submit = st.form_submit_button("💾 Guardar como XML")
+        • **Tipo de evento:** {evento_activo['codigo_evento']} - {evento_activo['descripcion']}
+        • **Inicio:** {evento_activo['fecha_inicio'].strftime('%d/%m/%Y %H:%M:%S')}
+        • **Estado:** Las facturas se están emitiendo en modo OFFLINE
+        """)
+        # Guardar en session_state para uso posterior
+        st.session_state['modo_offline'] = True
+        st.session_state['evento_activo'] = evento_activo
+    else:
+        # Verificar conexión al inicio
+        logger.info("Verificando conexión con el SIN")
+        mensaje, conectado, tipo_deducido = verificar_comunicacion()
 
-                if submit:
-                    # Estructura del XML
-                    now = datetime.now()
-                    timestamp = now.strftime("%Y%m%d_%H%M%S")
-                    nombre_archivo = f"offline_{evento['id']}_{timestamp}.xml"
-                    ruta_archivo = os.path.join("offline", nombre_archivo)
-                    
-                    logger.info(f"Guardando factura offline: documento={documento}, monto={monto}, archivo={nombre_archivo}")
-
-                    # Asegurar existencia de carpeta
-                    os.makedirs("offline", exist_ok=True)
-
-                    contenido_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
-        <facturaOffline>
-        <idEvento>{evento['id']}</idEvento>
-        <fecha>{now.strftime('%Y-%m-%d %H:%M:%S')}</fecha>
-        <numeroFactura>{numero_factura}</numeroFactura>
-        <nombre>{nombre}</nombre>
-        <documento>{documento}</documento>
-        <monto>{monto:.2f}</monto>
-        </facturaOffline>
-        """
-
-                    try:
-                        with open(ruta_archivo, "w", encoding="utf-8") as f:
-                            f.write(contenido_xml)
-                        logger.info(f"Factura offline guardada exitosamente: {nombre_archivo}")
-                        st.success(f"✅ Factura guardada como {nombre_archivo}")
-                    except Exception as e:
-                        logger.error(f"Error al guardar factura offline: {str(e)}")
-                        st.error(f"❌ Error al guardar factura: {str(e)}")
+        if conectado:
+            logger.info("Conexión establecida con el SIN - iniciando modo online")
+            st.success("✅ Conexión establecida con el SIN.")
+            # Guardar en session_state
+            st.session_state['modo_offline'] = False
+            online_main()
         else:
-            logger.error("No se encontró evento significativo activo para asociar la factura")
-            st.error("❌ No se encontró evento significativo activo para asociar la factura.")
+            logger.warning(f"No se pudo conectar al SIN: {mensaje}. Tipo deducido: {tipo_deducido}")
+            st.error("❌ No se pudo conectar al SIN. Se activará la contingencia.")
+            # Guardar en session_state
+            st.session_state['modo_offline'] = True
+
+            # Paso 2: Verificar si ya hay un evento abierto
+            evento_existente = obtener_evento_abierto()
+            if evento_existente:
+                logger.info(f"Se encontró un evento activo existente (ID: {evento_existente['id']})")
+                st.info("ℹ️ Ya existe un evento registrado en modo contingencia.")
+                # Guardar en session_state
+                st.session_state['evento_activo'] = evento_existente
+            else:
+                # Paso 3: Registrar evento automáticamente
+                logger.info("Registrando evento significativo automáticamente")
+                st.warning("⚠️ Registrando evento significativo automáticamente...")
+
+                # Obtener CUFD vigente
+                cufd = get_cufd_vigente()
+                if not cufd:
+                    logger.error("No se pudo obtener el CUFD vigente para registrar el evento")
+                    st.error("❌ No se pudo obtener CUFD vigente para registrar el evento.")
+                else:
+                    eventos_parametricos = get_eventos_parametricos()
+                    tipos = {e["codigoClasificador"]: e["descripcion"] for e in eventos_parametricos}
+                    tipo_evento = tipo_deducido if tipo_deducido in tipos else "5"
+                    descripcion = tipos.get(tipo_evento, "Evento no identificado automáticamente")
+                    
+                    logger.info(f"Registrando evento automático: tipo={tipo_evento}, descripción={descripcion}")
+                    
+                    ahora = datetime.now()
+                    insertar_evento_local(
+                        codigo_evento=tipo_evento,
+                        descripcion=descripcion,
+                        fecha_inicio=ahora,
+                        cufd=cufd
+                    )
+                    
+                    logger.info(f"Evento registrado exitosamente: tipo={tipo_evento}, inicio={ahora}")
+                    st.success(f"✅ Evento registrado localmente: {descripcion}")
+
+                    # Obtener el evento recién creado
+                    evento_activo = obtener_evento_abierto()
+                    # Guardar en session_state
+                    if evento_activo:
+                        st.session_state['evento_activo'] = evento_activo
+
+            # Paso 4: Cargar la interfaz offline
+            logger.info("Activando modo offline de facturación")
+            st.warning("🛠️ Activando modo offline de facturación...")
+
+            # Mostrar formulario para facturación offline
+            offline_main()
+
+def offline_main():
+    """
+    Versión de la interfaz principal para modo offline/contingencia.
+    Esta función maneja la facturación cuando estamos en modo contingencia.
+    """
+    # Mostrar formulario si hay evento activo
+    evento = obtener_evento_abierto()
+    if evento:
+        logger.info(f"Mostrando formulario para facturación offline asociada al evento #{evento['id']}")
+        
+        # Importar la función main de ui_copy directamente aquí para evitar problemas de circular import
+        from ui_copy import main as ui_main
+        
+        # Llamar a la función ui_main con los parámetros necesarios para modo offline
+        ui_main(tipo_emision=2, evento_contingencia=evento)
+    else:
+        logger.error("No se encontró evento significativo activo para asociar la factura")
+        st.error("❌ No se encontró evento significativo activo para asociar la factura.")
 
 if __name__ == "__main__":
     main()

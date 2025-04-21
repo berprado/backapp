@@ -6,7 +6,7 @@ El Sistema Informáticos de Facturación, para interactuar con los servicios de 
 
 # a)      Emisor de Facturas Digitales:
 
-Permite generar Facturas Digitales en formato XML para las modalidades Electrónica en Línea y Computarizada en Línea.
+Permite generar Facturas Digitales en formato XML en la modalidad Electrónica en Línea.
 
  
 
@@ -20,7 +20,7 @@ Este componente debe emitir una Factura Digital en base a la siguiente secuencia
 
 * 1)     Generar Archivo XML asociado a la Factura de acuerdo a su actividad económica. 
 
-* 2)     Firmar el archivo obtenido conforme estándar XMLDSig (sólo en el caso de la Modalidad Electrónica en Línea).
+* 2)     Firmar el archivo obtenido conforme estándar XMLDSig.
 
 * 3)     Validar contra el XSD asociado.
 

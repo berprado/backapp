@@ -335,7 +335,7 @@ def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_
 
 def get_next_invoice_number():
     try:
-        with open("invoice_number.txt", "r") as file:
+        with open("invoice_number.txt", "r", encoding="utf-8") as file:
             numero_factura = int(file.read().strip())
     except FileNotFoundError:
         logger.warning("Archivo 'invoice_number.txt' no encontrado. Se creará uno nuevo con el número de factura inicial 0.")
@@ -350,10 +350,17 @@ def get_next_invoice_number():
 
 def increment_invoice_number(numero_factura):
     try:
-        with open("invoice_number.txt", "w") as file:
-            file.write(str(numero_factura))
+        save_invoice_number(numero_factura)
     except Exception as e:
         logger.error(f"Error al escribir en 'invoice_number.txt': {e}")
+        raise e
+
+def save_invoice_number(numero_factura):
+    try:
+        with open("invoice_number.txt", "w", encoding="utf-8") as file:
+            file.write(str(numero_factura))
+    except Exception as e:
+        logger.error(f"Error al guardar el número de factura: {e}")
         raise e
 
 def save_or_fetch_client_data(codigo_cliente, codigo_tipo_documento_identidad, complemento, email, nombre_razon_social, numero_documento, telefono, message_placeholder):
@@ -584,7 +591,7 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
         return None
 
 
-with open('verifica_stream.py', 'r') as file:
+with open('verifica_stream.py', 'r', encoding='utf-8') as file:
     file_content = file.read()
 # Eliminando la lectura de cuis.py ya que estamos importando el módulo directamente
 # with open('cuis.py', 'r') as file:
@@ -693,7 +700,7 @@ def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
             # Crear señal de error para que el monitoreo detecte la finalización
             error_signal_file = f"debug/print_error_{numero_factura}.signal"
             try:
-                with open(error_signal_file, "w") as f:
+                with open(error_signal_file, "w", encoding="utf-8") as f:
                     f.write(f"Error de impresión: {str(e)}\n{datetime.now().isoformat()}")
             except:
                 pass  # Si no podemos escribir el archivo de señal, continuamos sin más errores
@@ -748,7 +755,7 @@ def monitorear_hilo_impresion(hilo):
                 
             if os.path.exists(error_signal):
                 try:
-                    with open(error_signal, 'r') as f:
+                    with open(error_signal, 'r', encoding='utf-8') as f:
                         error_info = f.read().strip()
                 except:
                     error_info = "Error desconocido durante la impresión"
@@ -824,13 +831,45 @@ def guardar_factura_en_bd(factura_cabecera_data, detalles_factura):
         facturacion_logger.error(f"Error general al guardar la factura: {e}")
         return False, f"Error al guardar la factura: {str(e)}"
 
-def main():
+def main(tipo_emision=1, evento_contingencia=None):
+    """
+    Interfaz principal del sistema de facturación que soporta modo online (tipo_emision=1)
+    y modo offline/contingencia (tipo_emision=2)
+    
+    Args:
+        tipo_emision (int): 1 para modo online, 2 para modo offline
+        evento_contingencia (dict): Información del evento de contingencia activo (solo en modo offline)
+    """
     message_placeholder = st.empty()
+    
+    # Registrar el modo de ejecución en el logger
+    if tipo_emision == 2:
+        logger.info(f"Iniciando UI en MODO OFFLINE - Evento #{evento_contingencia['id'] if evento_contingencia else 'N/A'}")
+    else:
+        logger.info("Iniciando UI en MODO ONLINE")
+    
     # Definición de las pestañas
     tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
         "🧾Facturar", "🔍Ver Facturas", "✅Validar NIT", "😏Clientes", 
         "🔍Verificar Factura", "🔍Gestionar CUIS", "❌Anular/Revertir", "❌Revertir Anulacion"
     ])
+    
+    # Mostrar indicador visual de modo offline si es necesario
+    if tipo_emision == 2 and evento_contingencia:
+        st.sidebar.warning(f"""
+        ⚠️ **MODO CONTINGENCIA** ⚠️
+        
+        - Evento #{evento_contingencia['id']}
+        - Tipo: {evento_contingencia['codigo_evento']}
+        - Inicio: {evento_contingencia['fecha_inicio'].strftime('%d/%m/%Y %H:%M:%S')}
+        
+        Las facturas se emitirán en modo OFFLINE y se
+        sincronizarán cuando finalice el evento.
+        """)
+        
+        # Añadir checkbox para NIT sin validación (en modo offline siempre se activa)
+        st.sidebar.info("📝 En modo contingencia, los NITs se marcan automáticamente para validación posterior.")
+        st.session_state['excepcion_nit'] = True
 
     # Pestaña 2: Ver Facturas Generadas
     with tab2:

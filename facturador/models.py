@@ -184,6 +184,17 @@ class FacturaCabecera(Base):
     enlaceSiat = Column(String(255))
     codigoRecepcion = Column(String(255))
     codigoEvento = Column(Integer, ForeignKey('eventos_significativos_registrados.id'), nullable=True, comment='ID del evento significativo relacionado')
+    
+    # Campos adicionales para el modo offline/contingencia
+    tipoEmision = Column(String(10), nullable=True, comment='Referencia a codigoClasificador')
+    descripcionEvento = Column(String(255), nullable=True, comment='Descripción del evento significativo')
+    fechaInicioEvento = Column(DateTime, nullable=True, comment='Fecha de inicio del evento significativo') 
+    fechaFinEvento = Column(DateTime, nullable=True, comment='Fecha de fin del evento significativo')
+    idPaquete = Column(String(50), nullable=True, comment='Identificador del paquete en emisión masiva')
+    estadoPaquete = Column(String(20), nullable=True, comment='Estado del paquete: PENDIENTE, PROCESADO, ERROR')
+    numeroSecuencia = Column(Integer, nullable=True, comment='Número de secuencia dentro del paquete')
+    estadoContingencia = Column(String(20), nullable=True, comment='Estado de contingencia: PENDIENTE, SINCRONIZADO, ERROR')
+    fechaSincronizacion = Column(DateTime, nullable=True, comment='Fecha en que se sincronizó la factura de contingencia')
 
     # Relación con eventos significativos registrados
     evento_significativo = relationship("EventoSignificativoRegistrado", backref="facturas")
@@ -240,7 +251,17 @@ class FacturaCabecera(Base):
             'motivoAnulacion': self.motivoAnulacion,
             'enlaceSiat': self.enlaceSiat,
             'codigoRecepcion': self.codigoRecepcion,
-            'codigoEvento': self.codigoEvento
+            'codigoEvento': self.codigoEvento,
+            # Campos adicionales de contingencia añadidos al diccionario
+            'tipoEmision': self.tipoEmision,
+            'descripcionEvento': self.descripcionEvento,
+            'fechaInicioEvento': self.fechaInicioEvento.isoformat() if self.fechaInicioEvento else None,
+            'fechaFinEvento': self.fechaFinEvento.isoformat() if self.fechaFinEvento else None,
+            'idPaquete': self.idPaquete,
+            'estadoPaquete': self.estadoPaquete,
+            'numeroSecuencia': self.numeroSecuencia,
+            'estadoContingencia': self.estadoContingencia,
+            'fechaSincronizacion': self.fechaSincronizacion.isoformat() if self.fechaSincronizacion else None
         }
 
 
@@ -794,4 +815,4 @@ class SincronizacionEstado(Base):
             "id": self.id,
             "ultima_sincronizacion": self.ultima_sincronizacion.isoformat() if self.ultima_sincronizacion else None
         }
-        
+
