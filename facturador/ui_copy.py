@@ -614,28 +614,45 @@ def render_sidebar():
 
     return numero_documento, nit_valido, nombre_cliente, complemento, email, telefono, seleccion_tipo_documento, codigo_clasificador_documento, codigo_clasificador_metodo_pago, ultimos_digitos_tarjeta, codigo_cliente
 
+try:
+    from utils.state_compat import initialize_print_state as new_initialize_print_state
+    from utils.state_compat import reiniciar_estados as new_reiniciar_estados
+    from utils.state_manager import get_state, set_state, get_decimal_state
+    USE_NEW_STATE_MANAGER = True
+    logger.info("Usando nuevo sistema de gestión de estado")
+except ImportError as e:
+    logger.warning(f"No se pudo importar el nuevo sistema de gestión de estado: {e}")
+    USE_NEW_STATE_MANAGER = False
+    logger.info("Usando sistema de gestión de estado original")
+
 def initialize_print_state():
-    keys_defaults = {
-        'print_status': None,
-        'datos_impresion': {},
-        'cuf': None,
-        'ultima_factura': None,
-        'impresion_en_progreso': False,
-        'impresion_finalizada': False
-    }
-    for key, default in keys_defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = default
+    if USE_NEW_STATE_MANAGER:
+        new_initialize_print_state()
+    else:
+        keys_defaults = {
+            'print_status': None,
+            'datos_impresion': {},
+            'cuf': None,
+            'ultima_factura': None,
+            'impresion_en_progreso': False,
+            'impresion_finalizada': False
+        }
+        for key, default in keys_defaults.items():
+            if key not in st.session_state:
+                st.session_state[key] = default
 
 def reiniciar_estados():
-    keys_to_reset = [
-        'factura_validada', 'print_status', 'datos_impresion', 
-        'cuf', 'ultima_factura', 'impresion_en_progreso', 
-        'impresion_finalizada'
-    ]
-    for key in keys_to_reset:
-        if key in st.session_state:
-            del st.session_state[key]
+    if USE_NEW_STATE_MANAGER:
+        new_reiniciar_estados()
+    else:
+        keys_to_reset = [
+            'factura_validada', 'print_status', 'datos_impresion', 
+            'cuf', 'ultima_factura', 'impresion_en_progreso', 
+            'impresion_finalizada'
+        ]
+        for key in keys_to_reset:
+            if key in st.session_state:
+                del st.session_state[key]
 
 def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
     """
@@ -1527,22 +1544,10 @@ def mostrar_lista_facturas(estado):
                         st.write("**Fecha:** No disponible")
                     st.write(f"**Cliente:** {cabecera['nombreRazonSocial']}")
                     st.write(f"**NIT/CI:** {cabecera['numeroDocumento']}")
-                    st.write(f"**Estado:** {cabecera['estado']}")
-                    st.write(f"**Validación:** {cabecera['estadoValidacion'] or 'Pendiente'}")
+                    st.write(f"**Estado:** {cabecera ['estado']}")
                 
                 with col2:
-                    st.write("**Datos Económicos:**")
-                    st.write(f"**Monto Total:** {float(cabecera['montoTotal']):.2f} Bs.")
-                    st.write(f"**Descuento:** {float(cabecera['descuentoAdicional']):.2f} Bs.")
-                    st.write(f"**Método Pago:** {cabecera['codigoMetodoPago']}")
-                    # Generar enlace para ver la factura en el portal SIAT
-                    nit_emisor = int(os.getenv('NIT'))
-                    enlace = generate_invoice_link(nit_emisor, cabecera['cuf'], cabecera['numeroFactura'])
-                    st.link_button("Ver en SIAT", enlace)
-                
-                # Mostrar tabla de los productos
-                if detalles:
-                    st.write("**Productos:**")
+                    st.write("**Detalles de productos:**")
                     items = []
                     for detalle in detalles:
                         items.append({

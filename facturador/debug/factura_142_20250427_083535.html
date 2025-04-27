@@ -1,0 +1,180 @@
+
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <title>Factura # 142</title>
+        <style>
+            @page {
+                size: 88mm 297mm;
+                margin: 0;
+                    }
+            body {
+                font-family: monospace;
+                font-size: 10px;
+                width: 88mm;
+                margin: 0;
+                padding: 4px;
+            }
+            table {
+                width: 98%;
+                border-collapse: collapse;
+            }
+            th, td {
+                padding: 2px 3px;
+            }
+            .header {
+                text-align: center;
+                font-weight: bold;
+            }
+            .header1 {
+                font-size: 9px;
+                text-align: center;
+                font-weight: bold;
+            }
+            .detail {
+                text-align: left;
+                border-bottom: 1px dotted #ccc;
+            }
+            .amount {
+                text-align: right;
+                font-weight: bold;
+            }
+            .separator {
+                border-top: 1px dashed black;
+                margin: 3px 0;
+            }
+            .product-line {
+                border-bottom: 1px dotted #eee;
+            }
+            .totals {
+                margin-top: 5px;
+                border-top: 1px solid black;
+            }
+        </style>
+    </head>
+    <body>
+        <table>
+            <!-- Encabezado -->
+            <tr>
+                <th class="header" colspan="2" id="seccion_tipo_factura">
+                    <span id="tipo_factura_text">FACTURA</span><br>
+                    <span id="subtitulo_text">(CON DERECHO A CREDITO FISCAL)</span>
+                </th>
+            </tr>
+            <tr>
+                <td class="header" colspan="2" id="seccion_empresa_info">
+                    <span id="razon_social">BOLIVIAN FOODS & DRINKS S.R.L.</span><br>
+                    <span id="nombre_sucursal">CASA MATRIZ</span><br>
+                    <span id="codigo_punto_venta">Punto de Venta: 0</span>
+                </td>
+            </tr>
+            <tr>
+                <td class="header" colspan="2" id="seccion_direccion_info">
+                    <span id="direccion">AV. MONTENEGRO NRO. SN EDIF.: ARACELY PISO: PB DEPTO.: BLOQUE E7 ZONA/BARRIO: SAN MIGUEL</span><br>
+                    <span id="municipio">LA PAZ</span><br>
+                    <span id="telefono_empresa">Tel: 65560514</span>
+                </td>
+            </tr>
+            <tr><td class="separator" colspan="2"></td></tr>
+            
+            <!-- Información de la factura -->
+            <tr>
+                <td class="header" colspan="2">
+                    <strong id="texto_nit">NIT:</strong> <span id="nit">344096024</span><br>
+                    <strong id="texto_numero_factura">Factura N°:</strong> <span id="numero_factura">142</span>
+                </td>
+            </tr>
+            <tr>
+                <th class="header" colspan="2" id="texto_cuf">
+                    Código de Autorización:<br><span class="header1" id="cuf">178B43EFDB9CFC1FE24F8A8E53050E12ACC2752CC51CE3ACC8F7A1F74</span>
+                </th>
+            </tr>
+            <tr><td class="separator" colspan="2"></td></tr>
+            
+            <!-- Información del cliente -->
+            <tr>
+                <td class="header" colspan="2" id="seccion_cliente_info">
+                    <strong id="texto_nombre_mayusculas">Nombre/Razón Social:</strong> <span id="nombre_mayusculas">PEPE PERES</span><br>
+                    <strong id="texto_numero_documento">NIT/CI/CEX:</strong> <span id="numero_documento">123456</span><br>
+                    <strong id="texto_cod_cliente">Cod. Cliente:</strong> <span id="cod_cliente">123456</span><br>
+                    <strong id="texto_fecha_emision">Fecha de Emisión:</strong> <span id="fecha_emision">27/04/2025 08:35:23</span>
+                </td>
+            </tr>
+            <tr><td class="separator" colspan="2"></td></tr>
+            
+            <!-- Encabezado de productos -->
+            <tr>
+                <th class="header" colspan="2">DETALLE</th>
+            </tr>
+    
+            <tr class="seccion_product-line">
+                <td class="detail" id="detalle_0946_info">
+                    <strong id="detalle_0946_nombre">0946 - C ROCKS FRUTOS ROJOS 1LT</strong><br>
+                    <span id="detalle_0946_unidad">Unidadxxx.</span><br>
+                    <span id="detalle_0946_cantidad">1.00 x 450.00 - 0</span>
+                </td>
+                <td class="amount" id="detalle_0946_monto">
+                    450.00
+                </td>
+            </tr>
+        
+            <tr class="seccion_product-line">
+                <td class="detail" id="detalle_218_info">
+                    <strong id="detalle_218_nombre">218 - V BULLDOG</strong><br>
+                    <span id="detalle_218_unidad">COPA</span><br>
+                    <span id="detalle_218_cantidad">2.00 x 55.00 - 0</span>
+                </td>
+                <td class="amount" id="detalle_218_monto">
+                    110.00
+                </td>
+            </tr>
+        
+            <tr><td class="separator" colspan="2"></td></tr>
+            <tr class="totals">
+                <td class="detail">Sub Total:</td>
+                <td class="amount" id="subtotal">560.00</td>
+            </tr>
+            <tr>
+                <td class="detail">Descuento:</td>
+                <td class="amount" id="descuento_adicional">10.00</td>
+            </tr>
+            <tr>
+                <td class="detail">Total:</td>
+                <td class="amount" id="total">550.00</td>
+            </tr>
+            <tr>
+                <td class="detail">Gift Card:</td>
+                <td class="amount" id="giftcard">0.00</td>
+            </tr>
+            <tr>
+                <td class="detail">Monto a Pagar:</td>
+                <td class="amount" id="total_final">550.00</td>
+            </tr>
+            <tr>
+                <td class="detail">Imp. Base Cred. Fiscal:</td>
+                <td class="amount" id="iva_base">550.00</td>
+            </tr>
+            <tr>
+                <td colspan="2" class="header" id="total_en_palabras">
+                    Son: <span id="total_en_palabras_text"> Quinientos cincuenta 00/100 bolivianos.</span>
+                </td>
+            </tr>
+            <tr><td class="separator" colspan="2"></td></tr>
+            <tr>
+                <th colspan="2" id="leyenda" class="header">
+                    <span style="font-weight:bold" id="leyenda_text">Ley N° 453: Tienes derecho a recibir información sobre las características y contenidos de los servicios que utilices.</span>
+                </th>
+            </tr>
+                <tr>
+        <td class="tg-n17z" colspan="2">
+        <span class="tg-q5sf" id="legal">ESTA FACTURA CONTRIBUYE AL DESARROLLO DEL PAÍS, EL USO ILÍCITO SERÁ SANCIONADO PENALMENTE DE ACUERDO A LEY</span>
+        <br><br>
+        <span style="text-align:center; display:block;"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAeoAAAHqAQAAAADjFjCXAAAEC0lEQVR4nO2dTW6kSBCFXwxItUykPoCPAjcb+Uh9AziKDzASLC0ler2I/CtbMwtg1HbzYoGAqk9ZlkLxn2kjTsjy1xkaEC5cuHDhwoULF34tbkn69HYZAH9c8sXMeti05a9O160u/Kb4SJJckTTs7xXgHKLfASEC4wpwRkeS5DN+cnXhN8W3Yr6wG7D1sAm7YRl2ywoH2IRsBC9dXfi9cZtCdA0Dtt4tXFbC/3914ffA+395v1u6CQSWqQOXobt8deH3xgPJGcWRhuhxnWcTQGsEScaLVxd+LxxtboCOGNf/vuSvjiQ5f+u/Xfjvwt2S1bYYgXcDwnvxsNHfEdtu7nCvW134nXGzAcBiZlisB1+Hjlhe3s2TW7MeZi/Jr/qXL1xd+N1w97Apac3RnId07k1DBLniOaRLRTt5WOHHxOO6ce28SkyyVE4CyTmQVddSvZiU1gk/I9XWJYULpCucWzhXswhXzDlrorIJ4Sck2bqiV0nX+Dlf9TvZOuHX2bqueNNiyND5XduCXXNwJ1sn/Likel3IhV/XJs8hStIA+KPrX/PBt/7bhf8uHMVbMg+elIowY4r1PjhhxXXCz+FNDuuPKZuIyPNN9YOY3XH2xNI64cekUaRkw/IsHUtIx/wuXShbJ/yUVPfZlooB1Hc+7lmG7FykdcKPS8omSg6bUtUu57XAcw2vy3fSOuGHpWYTrV1jyWGbR6CWVKR1wi/AdwNChNlL0j+bsJtN6MjXoWMaEBiAdiLli/x44d8RtwkAsD2I8c3Mpq1PSevrAACbWTJ4bz3gHdnrVhd+N7x42NgUTXLS2pWxgK7tVyiuE34ObzpiuTZMpsaXtyBijutyXS+PCkjrhB+V2pbIrf1UIG46EiiDJwDaEQBpnfBDUtPX3Id47lLk8knbpYBsnfBT0nrO3Adr5ktmtNWU2v2XrRN+XMp+2N0wvvVIiew6GBFis1uWy7ASywthAFQ5EX5Gmt6ED6qHtkH2YeauTrDL1gk/LtmahRUGdLRx3numPRIrAOw9xp8/IhfrIrE9iGVYL1pd+D3xp+G5j9lsmbnLDbI8Wqy4TvgpqdmEP8618YCcOaRxu3xGQJmDktYJPyZ8lroBtqnczai7xao5lNYJPyge1+WUtIsYfz4IhOjBnWF70ADAUob7I6bLFasLvyfe9CaSN83zdWgKxB/T1ygPK/wCPJ/VSfLdzIbdj9ixyTeP5ePs/CiUoUypfI0fL/y744s9mBr/bz3yWcUPphpyYDNk/OV+vPDvgX8+qzP84/OdWCYAy9TRgN0IxB7Y+mgIV60u/J7457gu1F2wJZtdn+fwoHqd8FOSO2IA/KzOolf+ac0ryjljVaR1wo+I6b/XCRcuXLhw4cKF/xH4L1ZqT+q0UuaAAAAAAElFTkSuQmCC" alt="Codigo QR" style="width:100px;height:100px;"></span>
+        <span class="tg-q5sf">"Este documento es la Representación Gráfica de un Documento Fiscal Digital emitido en una modalidad de facturación en línea"</span>
+        </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    

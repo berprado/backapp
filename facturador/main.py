@@ -24,8 +24,25 @@ st.set_page_config(
     }
 )
 
+# Importar el nuevo sistema de gestión de estado (al inicio, después de las importaciones existentes)
+try:
+    from utils.state_manager import initialize_app_state, get_state, set_state
+    from utils.cache_manager import invalidate_cache
+    USE_NEW_STATE_MANAGER = True
+    logger.info("Usando nuevo sistema de gestión de estado en main.py")
+except ImportError as e:
+    USE_NEW_STATE_MANAGER = False
+    logger.warning(f"No se pudo importar el nuevo sistema de gestión de estado en main.py: {e}")
+    logger.info("Usando sistema de gestión de estado original en main.py")
+
+
 def main():
     logger.info("Iniciando sistema de facturación")
+    
+    # Inicializar todos los estados al inicio usando el nuevo sistema si está disponible
+    if USE_NEW_STATE_MANAGER:
+        initialize_app_state()
+        logger.info("Estados inicializados con el nuevo sistema")
     
     # Paso previo: solo verificar conexión, sin finalizar eventos automáticamente
     logger.info("Verificando estado de conectividad")
@@ -42,9 +59,14 @@ def main():
         • **Inicio:** {evento_activo['fecha_inicio'].strftime('%d/%m/%Y %H:%M:%S')}
         • **Estado:** Las facturas se están emitiendo en modo OFFLINE
         """)
-        # Guardar en session_state para uso posterior
-        st.session_state['modo_offline'] = True
-        st.session_state['evento_activo'] = evento_activo
+        # Guardar en session_state para uso posterior - usar el nuevo sistema si está disponible
+        if USE_NEW_STATE_MANAGER:
+            set_state('modo_offline', True)
+            set_state('evento_activo', evento_activo)
+            set_state('evento_contingencia', evento_activo)
+        else:
+            st.session_state['modo_offline'] = True
+            st.session_state['evento_activo'] = evento_activo
     else:
         # Verificar conexión al inicio
         logger.info("Verificando conexión con el SIN")
@@ -53,22 +75,34 @@ def main():
         if conectado:
             logger.info("Conexión establecida con el SIN - iniciando modo online")
             st.success("✅ Conexión establecida con el SIN.")
-            # Guardar en session_state
-            st.session_state['modo_offline'] = False
+            # Guardar en session_state - usar el nuevo sistema si está disponible
+            if USE_NEW_STATE_MANAGER:
+                set_state('modo_offline', False)
+                set_state('evento_activo', None)
+                set_state('evento_contingencia', None)
+            else:
+                st.session_state['modo_offline'] = False
             online_main()
         else:
             logger.warning(f"No se pudo conectar al SIN: {mensaje}. Tipo deducido: {tipo_deducido}")
             st.error("❌ No se pudo conectar al SIN. Se activará la contingencia.")
-            # Guardar en session_state
-            st.session_state['modo_offline'] = True
+            # Guardar en session_state - usar el nuevo sistema si está disponible
+            if USE_NEW_STATE_MANAGER:
+                set_state('modo_offline', True)
+            else:
+                st.session_state['modo_offline'] = True
 
             # Paso 2: Verificar si ya hay un evento abierto
             evento_existente = obtener_evento_abierto()
             if evento_existente:
                 logger.info(f"Se encontró un evento activo existente (ID: {evento_existente['id']})")
                 st.info("ℹ️ Ya existe un evento registrado en modo contingencia.")
-                # Guardar en session_state
-                st.session_state['evento_activo'] = evento_existente
+                # Guardar en session_state - usar el nuevo sistema si está disponible
+                if USE_NEW_STATE_MANAGER:
+                    set_state('evento_activo', evento_existente)
+                    set_state('evento_contingencia', evento_existente)
+                else:
+                    st.session_state['evento_activo'] = evento_existente
             else:
                 # Paso 3: Registrar evento automáticamente
                 logger.info("Registrando evento significativo automáticamente")
@@ -100,9 +134,13 @@ def main():
 
                     # Obtener el evento recién creado
                     evento_activo = obtener_evento_abierto()
-                    # Guardar en session_state
+                    # Guardar en session_state - usar el nuevo sistema si está disponible
                     if evento_activo:
-                        st.session_state['evento_activo'] = evento_activo
+                        if USE_NEW_STATE_MANAGER:
+                            set_state('evento_activo', evento_activo)
+                            set_state('evento_contingencia', evento_activo)
+                        else:
+                            st.session_state['evento_activo'] = evento_activo
 
             # Paso 4: Cargar la interfaz offline
             logger.info("Activando modo offline de facturación")

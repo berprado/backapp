@@ -171,7 +171,16 @@ engine = create_engine(URL_DATABASE)
 # Reflejar las tablas en la base de datos
 metadata.create_all(engine)
 
-def guardar_factura_cabecera(cabecera: Dict[str, Union[str, float, int]]) -> None:
+# Importar el sistema de gestión de caché (al inicio del archivo, después de las importaciones existentes)
+try:
+    from utils.cache_manager import invalidate_cache
+    USE_CACHE_MANAGER = True
+    logger.info("Usando sistema de gestión de caché en data_access.py")
+except ImportError as e:
+    USE_CACHE_MANAGER = False
+    logger.warning(f"No se pudo importar el sistema de gestión de caché en data_access.py: {e}")
+
+def guardar_factura_cabecera(cabecera: Dict[str, Union[str, float, int]]) -> tuple:
     logging.debug(f"Preparando para almacenar la cabecera: {cabecera}")
 
     session = SessionLocal()
@@ -255,10 +264,24 @@ def guardar_factura_cabecera(cabecera: Dict[str, Union[str, float, int]]) -> Non
         session.execute(query)
         session.commit()
         logging.info(f"Cabecera almacenada exitosamente: {cabecera['numeroFactura']}")
+        
+        # Invalidar el caché de facturas después de guardar
+        if USE_CACHE_MANAGER:
+            try:
+                invalidate_cache('facturas')
+                logger.info("Caché de facturas invalidado después de guardar factura")
+            except Exception as e:
+                logger.warning(f"Error al invalidar caché: {e}")
+        
+        return True, "Factura guardada correctamente"
     except SQLAlchemyError as e:
         session.rollback()
         logging.error(f"Error al guardar la cabecera de la factura: {e}")
-        raise e
+        return False, str(e)
+    except Exception as e:
+        session.rollback()
+        logging.error(f"Error inesperado al guardar la factura: {e}")
+        return False, str(e)
     finally:
         session.close()
 
