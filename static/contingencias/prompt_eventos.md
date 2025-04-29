@@ -34,7 +34,7 @@ Construir un módulo con interfaz web que permita:
             HTTP 500 → tipo 2
 
             Timeout o fallo de DNS → tipo 1
-
+
             Error inesperado → tipo 5
 
     Datos obligatorios a registrar:
