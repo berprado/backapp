@@ -643,21 +643,27 @@ class SincronizarParametricaTipoHabitacion(Base):
         }
 
 class SincronizarParametricaTipoDocumentoSector(Base):
-    __tablename__ = 'sincronizarparametricatipodocumentosector'
-    __table_args__ = {'extend_existing': True}
+    __tablename__ = 'sincronizarlistaactividadesdocumentosector'  # Updated table name
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    codigoClasificador = Column(String(5), nullable=False, unique=True)
-    descripcion = Column(String(255), nullable=True)
+    codigoActividad = Column(String(10), nullable=False)  # Was codigoClasificador, type and unique changed
+    codigoDocumentoSector = Column(Integer, nullable=False)  # New column
+    tipoDocumentoSector = Column(String(255), nullable=True)  # Was descripcion
     fecha_creacion = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp())
     fecha_sincronizacion = Column(TIMESTAMP, nullable=True)
     estado_sincronizacion = Column(String(10), nullable=True)
 
+    __table_args__ = (
+        UniqueConstraint('codigoActividad', 'codigoDocumentoSector', name='codigoActividad'),  # Added unique constraint
+        {'extend_existing': True}
+    )
+
     def to_dict(self):
         return {
             "id": self.id,
-            "codigoClasificador": self.codigoClasificador,
-            "descripcion": self.descripcion,
+            "codigoActividad": self.codigoActividad,  # Updated from codigoClasificador
+            "codigoDocumentoSector": self.codigoDocumentoSector,  # Added new field
+            "tipoDocumentoSector": self.tipoDocumentoSector,  # Updated from descripcion
             "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
             "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
             "estado_sincronizacion": self.estado_sincronizacion
@@ -740,13 +746,16 @@ class SincronizarListaActividadesDocumentoSector(Base):
 class SincronizarParametricaTipoMetodoPago(Base):
     __tablename__ = 'sincronizarparametricatipometodopago'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    codigoClasificador = Column(String(5), nullable=False, unique=True, index=True)
+    codigoClasificador = Column(String(10), nullable=False, unique=True, index=True) # Longitud cambiada a 10
     descripcion = Column(String(255), nullable=True)
-    fecha_creacion = Column(DateTime, nullable=True)
-    fecha_sincronizacion = Column(DateTime, nullable=True)
+    fecha_creacion = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp()) # Ajustado a NOT NULL y con server_default
+    fecha_sincronizacion = Column(TIMESTAMP, nullable=True) # Cambiado a TIMESTAMP para consistencia
+    estado_sincronizacion = Column(String(10), nullable=True) # Campo añadido
 
     __table_args__ = (
-        UniqueConstraint('codigoClasificador', name='uq_codigoClasificador'), {'extend_existing': True})
+        UniqueConstraint('codigoClasificador', name='uq_codigoClasificador_tipometodopago'), # Nombre de constraint único sugerido para evitar colisiones
+        {'extend_existing': True}
+    )
 
     def to_dict(self):
         return {
@@ -754,7 +763,8 @@ class SincronizarParametricaTipoMetodoPago(Base):
             "codigoClasificador": self.codigoClasificador,
             "descripcion": self.descripcion,
             "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
-            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None
+            "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
+            "estado_sincronizacion": self.estado_sincronizacion # Añadido al diccionario
         }
     
 class SincronizarParametricaTipoDocumentoIdentidad(Base):

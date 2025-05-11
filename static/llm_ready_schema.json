@@ -1,0 +1,3440 @@
+[
+  {
+    "table": "bar_combo_coctel_unidades",
+    "description": "",
+    "columns": [
+      {
+        "name": "codigo",
+        "type": "varchar(255)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "primera_palabra",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "cliente",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigo_cliente",
+        "type": "varchar(20)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": true,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigo_tipo_documento_identidad",
+        "type": "varchar(5)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": true,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "complemento",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "email",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "nombre_razon_social",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "numero_documento",
+        "type": "varchar(20)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "telefono",
+        "type": "varchar(15)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_creacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_modificacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "cliente_factura",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigo_cliente",
+        "type": "varchar(20)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": true,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "numeroFactura",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": true,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "cuentas_clientes",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "nombre_cliente",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "mesa_id",
+        "type": "int(11)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_creacion",
+        "type": "datetime",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_cierre",
+        "type": "datetime",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "total",
+        "type": "decimal(10,2)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estado",
+        "type": "varchar(20)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "usuario_reg",
+        "type": "varchar(100)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "cuenta_items",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "cuenta_id",
+        "type": "int(11)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": true,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "comanda_id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "detalle_comanda_id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "cantidad",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "precio_unitario",
+        "type": "decimal(10,2)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "subtotal",
+        "type": "decimal(10,2)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "nombre_producto",
+        "type": "varchar(255)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "cufd",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigo",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigo_control",
+        "type": "varchar(20)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": true,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_solicitud",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_vigencia",
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "vigente",
+        "type": "tinyint(1)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "id_punto_venta",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": true,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "direccion",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "cuis",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigo",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": true,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_solicitud",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_vigencia",
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "vigente",
+        "type": "tinyint(1)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigo_punto_venta",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": true,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "empresa",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "nit",
+        "type": "bigint(20)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigo_empresa",
+        "type": "int(11)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": true,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "razon_social",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estado",
+        "type": "enum('Habilitada','Deshabilitada')",
+        "nullable": false,
+        "default": "Habilitada",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_creacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_modificacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "eventos_significativos_registrados",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigo_evento",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": true,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "descripcion",
+        "type": "varchar(255)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_inicio",
+        "type": "datetime",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_fin",
+        "type": "datetime",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "cufd",
+        "type": "varchar(100)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigo_recepcion",
+        "type": "varchar(50)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_registro",
+        "type": "datetime",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "factura_cabecera",
+    "description": "",
+    "columns": [
+      {
+        "name": "numeroFactura",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "nitEmisor",
+        "type": "bigint(20)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "razonSocialEmisor",
+        "type": "varchar(200)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "municipio",
+        "type": "varchar(25)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "telefono",
+        "type": "varchar(25)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "cuf",
+        "type": "varchar(100)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": true,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "cufd",
+        "type": "varchar(100)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigoSucursal",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "direccion",
+        "type": "varchar(500)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigoPuntoVenta",
+        "type": "int(11)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fechaEmision",
+        "type": "datetime",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "nombreRazonSocial",
+        "type": "varchar(500)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigoTipoDocumentoIdentidad",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "numeroDocumento",
+        "type": "varchar(20)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "complemento",
+        "type": "varchar(5)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigoCliente",
+        "type": "varchar(100)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigoMetodoPago",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "numeroTarjeta",
+        "type": "bigint(20)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "montoTotal",
+        "type": "decimal(17,2)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "montoTotalSujetoIva",
+        "type": "decimal(17,2)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigoMoneda",
+        "type": "int(11)",
+        "nullable": false,
+        "default": "1",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "tipoCambio",
+        "type": "decimal(17,2)",
+        "nullable": false,
+        "default": "1.00",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "montoTotalMoneda",
+        "type": "decimal(17,2)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "montoGiftCard",
+        "type": "decimal(17,2)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "descuentoAdicional",
+        "type": "decimal(17,2)",
+        "nullable": false,
+        "default": "0.00",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigoExcepcion",
+        "type": "int(11)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "cafc",
+        "type": "varchar(50)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "leyenda",
+        "type": "varchar(200)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "usuario",
+        "type": "varchar(100)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigoDocumentoSector",
+        "type": "int(11)",
+        "nullable": false,
+        "default": "1",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estadoValidacion",
+        "type": "varchar(50)",
+        "nullable": true,
+        "default": "VALIDADA",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fechaCreacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "creadoPor",
+        "type": "varchar(100)",
+        "nullable": false,
+        "default": "ADMIN",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fechaActualizacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "actualizadoPor",
+        "type": "varchar(100)",
+        "nullable": false,
+        "default": "ADMIN",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "detallesFirmaDigital",
+        "type": "text",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "mensajeError",
+        "type": "text",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fechaValidacion",
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "resultadoValidacion",
+        "type": "varchar(100)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estadoFirma",
+        "type": "varchar(20)",
+        "nullable": true,
+        "default": "Pendiente",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "mensajeErrorFirma",
+        "type": "text",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fechaErrorFirma",
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "intentosFirma",
+        "type": "int(11)",
+        "nullable": true,
+        "default": "0",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estado",
+        "type": "varchar(20)",
+        "nullable": true,
+        "default": "Activa",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fechaAnulacion",
+        "type": "datetime",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "anuladaPor",
+        "type": "varchar(100)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "motivoAnulacion",
+        "type": "text",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "enlaceSiat",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigoRecepcion",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "tipoEmision",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigoEvento",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "descripcionEvento",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fechaInicioEvento",
+        "type": "datetime",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fechaFinEvento",
+        "type": "datetime",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "idPaquete",
+        "type": "varchar(50)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estadoPaquete",
+        "type": "varchar(20)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "numeroSecuencia",
+        "type": "int(11)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estadoContingencia",
+        "type": "varchar(20)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fechaSincronizacion",
+        "type": "datetime",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "factura_detalle",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "numeroFactura",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": true,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "actividadEconomica",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": "561110",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigoProductoSin",
+        "type": "int(11)",
+        "nullable": false,
+        "default": "99100",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigoProducto",
+        "type": "varchar(50)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "descripcion",
+        "type": "varchar(500)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "cantidad",
+        "type": "decimal(17,2)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "unidadMedida",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "precioUnitario",
+        "type": "decimal(17,2)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "montoDescuento",
+        "type": "decimal(17,2)",
+        "nullable": true,
+        "default": "0.00",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "subTotal",
+        "type": "decimal(17,2)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "numeroSerie",
+        "type": "varchar(1500)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "numeroImei",
+        "type": "varchar(1500)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "productos",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "nombre",
+        "type": "varchar(255)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigo",
+        "type": "varchar(255)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "descripcion",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "id_categoria",
+        "type": "int(11)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "id_barra",
+        "type": "int(11)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "usuario_reg",
+        "type": "varchar(255)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_reg",
+        "type": "date",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_mod",
+        "type": "date",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estado",
+        "type": "varchar(3)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigo_sin",
+        "type": "varchar(15)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "productos_siat",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "tipo_origen",
+        "type": "enum('producto','combo')",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "id_origen",
+        "type": "int(11)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "categoria",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigo",
+        "type": "varchar(191)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": true,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigo_sin",
+        "type": "int(11)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "nombre",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "precio_venta",
+        "type": "decimal(10,2)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigo_unidad_medida",
+        "type": "int(11)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "unidad_medida",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "unidad_medida_sin",
+        "type": "int(11)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigoActividad",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_creacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_actualizacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estado_sincronizacion",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "punto_venta",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigo_punto_venta",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": true,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "nombre_punto_venta",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "descripcion",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "tipo",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estado",
+        "type": "enum('Habilitado','Deshabilitado')",
+        "nullable": false,
+        "default": "Habilitado",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "cod_sucursal",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_creacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_modificacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "sincronizacion_estado",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "ultima_sincronizacion",
+        "type": "datetime",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "sincronizaractividades",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigoCaeb",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": true,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "descripcion",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "tipoActividad",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_creacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_sincronizacion",
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estado_sincronizacion",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "sincronizarlistaactividadesdocumentosector",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigoActividad",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": true,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigoDocumentoSector",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "tipoDocumentoSector",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_creacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_sincronizacion",
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estado_sincronizacion",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "sincronizarlistaleyendasfactura",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigoActividad",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "descripcionLeyenda",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_creacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_sincronizacion",
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estado_sincronizacion",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "sincronizarlistamensajesservicios",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigoClasificador",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": true,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "descripcion",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_creacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_sincronizacion",
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estado_sincronizacion",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "sincronizarlistaproductosservicios",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigoActividad",
+        "type": "varchar(20)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": true,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "codigoProducto",
+        "type": "varchar(20)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "descripcionProducto",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "nandina",
+        "type": "text",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_creacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_sincronizacion",
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estado_sincronizacion",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "sincronizarparametricaeventossignificativos",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigoClasificador",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": true,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "descripcion",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_creacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_sincronizacion",
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estado_sincronizacion",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "sincronizarparametricamotivoanulacion",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigoClasificador",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": true,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "descripcion",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_creacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_sincronizacion",
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estado_sincronizacion",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "sincronizarparametricapaisorigen",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigoClasificador",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": true,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "descripcion",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_creacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_sincronizacion",
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estado_sincronizacion",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "sincronizarparametricatipodocumentoidentidad",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigoClasificador",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": true,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "descripcion",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_creacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_sincronizacion",
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estado_sincronizacion",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "sincronizarparametricatipodocumentosector",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigoClasificador",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": true,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "descripcion",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_creacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_sincronizacion",
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estado_sincronizacion",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "sincronizarparametricatipoemision",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigoClasificador",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": true,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "descripcion",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_creacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_sincronizacion",
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estado_sincronizacion",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "sincronizarparametricatipohabitacion",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigoClasificador",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": true,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "descripcion",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_creacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_sincronizacion",
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estado_sincronizacion",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "sincronizarparametricatipometodopago",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigoClasificador",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": true,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "descripcion",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_creacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_sincronizacion",
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estado_sincronizacion",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "sincronizarparametricatipomoneda",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigoClasificador",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": true,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "descripcion",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_creacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_sincronizacion",
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estado_sincronizacion",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "sincronizarparametricatipopuntoventa",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigoClasificador",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": true,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "descripcion",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_creacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_sincronizacion",
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estado_sincronizacion",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "sincronizarparametricatiposfactura",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigoClasificador",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": true,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "descripcion",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_creacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_sincronizacion",
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estado_sincronizacion",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "sincronizarparametricaunidadmedida",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigoClasificador",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": true,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "descripcion",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_creacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_sincronizacion",
+        "type": "timestamp",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estado_sincronizacion",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "sucursal",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigo_sucursal",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": true,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "departamento",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "direccion",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "municipio",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "nombre",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "telefono",
+        "type": "varchar(255)",
+        "nullable": false,
+        "default": "0",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "estado",
+        "type": "enum('Habilitada','Deshabilitada')",
+        "nullable": false,
+        "default": "Habilitada",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "cod_empresa",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": true,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_creacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "fecha_modificacion",
+        "type": "timestamp",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP",
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  },
+  {
+    "table": "tmp_productos_bar1",
+    "description": "",
+    "columns": [
+      {
+        "name": "id",
+        "type": "int(11)",
+        "nullable": false,
+        "default": null,
+        "primary_key": true,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": true,
+        "description": ""
+      },
+      {
+        "name": "codigo",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "producto",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "descripcion",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "volumen",
+        "type": "decimal(10,2)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "porciones",
+        "type": "decimal(10,2)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "id_cat",
+        "type": "int(11)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      },
+      {
+        "name": "categoria",
+        "type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false,
+        "foreign_key": false,
+        "unique": false,
+        "auto_increment": false,
+        "description": ""
+      }
+    ]
+  }
+]

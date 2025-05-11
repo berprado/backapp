@@ -179,4 +179,4 @@ def offline_main():
         st.error("❌ No se encontró evento significativo activo para asociar la factura.")
 
 if __name__ == "__main__":
-    main
+    main()

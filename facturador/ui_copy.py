@@ -1012,6 +1012,87 @@ def main(tipo_emision=1, evento_contingencia=None):
     metodos_pago, error_metodos = fetch_metodos_pago()
     if error_metodos:
         st.error(error_metodos)
+        # If there's an error fetching, metodos_pago might be None or empty.
+        # Ensure metodos_pago is at least an empty list for subsequent logic.
+        metodos_pago = [] 
+
+    # Initialize with safe defaults before potentially using them
+    opciones_metodos_pago = []
+    seleccion_metodo_pago = None
+    codigo_clasificador_metodo_pago = None
+    key_metodo_pago = "metodo_pago" # Key for session state
+
+    if metodos_pago: # Proceed if metodos_pago were fetched and is not empty
+        opciones_metodos_pago = [metodo["descripcion"] for metodo in metodos_pago if "descripcion" in metodo]
+        
+        if opciones_metodos_pago: # Proceed if there are valid options
+            # Determine the default value (description string)
+            # Default to the first option if the specific one (codigoClasificador == 1) isn't found or valid
+            default_value_for_selectbox = opciones_metodos_pago[0] 
+            try:
+                # Find the method with codigoClasificador == 1
+                metodo_predeterminado_obj = next((m for m in metodos_pago if m.get("codigoClasificador") == 1), None)
+                if metodo_predeterminado_obj and metodo_predeterminado_obj.get("descripcion") in opciones_metodos_pago:
+                    default_value_for_selectbox = metodo_predeterminado_obj["descripcion"]
+                elif not metodo_predeterminado_obj:
+                    logger.warning(
+                        f"Método de pago con codigoClasificador == 1 no encontrado. "
+                        f"Usando '{default_value_for_selectbox}' como predeterminado."
+                    )
+            except Exception as e:
+                logger.error(
+                    f"Error al determinar el método de pago predeterminado: {e}. "
+                    f"Usando '{default_value_for_selectbox}'."
+                )
+
+            # If 'metodo_pago' is not in session_state (e.g., first run), set it to our determined default.
+            if key_metodo_pago not in st.session_state:
+                st.session_state[key_metodo_pago] = default_value_for_selectbox
+            
+            # Render the selectbox. It will use the value from st.session_state[key_metodo_pago].
+            # No 'index' parameter is needed.
+            seleccion_metodo_pago = st.sidebar.selectbox(
+                "Tipo de Pago:",
+                opciones_metodos_pago,
+                key=key_metodo_pago
+            )
+            
+            # Derive codigo_clasificador_metodo_pago based on the selected value
+            if seleccion_metodo_pago:
+                metodo_pago_seleccionado_obj = next(
+                    (m for m in metodos_pago if m.get("descripcion") == seleccion_metodo_pago), None
+                )
+                if metodo_pago_seleccionado_obj and "codigoClasificador" in metodo_pago_seleccionado_obj:
+                    try:
+                        codigo_clasificador_metodo_pago = int(metodo_pago_seleccionado_obj["codigoClasificador"])
+                    except (ValueError, TypeError) as e:
+                        logger.error(
+                            f"Error al convertir codigoClasificador '{metodo_pago_seleccionado_obj['codigoClasificador']}' "
+                            f"a int para '{seleccion_metodo_pago}': {e}"
+                        )
+                        codigo_clasificador_metodo_pago = None 
+                else:
+                    logger.warning(f"No se encontró el objeto o el codigoClasificador para el método de pago seleccionado: {seleccion_metodo_pago}")
+        else: # No valid 'descripcion' in metodos_pago items
+            st.sidebar.warning("No hay descripciones de métodos de pago válidas.")
+            if key_metodo_pago in st.session_state:
+                del st.session_state[key_metodo_pago]
+    else: # metodos_pago is None or empty from the start
+        st.sidebar.warning("No hay métodos de pago disponibles para seleccionar.")
+        if key_metodo_pago in st.session_state:
+            del st.session_state[key_metodo_pago]
+
+    # Logging the outcome
+    logging.debug(f"Método de pago UI seleccionado: {seleccion_metodo_pago}")
+    if codigo_clasificador_metodo_pago is not None:
+        logging.info(f"Código clasificador del método de pago final: {codigo_clasificador_metodo_pago} (Tipo: {type(codigo_clasificador_metodo_pago)})")
+    else:
+        logging.warning("No se pudo determinar el código clasificador del método de pago para la selección actual.")
+
+    ultimos_digitos_tarjeta = None # Inicialización de la variable
+
+    if seleccion_metodo_pago == "TARJETA":
+        ultimos_digitos_tarjeta = st.sidebar.text_input("Ingresa los últimos 4 dígitos de la tarjeta:", max_chars=4, key="ultimos_digitos_tarjeta")
 
     tipos_documento, error_documentos = fetch_tipos_documento()
     if error_documentos:
@@ -1026,8 +1107,6 @@ def main(tipo_emision=1, evento_contingencia=None):
     telefono = ""
     seleccion_tipo_documento = None
     codigo_clasificador_documento = None
-    codigo_clasificador_metodo_pago = None
-    ultimos_digitos_tarjeta = None
     codigo_cliente = None   
 
     if numero_documento:
@@ -1088,27 +1167,6 @@ def main(tipo_emision=1, evento_contingencia=None):
 
     selected_id_comanda = st.sidebar.multiselect("Selecciona las comandas", available_comandas, key="selected_comandas", placeholder="Comandas Generadas", help="Selecciona las comandas que componen la factura.")
 
-
-    opciones_metodos_pago = [metodo["descripcion"] for metodo in metodos_pago]
-
-    indice_metodo_pago_predeterminado = next((i for i, metodo in enumerate(metodos_pago) if metodo["codigoClasificador"] == 1), 0)
-
-    #logging.debug(f"Opciones de métodos de pago: {opciones_metodos_pago}")
-    logging.debug(f"Índice del método de pago predeterminado: {indice_metodo_pago_predeterminado}")
-
-    seleccion_metodo_pago = st.sidebar.selectbox("Tipo de Pago:", opciones_metodos_pago, index=66, key="metodo_pago")
-
-    logging.debug(f"Método de pago seleccionado: {seleccion_metodo_pago}")
-
-    metodo_pago_seleccionado = next((metodo for metodo in metodos_pago if metodo["descripcion"] == seleccion_metodo_pago), None)
-
-    codigo_clasificador_metodo_pago = None
-    if metodo_pago_seleccionado:
-        codigo_clasificador_metodo_pago = int(metodo_pago_seleccionado["codigoClasificador"])
-        logging.info(f"Código clasificador del método de pago seleccionado: {codigo_clasificador_metodo_pago} ({type(codigo_clasificador_metodo_pago)})")
-
-    if seleccion_metodo_pago == "TARJETA":
-        ultimos_digitos_tarjeta = st.sidebar.text_input("Ingresa los últimos 4 dígitos de la tarjeta:", max_chars=4, key="ultimos_digitos_tarjeta")
 
     on = st.sidebar.checkbox("Aplicar Descuento")
 
@@ -1189,7 +1247,7 @@ def main(tipo_emision=1, evento_contingencia=None):
 
         with col1:
             if st.button("Facturar", key="generar_xml", help="Generar la factura", disabled=not selected_id_comanda):
-                if metodo_pago_seleccionado and seleccion_tipo_documento and numero_documento and selected_id_comanda:
+                if seleccion_metodo_pago and seleccion_tipo_documento and numero_documento and selected_id_comanda:
                     try:
                         # Configuración inicial
                         tipo_documento_seleccionado = next((doc for doc in tipos_documento if doc["descripcion"] == seleccion_tipo_documento), None)
@@ -1222,7 +1280,7 @@ def main(tipo_emision=1, evento_contingencia=None):
                             cuf, cufd, codigo_sucursal, direccion, codigo_punto_venta,
                             fecha_emision_str, nombre_cliente, tipo_documento_seleccionado['codigoClasificador'],
                             numero_documento, complemento, numero_documento,
-                            metodo_pago_seleccionado['codigoClasificador'], ultimos_digitos_tarjeta,
+                            codigo_clasificador_metodo_pago, ultimos_digitos_tarjeta,
                             subtotal, total, 1, 1, total / 1, monto_giftcard, descuento_adicional,
                             "don_bercho", codigo_documento_sector, lineas_productos,
                             os.getenv('ACTIVIDAD_ECONOMICA'), os.getenv('CODIGO_PRODUCTO_SIN')

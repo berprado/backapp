@@ -1,0 +1,2648 @@
+[
+  {
+    "TABLE_NAME": "bar_combo_coctel_unidades",
+    "COLUMN_NAME": "codigo",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "bar_combo_coctel_unidades",
+    "COLUMN_NAME": "primera_palabra",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cliente",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "cliente",
+    "COLUMN_NAME": "codigo_cliente",
+    "COLUMN_TYPE": "varchar(20)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "UNI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cliente",
+    "COLUMN_NAME": "codigo_tipo_documento_identidad",
+    "COLUMN_TYPE": "varchar(5)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cliente",
+    "COLUMN_NAME": "complemento",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cliente",
+    "COLUMN_NAME": "email",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cliente",
+    "COLUMN_NAME": "nombre_razon_social",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cliente",
+    "COLUMN_NAME": "numero_documento",
+    "COLUMN_TYPE": "varchar(20)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cliente",
+    "COLUMN_NAME": "telefono",
+    "COLUMN_TYPE": "varchar(15)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cliente",
+    "COLUMN_NAME": "fecha_creacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cliente",
+    "COLUMN_NAME": "fecha_modificacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": "on update CURRENT_TIMESTAMP"
+  },
+  {
+    "TABLE_NAME": "cliente_factura",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "cliente_factura",
+    "COLUMN_NAME": "codigo_cliente",
+    "COLUMN_TYPE": "varchar(20)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cliente_factura",
+    "COLUMN_NAME": "numeroFactura",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cuentas_clientes",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "cuentas_clientes",
+    "COLUMN_NAME": "nombre_cliente",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cuentas_clientes",
+    "COLUMN_NAME": "mesa_id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cuentas_clientes",
+    "COLUMN_NAME": "fecha_creacion",
+    "COLUMN_TYPE": "datetime",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cuentas_clientes",
+    "COLUMN_NAME": "fecha_cierre",
+    "COLUMN_TYPE": "datetime",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cuentas_clientes",
+    "COLUMN_NAME": "total",
+    "COLUMN_TYPE": "decimal(10,2)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cuentas_clientes",
+    "COLUMN_NAME": "estado",
+    "COLUMN_TYPE": "varchar(20)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cuentas_clientes",
+    "COLUMN_NAME": "usuario_reg",
+    "COLUMN_TYPE": "varchar(100)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cuenta_items",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "cuenta_items",
+    "COLUMN_NAME": "cuenta_id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cuenta_items",
+    "COLUMN_NAME": "comanda_id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cuenta_items",
+    "COLUMN_NAME": "detalle_comanda_id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cuenta_items",
+    "COLUMN_NAME": "cantidad",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cuenta_items",
+    "COLUMN_NAME": "precio_unitario",
+    "COLUMN_TYPE": "decimal(10,2)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cuenta_items",
+    "COLUMN_NAME": "subtotal",
+    "COLUMN_TYPE": "decimal(10,2)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cuenta_items",
+    "COLUMN_NAME": "nombre_producto",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cufd",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "cufd",
+    "COLUMN_NAME": "codigo",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cufd",
+    "COLUMN_NAME": "codigo_control",
+    "COLUMN_TYPE": "varchar(20)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "UNI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cufd",
+    "COLUMN_NAME": "fecha_solicitud",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cufd",
+    "COLUMN_NAME": "fecha_vigencia",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cufd",
+    "COLUMN_NAME": "vigente",
+    "COLUMN_TYPE": "tinyint(1)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cufd",
+    "COLUMN_NAME": "id_punto_venta",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cufd",
+    "COLUMN_NAME": "direccion",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cuis",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "cuis",
+    "COLUMN_NAME": "codigo",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "UNI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cuis",
+    "COLUMN_NAME": "fecha_solicitud",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": "on update CURRENT_TIMESTAMP"
+  },
+  {
+    "TABLE_NAME": "cuis",
+    "COLUMN_NAME": "fecha_vigencia",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cuis",
+    "COLUMN_NAME": "vigente",
+    "COLUMN_TYPE": "tinyint(1)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "cuis",
+    "COLUMN_NAME": "codigo_punto_venta",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "empresa",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "empresa",
+    "COLUMN_NAME": "nit",
+    "COLUMN_TYPE": "bigint(20)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "empresa",
+    "COLUMN_NAME": "codigo_empresa",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "UNI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "empresa",
+    "COLUMN_NAME": "razon_social",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "empresa",
+    "COLUMN_NAME": "estado",
+    "COLUMN_TYPE": "enum('Habilitada','Deshabilitada')",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "Habilitada",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "empresa",
+    "COLUMN_NAME": "fecha_creacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "empresa",
+    "COLUMN_NAME": "fecha_modificacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": "on update CURRENT_TIMESTAMP"
+  },
+  {
+    "TABLE_NAME": "eventos_significativos_registrados",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "eventos_significativos_registrados",
+    "COLUMN_NAME": "codigo_evento",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "eventos_significativos_registrados",
+    "COLUMN_NAME": "descripcion",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "eventos_significativos_registrados",
+    "COLUMN_NAME": "fecha_inicio",
+    "COLUMN_TYPE": "datetime",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "eventos_significativos_registrados",
+    "COLUMN_NAME": "fecha_fin",
+    "COLUMN_TYPE": "datetime",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "eventos_significativos_registrados",
+    "COLUMN_NAME": "cufd",
+    "COLUMN_TYPE": "varchar(100)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "eventos_significativos_registrados",
+    "COLUMN_NAME": "codigo_recepcion",
+    "COLUMN_TYPE": "varchar(50)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "eventos_significativos_registrados",
+    "COLUMN_NAME": "fecha_registro",
+    "COLUMN_TYPE": "datetime",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "numeroFactura",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "nitEmisor",
+    "COLUMN_TYPE": "bigint(20)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "razonSocialEmisor",
+    "COLUMN_TYPE": "varchar(200)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "municipio",
+    "COLUMN_TYPE": "varchar(25)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "telefono",
+    "COLUMN_TYPE": "varchar(25)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "cuf",
+    "COLUMN_TYPE": "varchar(100)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "UNI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "cufd",
+    "COLUMN_TYPE": "varchar(100)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "codigoSucursal",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "direccion",
+    "COLUMN_TYPE": "varchar(500)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "codigoPuntoVenta",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "fechaEmision",
+    "COLUMN_TYPE": "datetime",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "nombreRazonSocial",
+    "COLUMN_TYPE": "varchar(500)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "codigoTipoDocumentoIdentidad",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "numeroDocumento",
+    "COLUMN_TYPE": "varchar(20)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "complemento",
+    "COLUMN_TYPE": "varchar(5)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "codigoCliente",
+    "COLUMN_TYPE": "varchar(100)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "codigoMetodoPago",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "numeroTarjeta",
+    "COLUMN_TYPE": "bigint(20)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "montoTotal",
+    "COLUMN_TYPE": "decimal(17,2)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "montoTotalSujetoIva",
+    "COLUMN_TYPE": "decimal(17,2)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "codigoMoneda",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "1",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "tipoCambio",
+    "COLUMN_TYPE": "decimal(17,2)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "1.00",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "montoTotalMoneda",
+    "COLUMN_TYPE": "decimal(17,2)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "montoGiftCard",
+    "COLUMN_TYPE": "decimal(17,2)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "descuentoAdicional",
+    "COLUMN_TYPE": "decimal(17,2)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "0.00",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "codigoExcepcion",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "cafc",
+    "COLUMN_TYPE": "varchar(50)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "leyenda",
+    "COLUMN_TYPE": "varchar(200)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "usuario",
+    "COLUMN_TYPE": "varchar(100)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "codigoDocumentoSector",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "1",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "estadoValidacion",
+    "COLUMN_TYPE": "varchar(50)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "VALIDADA",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "fechaCreacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "creadoPor",
+    "COLUMN_TYPE": "varchar(100)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "ADMIN",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "fechaActualizacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": "on update CURRENT_TIMESTAMP"
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "actualizadoPor",
+    "COLUMN_TYPE": "varchar(100)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "ADMIN",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "detallesFirmaDigital",
+    "COLUMN_TYPE": "text",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "mensajeError",
+    "COLUMN_TYPE": "text",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "fechaValidacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "resultadoValidacion",
+    "COLUMN_TYPE": "varchar(100)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "estadoFirma",
+    "COLUMN_TYPE": "varchar(20)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "Pendiente",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "mensajeErrorFirma",
+    "COLUMN_TYPE": "text",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "fechaErrorFirma",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "intentosFirma",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "0",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "estado",
+    "COLUMN_TYPE": "varchar(20)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "Activa",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "fechaAnulacion",
+    "COLUMN_TYPE": "datetime",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "anuladaPor",
+    "COLUMN_TYPE": "varchar(100)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "motivoAnulacion",
+    "COLUMN_TYPE": "text",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "enlaceSiat",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "codigoRecepcion",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "tipoEmision",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "codigoEvento",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "descripcionEvento",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "fechaInicioEvento",
+    "COLUMN_TYPE": "datetime",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "fechaFinEvento",
+    "COLUMN_TYPE": "datetime",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "idPaquete",
+    "COLUMN_TYPE": "varchar(50)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "estadoPaquete",
+    "COLUMN_TYPE": "varchar(20)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "numeroSecuencia",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "estadoContingencia",
+    "COLUMN_TYPE": "varchar(20)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_cabecera",
+    "COLUMN_NAME": "fechaSincronizacion",
+    "COLUMN_TYPE": "datetime",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_detalle",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "factura_detalle",
+    "COLUMN_NAME": "numeroFactura",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_detalle",
+    "COLUMN_NAME": "actividadEconomica",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "561110",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_detalle",
+    "COLUMN_NAME": "codigoProductoSin",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "99100",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_detalle",
+    "COLUMN_NAME": "codigoProducto",
+    "COLUMN_TYPE": "varchar(50)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_detalle",
+    "COLUMN_NAME": "descripcion",
+    "COLUMN_TYPE": "varchar(500)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_detalle",
+    "COLUMN_NAME": "cantidad",
+    "COLUMN_TYPE": "decimal(17,2)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_detalle",
+    "COLUMN_NAME": "unidadMedida",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_detalle",
+    "COLUMN_NAME": "precioUnitario",
+    "COLUMN_TYPE": "decimal(17,2)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_detalle",
+    "COLUMN_NAME": "montoDescuento",
+    "COLUMN_TYPE": "decimal(17,2)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": "0.00",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_detalle",
+    "COLUMN_NAME": "subTotal",
+    "COLUMN_TYPE": "decimal(17,2)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_detalle",
+    "COLUMN_NAME": "numeroSerie",
+    "COLUMN_TYPE": "varchar(1500)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "factura_detalle",
+    "COLUMN_NAME": "numeroImei",
+    "COLUMN_TYPE": "varchar(1500)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "productos",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "productos",
+    "COLUMN_NAME": "nombre",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "productos",
+    "COLUMN_NAME": "codigo",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "productos",
+    "COLUMN_NAME": "descripcion",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "productos",
+    "COLUMN_NAME": "id_categoria",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "productos",
+    "COLUMN_NAME": "id_barra",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "productos",
+    "COLUMN_NAME": "usuario_reg",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "productos",
+    "COLUMN_NAME": "fecha_reg",
+    "COLUMN_TYPE": "date",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "productos",
+    "COLUMN_NAME": "fecha_mod",
+    "COLUMN_TYPE": "date",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "productos",
+    "COLUMN_NAME": "estado",
+    "COLUMN_TYPE": "varchar(3)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "productos",
+    "COLUMN_NAME": "codigo_sin",
+    "COLUMN_TYPE": "varchar(15)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "productos_siat",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "productos_siat",
+    "COLUMN_NAME": "tipo_origen",
+    "COLUMN_TYPE": "enum('producto','combo')",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "productos_siat",
+    "COLUMN_NAME": "id_origen",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "productos_siat",
+    "COLUMN_NAME": "categoria",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "productos_siat",
+    "COLUMN_NAME": "codigo",
+    "COLUMN_TYPE": "varchar(191)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "UNI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "productos_siat",
+    "COLUMN_NAME": "codigo_sin",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "productos_siat",
+    "COLUMN_NAME": "nombre",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "productos_siat",
+    "COLUMN_NAME": "precio_venta",
+    "COLUMN_TYPE": "decimal(10,2)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "productos_siat",
+    "COLUMN_NAME": "codigo_unidad_medida",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "productos_siat",
+    "COLUMN_NAME": "unidad_medida",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "productos_siat",
+    "COLUMN_NAME": "unidad_medida_sin",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "productos_siat",
+    "COLUMN_NAME": "codigoActividad",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "productos_siat",
+    "COLUMN_NAME": "fecha_creacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "productos_siat",
+    "COLUMN_NAME": "fecha_actualizacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": "on update CURRENT_TIMESTAMP"
+  },
+  {
+    "TABLE_NAME": "productos_siat",
+    "COLUMN_NAME": "estado_sincronizacion",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "punto_venta",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "punto_venta",
+    "COLUMN_NAME": "codigo_punto_venta",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "UNI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "punto_venta",
+    "COLUMN_NAME": "nombre_punto_venta",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "punto_venta",
+    "COLUMN_NAME": "descripcion",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "punto_venta",
+    "COLUMN_NAME": "tipo",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "punto_venta",
+    "COLUMN_NAME": "estado",
+    "COLUMN_TYPE": "enum('Habilitado','Deshabilitado')",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "Habilitado",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "punto_venta",
+    "COLUMN_NAME": "cod_sucursal",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "punto_venta",
+    "COLUMN_NAME": "fecha_creacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "punto_venta",
+    "COLUMN_NAME": "fecha_modificacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": "on update CURRENT_TIMESTAMP"
+  },
+  {
+    "TABLE_NAME": "sincronizacion_estado",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "sincronizacion_estado",
+    "COLUMN_NAME": "ultima_sincronizacion",
+    "COLUMN_TYPE": "datetime",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizaractividades",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "sincronizaractividades",
+    "COLUMN_NAME": "codigoCaeb",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "UNI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizaractividades",
+    "COLUMN_NAME": "descripcion",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizaractividades",
+    "COLUMN_NAME": "tipoActividad",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizaractividades",
+    "COLUMN_NAME": "fecha_creacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizaractividades",
+    "COLUMN_NAME": "fecha_sincronizacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizaractividades",
+    "COLUMN_NAME": "estado_sincronizacion",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarlistaactividadesdocumentosector",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "sincronizarlistaactividadesdocumentosector",
+    "COLUMN_NAME": "codigoActividad",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarlistaactividadesdocumentosector",
+    "COLUMN_NAME": "codigoDocumentoSector",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarlistaactividadesdocumentosector",
+    "COLUMN_NAME": "tipoDocumentoSector",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarlistaactividadesdocumentosector",
+    "COLUMN_NAME": "fecha_creacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarlistaactividadesdocumentosector",
+    "COLUMN_NAME": "fecha_sincronizacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarlistaactividadesdocumentosector",
+    "COLUMN_NAME": "estado_sincronizacion",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarlistaleyendasfactura",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "sincronizarlistaleyendasfactura",
+    "COLUMN_NAME": "codigoActividad",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarlistaleyendasfactura",
+    "COLUMN_NAME": "descripcionLeyenda",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarlistaleyendasfactura",
+    "COLUMN_NAME": "fecha_creacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarlistaleyendasfactura",
+    "COLUMN_NAME": "fecha_sincronizacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarlistaleyendasfactura",
+    "COLUMN_NAME": "estado_sincronizacion",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarlistamensajesservicios",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "sincronizarlistamensajesservicios",
+    "COLUMN_NAME": "codigoClasificador",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "UNI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarlistamensajesservicios",
+    "COLUMN_NAME": "descripcion",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarlistamensajesservicios",
+    "COLUMN_NAME": "fecha_creacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarlistamensajesservicios",
+    "COLUMN_NAME": "fecha_sincronizacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarlistamensajesservicios",
+    "COLUMN_NAME": "estado_sincronizacion",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarlistaproductosservicios",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "sincronizarlistaproductosservicios",
+    "COLUMN_NAME": "codigoActividad",
+    "COLUMN_TYPE": "varchar(20)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarlistaproductosservicios",
+    "COLUMN_NAME": "codigoProducto",
+    "COLUMN_TYPE": "varchar(20)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarlistaproductosservicios",
+    "COLUMN_NAME": "descripcionProducto",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarlistaproductosservicios",
+    "COLUMN_NAME": "nandina",
+    "COLUMN_TYPE": "text",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarlistaproductosservicios",
+    "COLUMN_NAME": "fecha_creacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarlistaproductosservicios",
+    "COLUMN_NAME": "fecha_sincronizacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarlistaproductosservicios",
+    "COLUMN_NAME": "estado_sincronizacion",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricaeventossignificativos",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricaeventossignificativos",
+    "COLUMN_NAME": "codigoClasificador",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "UNI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricaeventossignificativos",
+    "COLUMN_NAME": "descripcion",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricaeventossignificativos",
+    "COLUMN_NAME": "fecha_creacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricaeventossignificativos",
+    "COLUMN_NAME": "fecha_sincronizacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricaeventossignificativos",
+    "COLUMN_NAME": "estado_sincronizacion",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricamotivoanulacion",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricamotivoanulacion",
+    "COLUMN_NAME": "codigoClasificador",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "UNI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricamotivoanulacion",
+    "COLUMN_NAME": "descripcion",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricamotivoanulacion",
+    "COLUMN_NAME": "fecha_creacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricamotivoanulacion",
+    "COLUMN_NAME": "fecha_sincronizacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricamotivoanulacion",
+    "COLUMN_NAME": "estado_sincronizacion",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricapaisorigen",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricapaisorigen",
+    "COLUMN_NAME": "codigoClasificador",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "UNI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricapaisorigen",
+    "COLUMN_NAME": "descripcion",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricapaisorigen",
+    "COLUMN_NAME": "fecha_creacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricapaisorigen",
+    "COLUMN_NAME": "fecha_sincronizacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricapaisorigen",
+    "COLUMN_NAME": "estado_sincronizacion",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipodocumentoidentidad",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipodocumentoidentidad",
+    "COLUMN_NAME": "codigoClasificador",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "UNI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipodocumentoidentidad",
+    "COLUMN_NAME": "descripcion",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipodocumentoidentidad",
+    "COLUMN_NAME": "fecha_creacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipodocumentoidentidad",
+    "COLUMN_NAME": "fecha_sincronizacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipodocumentoidentidad",
+    "COLUMN_NAME": "estado_sincronizacion",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipodocumentosector",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipodocumentosector",
+    "COLUMN_NAME": "codigoClasificador",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "UNI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipodocumentosector",
+    "COLUMN_NAME": "descripcion",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipodocumentosector",
+    "COLUMN_NAME": "fecha_creacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipodocumentosector",
+    "COLUMN_NAME": "fecha_sincronizacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipodocumentosector",
+    "COLUMN_NAME": "estado_sincronizacion",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipoemision",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipoemision",
+    "COLUMN_NAME": "codigoClasificador",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "UNI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipoemision",
+    "COLUMN_NAME": "descripcion",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipoemision",
+    "COLUMN_NAME": "fecha_creacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipoemision",
+    "COLUMN_NAME": "fecha_sincronizacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipoemision",
+    "COLUMN_NAME": "estado_sincronizacion",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipohabitacion",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipohabitacion",
+    "COLUMN_NAME": "codigoClasificador",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "UNI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipohabitacion",
+    "COLUMN_NAME": "descripcion",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipohabitacion",
+    "COLUMN_NAME": "fecha_creacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipohabitacion",
+    "COLUMN_NAME": "fecha_sincronizacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipohabitacion",
+    "COLUMN_NAME": "estado_sincronizacion",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipometodopago",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipometodopago",
+    "COLUMN_NAME": "codigoClasificador",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "UNI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipometodopago",
+    "COLUMN_NAME": "descripcion",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipometodopago",
+    "COLUMN_NAME": "fecha_creacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipometodopago",
+    "COLUMN_NAME": "fecha_sincronizacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipometodopago",
+    "COLUMN_NAME": "estado_sincronizacion",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipomoneda",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipomoneda",
+    "COLUMN_NAME": "codigoClasificador",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "UNI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipomoneda",
+    "COLUMN_NAME": "descripcion",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipomoneda",
+    "COLUMN_NAME": "fecha_creacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipomoneda",
+    "COLUMN_NAME": "fecha_sincronizacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipomoneda",
+    "COLUMN_NAME": "estado_sincronizacion",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipopuntoventa",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipopuntoventa",
+    "COLUMN_NAME": "codigoClasificador",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "UNI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipopuntoventa",
+    "COLUMN_NAME": "descripcion",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipopuntoventa",
+    "COLUMN_NAME": "fecha_creacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipopuntoventa",
+    "COLUMN_NAME": "fecha_sincronizacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatipopuntoventa",
+    "COLUMN_NAME": "estado_sincronizacion",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatiposfactura",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatiposfactura",
+    "COLUMN_NAME": "codigoClasificador",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "UNI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatiposfactura",
+    "COLUMN_NAME": "descripcion",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatiposfactura",
+    "COLUMN_NAME": "fecha_creacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatiposfactura",
+    "COLUMN_NAME": "fecha_sincronizacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricatiposfactura",
+    "COLUMN_NAME": "estado_sincronizacion",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricaunidadmedida",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricaunidadmedida",
+    "COLUMN_NAME": "codigoClasificador",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "UNI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricaunidadmedida",
+    "COLUMN_NAME": "descripcion",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricaunidadmedida",
+    "COLUMN_NAME": "fecha_creacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricaunidadmedida",
+    "COLUMN_NAME": "fecha_sincronizacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sincronizarparametricaunidadmedida",
+    "COLUMN_NAME": "estado_sincronizacion",
+    "COLUMN_TYPE": "varchar(10)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sucursal",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "sucursal",
+    "COLUMN_NAME": "codigo_sucursal",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "UNI",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sucursal",
+    "COLUMN_NAME": "departamento",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sucursal",
+    "COLUMN_NAME": "direccion",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sucursal",
+    "COLUMN_NAME": "municipio",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sucursal",
+    "COLUMN_NAME": "nombre",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sucursal",
+    "COLUMN_NAME": "telefono",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "0",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sucursal",
+    "COLUMN_NAME": "estado",
+    "COLUMN_TYPE": "enum('Habilitada','Deshabilitada')",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "Habilitada",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sucursal",
+    "COLUMN_NAME": "cod_empresa",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "MUL",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sucursal",
+    "COLUMN_NAME": "fecha_creacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "sucursal",
+    "COLUMN_NAME": "fecha_modificacion",
+    "COLUMN_TYPE": "timestamp",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+    "COLUMN_KEY": "",
+    "EXTRA": "on update CURRENT_TIMESTAMP"
+  },
+  {
+    "TABLE_NAME": "tmp_productos_bar1",
+    "COLUMN_NAME": "id",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "NO",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "PRI",
+    "EXTRA": "auto_increment"
+  },
+  {
+    "TABLE_NAME": "tmp_productos_bar1",
+    "COLUMN_NAME": "codigo",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "tmp_productos_bar1",
+    "COLUMN_NAME": "producto",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "tmp_productos_bar1",
+    "COLUMN_NAME": "descripcion",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "tmp_productos_bar1",
+    "COLUMN_NAME": "volumen",
+    "COLUMN_TYPE": "decimal(10,2)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "tmp_productos_bar1",
+    "COLUMN_NAME": "porciones",
+    "COLUMN_TYPE": "decimal(10,2)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "tmp_productos_bar1",
+    "COLUMN_NAME": "id_cat",
+    "COLUMN_TYPE": "int(11)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  },
+  {
+    "TABLE_NAME": "tmp_productos_bar1",
+    "COLUMN_NAME": "categoria",
+    "COLUMN_TYPE": "varchar(255)",
+    "IS_NULLABLE": "YES",
+    "COLUMN_DEFAULT": null,
+    "COLUMN_KEY": "",
+    "EXTRA": ""
+  }
+]

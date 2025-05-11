@@ -1,0 +1,888 @@
+FORMAT: 1A
+HOST: https://facturacion.sinticbolivia.net/api
+
+# MonoInvoices
+
+API Rest de Facturacion Siat v2
+
+## Usuarios [/v1.0.0/users]
+
+### Autenticación [POST /v1.0.0/users/get-token]
+
++ Request (application/json)
+    
+        {
+            "username": "usuario1",
+            "password": "contrasena"
+        }
+
+
++ Response 200 (application/json)
+
+        {
+            "response": "ok",
+            "code": 200,
+            "data": 
+            {
+                "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJRwczpcL1wvbW9ub2J1c2luZXNzLnNpbnRpY2JvbGl2aWEubmV0IiwiYXVkIjoiaHR0cHM6XC9cL21vbm9idXNpbmVzcy5zaW50aWNib2xpdmlhLm5ldCIsImlhdCI6MTYwMTg0NTM1MCwibmJmIjoxNjAxODQ1MzUwLCJ1c2VyIjp7InVzZXJfaWQiOjEwLCJ1c2VybmFtZSI6InJhdWwudmlycm",
+                "user": 
+                {
+                    "user_id": 10000,
+                    "first_name": "Usuario",
+                    "last_name": "VDemo",
+                    "username": "demo@dominio.com",
+                    "email": "",
+                    "status": "enabled",
+                    "role_id": 709,
+                    "store_id": 165,
+                    "last_modification_date": "2020-10-04 16:59:44",
+                    "creation_date": "2020-10-04 16:56:52",
+                    "avatar": "https://google.com/images/nobody.png",
+                    "meta": 
+                    {
+                        "_phone": null
+                    }
+                }
+            }
+        }
+        
+## Catalogos [/invoices/siat/v2/]
+
+
+### Actividades [GET /invoices/siat/v2/actividades]
+
++ Request (application/json)
+    + Headers
+    
+                Authorization: Bearer [token_de_usuario]
+                
++ Response 200 (application/json)
+        
+        {
+            "response": "ok","code": 200,
+            "data": {
+                "RespuestaListaActividades": {
+                    "transaccion": true,
+                    "listaActividades": [
+                        {
+                            "codigoCaeb": "620900",
+                            "descripcion": "ACTIVIDADES DE CONSULTORÍA DE INFORMÁTICA Y DE GESTIÓN DE INSTALACIONES INFORMÁTICAS",
+                            "tipoActividad": "P"
+                        }
+                    ]
+                }
+            }
+        }
+        
+        
+### Tipos Documentos Sector [GET /invoices/siat/v2/sync-tipos-documentos-sector]
+
++ Request (application/json)
+    + Headers
+    
+                Authorization: Bearer [token_de_usuario]
+                
++ Response 200 (application/json)
+        
+        {
+            "response": "ok","code": 200,
+            "data": {
+                "RespuestaListaParametricas": {
+                    "transaccion": true,
+                    "listaCodigos": [
+                        {
+                            "codigoClasificador": 1,
+                            "descripcion": "FACTURA COMPRA-VENTA"
+                        },
+                        {
+                            "codigoClasificador": 2,
+                            "descripcion": "FACTURA DE ALQUILER DE BIENES INMUEBLES"
+                        },
+                        {
+                            "codigoClasificador": 3,
+                            "descripcion": "FACTURA COMERCIAL DE EXPORTACIÓN"
+                        },
+                        {
+                            "codigoClasificador": 4,
+                            "descripcion": "FACTURA COMERCIAL DE EXPORTACIÓN EN LIBRE CONSIGNACIÓN"
+                        },
+                        ...
+                    ]
+                }
+            }
+        }
+
+### Motivos Anulacion [GET /invoices/siat/v2/sync-motivos-anulacion]
+
++ Response 200 (application/json)
+
+        {
+            "response": "ok",
+            "code": 200,
+            "data": {
+                "RespuestaListaParametricas": {
+                    "transaccion": true,
+                    "listaCodigos": [
+                        {
+                            "codigoClasificador": 1,
+                            "descripcion": "FACTURA MAL EMITIDA"
+                        },
+                        {
+                            "codigoClasificador": 2,
+                            "descripcion": "NOTA DE CREDITO-DEBITO MAL EMITIDA"
+                        },
+                        {
+                            "codigoClasificador": 3,
+                            "descripcion": "DATOS DE EMISION INCORRECTOS"
+                        },
+                        {
+                            "codigoClasificador": 4,
+                            "descripcion": "FACTURA O NOTA DE CREDITO-DEBITO DEVUELTA"
+                        }
+                    ]
+                }
+            }
+        }
+        
+### Tipos Documentos Identidad [GET /invoices/siat/v2/sync-documentos-identidad]
+
++ Request (application/json)
+    + Headers
+    
+                Authorization: Bearer [token_de_usuario]
+                
++ Response 200 (application/json)
+
+        {
+            "response": "ok",
+            "code": 200,
+            "data": {
+                "RespuestaListaParametricas": {
+                    "transaccion": true,
+                    "listaCodigos": [
+                        {
+                            "codigoClasificador": 1,
+                            "descripcion": "CI - CEDULA DE IDENTIDAD"
+                        },
+                        {
+                            "codigoClasificador": 2,
+                            "descripcion": "CEX - CEDULA DE IDENTIDAD DE EXTRANJERO"
+                        },
+                        {
+                            "codigoClasificador": 3,
+                            "descripcion": "PAS - PASAPORTE"
+                        },
+                        {
+                            "codigoClasificador": 4,
+                            "descripcion": "OD - OTRO DOCUMENTO DE IDENTIDAD"
+                        },
+                        {
+                            "codigoClasificador": 5,
+                            "descripcion": "NIT - NÚMERO DE IDENTIFICACIÓN TRIBUTARIA"
+                        }
+                    ]
+                }
+            }
+        }
+        
+### Unidades de Medida [GET /invoices/siat/v2/sync-unidades-medida]
+
++ Request (application/json)
+    + Headers
+    
+                Authorization: Bearer [token_de_usuario]
+                
++ Response 200 (application/json)
+
+        {
+            "response": "ok",
+            "code": 200,
+            "data": {
+                "RespuestaListaParametricas": {
+                    "transaccion": true,
+                    "listaCodigos": [
+                        {
+                            "codigoClasificador": 1,
+                            "descripcion": "BOBINAS"
+                        },
+                        {
+                            "codigoClasificador": 2,
+                            "descripcion": "VALDE"
+                        },
+                        ...
+                    ]
+                }
+            }
+        }
+        
+### Productos y Servicios [GET /invoices/siat/v2/lista-productos-servicios]
+
++ Request (application/json)
+    + Headers
+    
+                Authorization: Bearer [token_de_usuario]
+                
++ Response 200 (application/json)
+        
+        {"response":"ok","code":200,"data":{"RespuestaListaProductos":{"transaccion":true,"listaCodigos":[{"codigoActividad":"620900","codigoProducto":83141,"descripcionProducto":"SERVICIOS DE DISE\u00d1O Y DESARROLLO DE TI PARA APLICACIONES"},{"codigoActividad":"620900","codigoProducto":83143,"descripcionProducto":"SOFTWARE ORIGINALES"},{"codigoActividad":"620900","codigoProducto":87331,"descripcionProducto":"SERVICIOS DE INSTALACI\u00d3N DE UNIDAD CENTRAL DE COMPUTADORES"},{"codigoActividad":"620900","codigoProducto":87332,"descripcionProducto":"SERVICIOS DE INSTALACI\u00d3N DE COMPUTADORES PERSONALES Y EQUIPO PERIF\u00c9RICO"},{"codigoActividad":"620900","codigoProducto":99100,"descripcionProducto":"OTROS PRODUCTOS O SERVICIOS ALCANZADOS POR EL IVA","nandina":["7010.90.20.10","7010.90.30.10"]},{"codigoActividad":"620900","codigoProducto":831419,"descripcionProducto":"SERVICIOS DE DISE\u00d1O Y DESARROLLO DE TI PARA APLICACIONES IMPORTADO"},{"codigoActividad":"620900","codigoProducto":831439,"descripcionProducto":"SOFTWARE ORIGINALES IMPORTADO"},{"codigoActividad":"620900","codigoProducto":873319,"descripcionProducto":"SERVICIOS DE INSTALACI\u00d3N DE UNIDAD CENTRAL DE COMPUTADORES IMPORTADO"},{"codigoActividad":"620900","codigoProducto":873329,"descripcionProducto":"SERVICIOS DE INSTALACI\u00d3N DE COMPUTADORES PERSONALES Y EQUIPO PERIF\u00c9RICO IMPORTADO"},{"codigoActividad":"620900","codigoProducto":991009,"descripcionProducto":"OTROS PRODUCTOS O SERVICIOS ALCANZADOS POR EL IVA IMPORTADO"},{"codigoActividad":"620900","codigoProducto":99735,"descripcionProducto":"VENTA DE VALES, TARJETAS, GIFT CARD, TICKETS Y OTROS"}]},"last_sync":"2024-04-16 08:26:59"}}
+                
+
+### Metodos de Pago [GET /invoices/siat/v2/sync-metodos-pago]
+
++ Request (application/json)
+    + Headers
+    
+                Authorization: Bearer [token_de_usuario]
+                
++ Response 200 (application/json)
+        
+        {"response":"ok","code":200,"data":{"RespuestaListaParametricas":{"transaccion":true,"listaCodigos":[{"codigoClasificador":299,"descripcion":"DEBITO AUTOMATICO -  VALE"},{"codigoClasificador":300,"descripcion":"DEBITO AUTOMATICO -  PAGO POSTERIOR"},{"codigoClasificador":301,"descripcion":"DEBITO AUTOMATICO -  TRANSFERENCIA BANCARIA"},{"codigoClasificador":302,"descripcion":"DEBITO AUTOMATICO -  DEPOSITO EN CUENTA"},{"codigoClasificador":303,"descripcion":"DEBITO AUTOMATICO -  TRANSFERENCIA SWIFT"},{"codigoClasificador":304,"descripcion":"DEBITO AUTOMATICO -  GIFT CARD"},{"codigoClasificador":305,"descripcion":"DEBITO AUTOMATICO -  CANAL DE PAGO"},{"codigoClasificador":306,"descripcion":"DEBITO AUTOMATICO -  BILLETERA MOVIL"},{"codigoClasificador":307,"descripcion":"DEBITO AUTOMATICO -  PAGO ONLINE"},{"codigoClasificador":308,"descripcion":"DEBITO AUTOMATICO \u2013 OTRO"},{"codigoClasificador":10,"descripcion":"EFECTIVO-TARJETA"},{"codigoClasificador":11,"descripcion":"EFECTIVO-CHEQUE"},{"codigoClasificador":12,"descripcion":"EFECTIVO-VALES"},{"codigoClasificador":13,"descripcion":"EFECTIVO \u2013 TRANSFERENCIA BANCARIA"},{"codigoClasificador":14,"descripcion":"EFECTIVO-DEPOSITO EN CUENTA"},{"codigoClasificador":15,"descripcion":"EFECTIVO \u2013 TRANSFERENCIA BANCARIA SWIFT"},{"codigoClasificador":16,"descripcion":"TARJETA-CHEQUE"},{"codigoClasificador":17,"descripcion":"TARJETA-VALES"},{"codigoClasificador":18,"descripcion":"TARJETA-TRANSFERENCIA BANCARIA"},{"codigoClasificador":19,"descripcion":"TARJETA-DEPOSITO EN CUENTA"},{"codigoClasificador":20,"descripcion":"TARJETA-TRANSFERENCIA SWIFT"},{"codigoClasificador":21,"descripcion":"VALES-TRANSFERENCIA BANCARIA"},{"codigoClasificador":22,"descripcion":"VALES \u2013 DEPOSITO EN CUENTA"},{"codigoClasificador":23,"descripcion":"VALES-TRANSFERENCIA SWIFT"},{"codigoClasificador":24,"descripcion":"TRANSFERENCIA BANCARIA-DEPOSITO EN CUENTA"},{"codigoClasificador":25,"descripcion":"TRANSFERENCIA BANCARIA-TRANSFERENCIA SWIFT"},{"codigoClasificador":26,"descripcion":"DEPOSITO EN CUENTA \u2013 TRANSFERENCIA SWIFT"},{"codigoClasificador":6,"descripcion":"PAGO POSTERIOR"},{"codigoClasificador":7,"descripcion":"TRANSFERENCIA BANCARIA"},{"codigoClasificador":27,"descripcion":"GIFT-CARD"},{"codigoClasificador":8,"descripcion":"DEPOSITO EN CUENTA"},{"codigoClasificador":9,"descripcion":"TRANSFERENCIA SWIFT"},{"codigoClasificador":30,"descripcion":"GIFT-CARD OTROS"},{"codigoClasificador":31,"descripcion":"CANAL DE PAGO"},{"codigoClasificador":32,"descripcion":"BILLETERA MOVIL"},{"codigoClasificador":33,"descripcion":"PAGO ONLINE"},{"codigoClasificador":34,"descripcion":"EFECTIVO \u2013 PAGO POSTERIOR"},{"codigoClasificador":35,"descripcion":"EFECTIVO \u2013 GIFT CARD"},{"codigoClasificador":36,"descripcion":"EFECTIVO \u2013 CANAL PAGO"},{"codigoClasificador":37,"descripcion":"EFECTIVO \u2013 BILLETERA MOVIL"},{"codigoClasificador":38,"descripcion":"EFECTIVO \u2013 PAGO ONLINE"},{"codigoClasificador":39,"descripcion":"TARJETA \u2013 PAGO POSTERIOR"},{"codigoClasificador":40,"descripcion":"TARJETA \u2013 GIFT"},{"codigoClasificador":41,"descripcion":"TARJETA \u2013 CANAL PAGO"},{"codigoClasificador":42,"descripcion":"TARJETA \u2013 BILLETERA MOVIL"},{"codigoClasificador":43,"descripcion":"TARJETA \u2013 PAGO ONLINE"},{"codigoClasificador":44,"descripcion":"CHEQUE \u2013 VALES"},{"codigoClasificador":45,"descripcion":"CHEQUE \u2013 PAGO POSTERIOR"},{"codigoClasificador":46,"descripcion":"CHEQUE \u2013 TRANSFERENCIA BANCARIA"},{"codigoClasificador":47,"descripcion":"CHEQUE \u2013 DEPOSITO"},{"codigoClasificador":48,"descripcion":"CHEQUE \u2013 SWIFT"},{"codigoClasificador":49,"descripcion":"CHEQUE \u2013 GIFT"},{"codigoClasificador":50,"descripcion":"CHEQUE \u2013 CANAL PAGO"},{"codigoClasificador":51,"descripcion":"CHEQUE \u2013 BILLETERA"},{"codigoClasificador":52,"descripcion":"CHEQUE \u2013 PAGO ONLINE"},{"codigoClasificador":53,"descripcion":"VALES \u2013 GIFT"},{"codigoClasificador":54,"descripcion":"VALES \u2013 CANAL DE PAGO"},{"codigoClasificador":55,"descripcion":"VALES \u2013 BILLETERA MOVIL"},{"codigoClasificador":56,"descripcion":"VALES \u2013 PAGO ONLINE"},{"codigoClasificador":57,"descripcion":"PAGO POSTERIOR \u2013 TRANSFERENCIA BANCARIA"},{"codigoClasificador":58,"descripcion":"PAGO POSTERIOR \u2013 DEPOSITO EN CUENTA"},{"codigoClasificador":59,"descripcion":"PAGO POSTERIOR \u2013 SWIFT"},{"codigoClasificador":60,"descripcion":"PAGO POSTERIOR \u2013 GIFT"},{"codigoClasificador":61,"descripcion":"PAGO POSTERIOR \u2013 CANAL"},{"codigoClasificador":62,"descripcion":"PAGO POSTERIOR \u2013 BILLETERA"},{"codigoClasificador":63,"descripcion":"PAGO POSTERIOR \u2013 PAGO ONLINE"},{"codigoClasificador":1,"descripcion":"EFECTIVO"},{"codigoClasificador":64,"descripcion":"TRANSFERENCIA BANCARIA \u2013 GIFT-CARD"},{"codigoClasificador":2,"descripcion":"TARJETA"},{"codigoClasificador":65,"descripcion":"TRANSFERENCIA BANCARIA \u2013 CANAL DE PAGO"},{"codigoClasificador":3,"descripcion":"CHEQUE"},{"codigoClasificador":66,"descripcion":"TRANSFERENCIA BANCARIA \u2013 BILLETERA MOVIL"},{"codigoClasificador":4,"descripcion":"VALES"},{"codigoClasificador":67,"descripcion":"TRANSFERENCIA BANCARIA \u2013 PAGO ONLINE"},{"codigoClasificador":5,"descripcion":"OTROS"},{"codigoClasificador":68,"descripcion":"DEPOSITO EN CUENTA \u2013 GIFT-CARD"},{"codigoClasificador":69,"descripcion":"DEPOSITO EN CUENTA \u2013 CANAL DE PAGO"},{"codigoClasificador":70,"descripcion":"DEPOSITO EN CUENTA \u2013 BILLETERA MOVIL"},{"codigoClasificador":71,"descripcion":"DEPOSITO EN CUENTA  \u2013 PAGO ONLINE"},{"codigoClasificador":72,"descripcion":"SWIFT \u2013 GIFT"},{"codigoClasificador":73,"descripcion":"SWIFT \u2013 CANAL DE PAGO"},{"codigoClasificador":74,"descripcion":"SWIFT \u2013 BILLETERA MOVIL"},{"codigoClasificador":75,"descripcion":"SWIFT \u2013 PAGO ONLINE"},{"codigoClasificador":76,"descripcion":"GIFT-CARD \u2013 CANAL DE PAGO"},{"codigoClasificador":77,"descripcion":"GIFT \u2013 BILLETERA"},{"codigoClasificador":78,"descripcion":"GIFT \u2013 PAGO ONLINE"},{"codigoClasificador":79,"descripcion":"CANAL DE PAGO \u2013 BILLETERA MOVIL"},{"codigoClasificador":80,"descripcion":"CANAL DE PAGO \u2013 PAGO ONLINE"},{"codigoClasificador":81,"descripcion":"BILLETERA MOVIL \u2013 PAGO ONLINE"},{"codigoClasificador":82,"descripcion":"EFECTIVO - TARJETA - PAGO POSTERIOR"},{"codigoClasificador":83,"descripcion":"EFECTIVO - TARJETA - TRANSFERENCIA BANCARIA"},{"codigoClasificador":84,"descripcion":"EFECTIVO - TARJETA - DEPOSITO EN CUENTA"},{"codigoClasificador":85,"descripcion":"EFECTIVO - TARJETA - TRANSFERENCIA SWIFT"},{"codigoClasificador":86,"descripcion":"EFECTIVO - TARJETA - GIFT-CARD"},{"codigoClasificador":87,"descripcion":"EFECTIVO - TARJETA - CANAL DE PAGO"},{"codigoClasificador":88,"descripcion":"EFECTIVO - TARJETA - BILLETERA MOVIL"},{"codigoClasificador":89,"descripcion":"EFECTIVO - TARJETA - PAGO ONLINE"},{"codigoClasificador":90,"descripcion":"EFECTIVO \u2013 CHEQUE - PAGO POSTERIOR"},{"codigoClasificador":91,"descripcion":"EFECTIVO \u2013 CHEQUE - TRANSFERENCIA BANCARIA"},{"codigoClasificador":92,"descripcion":"EFECTIVO \u2013 CHEQUE - DEPOSITO EN CUENTA"},{"codigoClasificador":93,"descripcion":"EFECTIVO \u2013 CHEQUE - TRANSFERENCIA SWIFT"},{"codigoClasificador":94,"descripcion":"EFECTIVO \u2013 CHEQUE - GIFT-CARD"},{"codigoClasificador":95,"descripcion":"EFECTIVO \u2013 CHEQUE - CANAL DE PAGO"},{"codigoClasificador":96,"descripcion":"EFECTIVO \u2013 CHEQUE - BILLETERA MOVIL"},{"codigoClasificador":97,"descripcion":"EFECTIVO \u2013 CHEQUE - PAGO ONLINE"},{"codigoClasificador":98,"descripcion":"EFECTIVO \u2013 VALES - PAGO POSTERIOR"},{"codigoClasificador":99,"descripcion":"EFECTIVO \u2013 VALES - TRANSFERENCIA BANCARIA"},{"codigoClasificador":100,"descripcion":"EFECTIVO \u2013 VALES - DEPOSITO EN CUENTA"},{"codigoClasificador":101,"descripcion":"EFECTIVO \u2013 VALES - TRANSFERENCIA SWIFT"},{"codigoClasificador":102,"descripcion":"EFECTIVO \u2013 VALES - GIFT-CARD"},{"codigoClasificador":103,"descripcion":"EFECTIVO \u2013 VALES - CANAL DE PAGO"},{"codigoClasificador":104,"descripcion":"EFECTIVO \u2013 VALES - BILLETERA MOVIL"},{"codigoClasificador":105,"descripcion":"EFECTIVO \u2013 VALES - PAGO ONLINE"},{"codigoClasificador":106,"descripcion":"EFECTIVO \u2013 PAGO POSTERIOR - TRANSFERENCIA BANCARIA"},{"codigoClasificador":107,"descripcion":"EFECTIVO \u2013 PAGO POSTERIOR - DEPOSITO EN CUENTA"},{"codigoClasificador":108,"descripcion":"EFECTIVO \u2013 PAGO POSTERIOR - TRANSFERENCIA SWIFT"},{"codigoClasificador":109,"descripcion":"EFECTIVO \u2013 PAGO POSTERIOR - GIFT-CARD"},{"codigoClasificador":110,"descripcion":"EFECTIVO \u2013 PAGO POSTERIOR - CANAL DE PAGO"},{"codigoClasificador":111,"descripcion":"EFECTIVO \u2013 PAGO POSTERIOR - BILLETERA MOVIL"},{"codigoClasificador":112,"descripcion":"EFECTIVO \u2013 PAGO POSTERIOR - PAGO ONLINE"},{"codigoClasificador":113,"descripcion":"EFECTIVO \u2013 TRANSFERENCIA BANCARIA  \u2013 DEPOSITO EN CUENTA"},{"codigoClasificador":114,"descripcion":"EFECTIVO \u2013 TRANSFERENCIA BANCARIA  \u2013 TRANSFERENCIA SWIFT"},{"codigoClasificador":115,"descripcion":"EFECTIVO \u2013 TRANSFERENCIA BANCARIA  \u2013 GIFT-CARD"},{"codigoClasificador":116,"descripcion":"EFECTIVO \u2013 TRANSFERENCIA BANCARIA  \u2013 CANAL DE PAGO"},{"codigoClasificador":117,"descripcion":"EFECTIVO \u2013 TRANSFERENCIA BANCARIA  \u2013 BILLETERA MOVIL"},{"codigoClasificador":118,"descripcion":"EFECTIVO \u2013 TRANSFERENCIA BANCARIA  \u2013 PAGO ONLINE"},{"codigoClasificador":119,"descripcion":"EFECTIVO \u2013 DEPOSITO EN CUENTA  \u2013 TRANSFERENCIA SWIFT"},{"codigoClasificador":120,"descripcion":"EFECTIVO \u2013 DEPOSITO EN CUENTA  \u2013 GIFT-CARD"},{"codigoClasificador":121,"descripcion":"EFECTIVO \u2013 DEPOSITO EN CUENTA  \u2013 CANAL DE PAGO"},{"codigoClasificador":122,"descripcion":"EFECTIVO \u2013 DEPOSITO EN CUENTA  \u2013 BILLETERA MOVIL"},{"codigoClasificador":123,"descripcion":"EFECTIVO \u2013 DEPOSITO EN CUENTA  \u2013 PAGO ONLINE"},{"codigoClasificador":124,"descripcion":"EFECTIVO \u2013 SWIFT - GIFT-CARD"},{"codigoClasificador":125,"descripcion":"EFECTIVO \u2013 SWIFT - CANAL DE PAGO"},{"codigoClasificador":126,"descripcion":"EFECTIVO \u2013 SWIFT - BILLETERA MOVIL"},{"codigoClasificador":127,"descripcion":"EFECTIVO \u2013 SWIFT - PAGO ONLINE"},{"codigoClasificador":128,"descripcion":"EFECTIVO \u2013 GIFT CARD - CANAL DE PAGO"},{"codigoClasificador":129,"descripcion":"EFECTIVO \u2013 GIFT CARD - BILLETERA MOVIL"},{"codigoClasificador":130,"descripcion":"EFECTIVO \u2013 GIFT CARD - PAGO ONLINE"},{"codigoClasificador":131,"descripcion":"EFECTIVO \u2013 CANAL PAGO - BILLETERA MOVIL"},{"codigoClasificador":132,"descripcion":"EFECTIVO \u2013 CANAL PAGO - PAGO ONLINE"},{"codigoClasificador":133,"descripcion":"EFECTIVO \u2013 BILLETERA MOVIL - PAGO ONLINE"},{"codigoClasificador":134,"descripcion":"TARJETA \u2013 CHEQUE - PAGO POSTERIOR"},{"codigoClasificador":135,"descripcion":"TARJETA \u2013 CHEQUE - TRANSFERENCIA BANCARIA"},{"codigoClasificador":136,"descripcion":"TARJETA \u2013 CHEQUE - DEPOSITO EN CUENTA"},{"codigoClasificador":137,"descripcion":"TARJETA \u2013 CHEQUE - TRANSFERENCIA SWIFT"},{"codigoClasificador":138,"descripcion":"TARJETA \u2013 CHEQUE - GIFT-CARD"},{"codigoClasificador":139,"descripcion":"TARJETA \u2013 CHEQUE - CANAL DE PAGO"},{"codigoClasificador":140,"descripcion":"TARJETA \u2013 CHEQUE - BILLETERA MOVIL"},{"codigoClasificador":141,"descripcion":"TARJETA \u2013 CHEQUE - PAGO ONLINE"},{"codigoClasificador":142,"descripcion":"TARJETA \u2013 VALES - PAGO POSTERIOR"},{"codigoClasificador":143,"descripcion":"TARJETA \u2013 VALES - TRANSFERENCIA BANCARIA"},{"codigoClasificador":144,"descripcion":"TARJETA \u2013 VALES - DEPOSITO EN CUENTA"},{"codigoClasificador":145,"descripcion":"TARJETA \u2013 VALES - TRANSFERENCIA SWIFT"},{"codigoClasificador":146,"descripcion":"TARJETA \u2013 VALES - GIFT-CARD"},{"codigoClasificador":147,"descripcion":"TARJETA \u2013 VALES - CANAL DE PAGO"},{"codigoClasificador":148,"descripcion":"TARJETA \u2013 VALES - BILLETERA MOVIL"},{"codigoClasificador":149,"descripcion":"TARJETA \u2013 VALES - PAGO ONLINE"},{"codigoClasificador":150,"descripcion":"TARJETA \u2013 PAGO POSTERIOR - TRANSFERENCIA BANCARIA"},{"codigoClasificador":151,"descripcion":"TARJETA \u2013 PAGO POSTERIOR - DEPOSITO EN CUENTA"},{"codigoClasificador":152,"descripcion":"TARJETA \u2013 PAGO POSTERIOR - TRANSFERENCIA SWIFT"},{"codigoClasificador":153,"descripcion":"TARJETA \u2013 PAGO POSTERIOR - GIFT-CARD"},{"codigoClasificador":154,"descripcion":"TARJETA \u2013 PAGO POSTERIOR - CANAL DE PAGO"},{"codigoClasificador":155,"descripcion":"TARJETA \u2013 PAGO POSTERIOR - BILLETERA MOVIL"},{"codigoClasificador":156,"descripcion":"TARJETA \u2013 PAGO POSTERIOR - PAGO ONLINE"},{"codigoClasificador":157,"descripcion":"TARJETA \u2013 TRANSFERENCIA BANCARIA \u2013 DEPOSITO EN CUENTA"},{"codigoClasificador":158,"descripcion":"TARJETA \u2013 TRANSFERENCIA BANCARIA - TRANSFERENCIA SWIFT"},{"codigoClasificador":159,"descripcion":"TARJETA \u2013 TRANSFERENCIA BANCARIA \u2013 GIFT-CARD"},{"codigoClasificador":160,"descripcion":"TARJETA \u2013 TRANSFERENCIA BANCARIA \u2013 CANAL DE PAGO"},{"codigoClasificador":161,"descripcion":"TARJETA \u2013 TRANSFERENCIA  BANCARIA \u2013 BILLETERA MOVIL"},{"codigoClasificador":162,"descripcion":"TARJETA \u2013 TRANSFERENCIA BANCARIA \u2013 PAGO ONLINE"},{"codigoClasificador":163,"descripcion":"TARJETA \u2013 DEPOSITO EN CUENTA \u2013 TRANSFERENCIA SWIFT"},{"codigoClasificador":164,"descripcion":"TARJETA \u2013 DEPOSITO EN CUENTA \u2013 GIFT-CARD"},{"codigoClasificador":165,"descripcion":"TARJETA \u2013 DEPOSITO EN CUENTA \u2013 CANAL DE PAGO"},{"codigoClasificador":166,"descripcion":"TARJETA \u2013 DEPOSITO EN CUENTA  \u2013 BILLETERA MOVIL"},{"codigoClasificador":167,"descripcion":"TARJETA \u2013 DEPOSITO EN CUENTA \u2013 PAGO ONLINE"},{"codigoClasificador":168,"descripcion":"TARJETA \u2013 SWIFT - GIFT-CARD"},{"codigoClasificador":169,"descripcion":"TARJETA \u2013 SWIFT - CANAL DE PAGO"},{"codigoClasificador":170,"descripcion":"TARJETA \u2013 SWIFT - BILLETERA MOVIL"},{"codigoClasificador":171,"descripcion":"TARJETA \u2013 SWIFT - PAGO ONLINE"},{"codigoClasificador":172,"descripcion":"TARJETA \u2013 GIFT - CANAL DE PAGO"},{"codigoClasificador":173,"descripcion":"TARJETA \u2013 GIFT - BILLETERA MOVIL"},{"codigoClasificador":174,"descripcion":"TARJETA \u2013 GIFT - PAGO ONLINE"},{"codigoClasificador":175,"descripcion":"TARJETA \u2013 CANAL PAGO - BILLETERA MOVIL"},{"codigoClasificador":176,"descripcion":"TARJETA \u2013 CANAL PAGO - PAGO ONLINE"},{"codigoClasificador":177,"descripcion":"TARJETA \u2013 BILLETERA MOVIL - PAGO ONLINE"},{"codigoClasificador":178,"descripcion":"CHEQUE \u2013 VALES - PAGO POSTERIOR"},{"codigoClasificador":179,"descripcion":"CHEQUE \u2013 VALES - TRANSFERENCIA BANCARIA"},{"codigoClasificador":180,"descripcion":"CHEQUE \u2013 VALES - DEPOSITO EN CUENTA"},{"codigoClasificador":181,"descripcion":"CHEQUE \u2013 VALES - TRANSFERENCIA SWIFT"},{"codigoClasificador":182,"descripcion":"CHEQUE \u2013 VALES - GIFT-CARD"},{"codigoClasificador":183,"descripcion":"CHEQUE \u2013 VALES - CANAL DE PAGO"},{"codigoClasificador":184,"descripcion":"CHEQUE \u2013 VALES - BILLETERA MOVIL"},{"codigoClasificador":185,"descripcion":"CHEQUE \u2013 VALES - PAGO ONLINE"},{"codigoClasificador":186,"descripcion":"CHEQUE \u2013 PAGO POSTERIOR - TRANSFERENCIA BANCARIA"},{"codigoClasificador":187,"descripcion":"CHEQUE \u2013 PAGO POSTERIOR - DEPOSITO EN CUENTA"},{"codigoClasificador":188,"descripcion":"CHEQUE \u2013 PAGO POSTERIOR - TRANSFERENCIA SWIFT"},{"codigoClasificador":189,"descripcion":"CHEQUE \u2013 PAGO POSTERIOR - GIFT-CARD"},{"codigoClasificador":190,"descripcion":"CHEQUE \u2013 PAGO POSTERIOR - CANAL DE PAGO"},{"codigoClasificador":191,"descripcion":"CHEQUE \u2013 PAGO POSTERIOR - BILLETERA MOVIL"},{"codigoClasificador":192,"descripcion":"CHEQUE \u2013 PAGO POSTERIOR - PAGO ONLINE"},{"codigoClasificador":193,"descripcion":"CHEQUE \u2013 TRANSFERENCIA BANCARIA \u2013 DEPOSITO EN CUENTA"},{"codigoClasificador":194,"descripcion":"CHEQUE \u2013 TRANSFERENCIA BANCARIA \u2013 TRANSFERENCIA SWIFT"},{"codigoClasificador":195,"descripcion":"CHEQUE \u2013 TRANSFERENCIA BANCARIA \u2013 GIFT-CARD"},{"codigoClasificador":196,"descripcion":"CHEQUE \u2013 TRANSFERENCIA BANCARIA \u2013 CANAL DE PAGO"},{"codigoClasificador":197,"descripcion":"CHEQUE \u2013 TRANSFERENCIA BANCARIA \u2013 BILLETERA MOVIL"},{"codigoClasificador":198,"descripcion":"CHEQUE \u2013 TRANSFERENCIA BANCARIA \u2013 PAGO ONLINE"},{"codigoClasificador":199,"descripcion":"CHEQUE \u2013 DEPOSITO EN CUENTA - TRANSFERENCIA SWIFT"},{"codigoClasificador":200,"descripcion":"CHEQUE \u2013 DEPOSITO EN CUENTA - GIFT-CARD"},{"codigoClasificador":201,"descripcion":"CHEQUE \u2013 DEPOSITO EN CUENTA - CANAL DE PAGO"},{"codigoClasificador":202,"descripcion":"CHEQUE \u2013 DEPOSITO EN CUENTA - BILLETERA MOVIL"},{"codigoClasificador":203,"descripcion":"CHEQUE \u2013 DEPOSITO EN CUENTA - PAGO ONLINE"},{"codigoClasificador":204,"descripcion":"CHEQUE \u2013 SWIFT - GIFT-CARD"},{"codigoClasificador":205,"descripcion":"CHEQUE \u2013 SWIFT - CANAL DE PAGO"},{"codigoClasificador":206,"descripcion":"CHEQUE \u2013 SWIFT - BILLETERA MOVIL"},{"codigoClasificador":207,"descripcion":"CHEQUE \u2013 SWIFT - PAGO ONLINE"},{"codigoClasificador":208,"descripcion":"CHEQUE \u2013 GIFT - CANAL DE PAGO"},{"codigoClasificador":209,"descripcion":"CHEQUE \u2013 GIFT - BILLETERA MOVIL"},{"codigoClasificador":210,"descripcion":"CHEQUE \u2013 GIFT - PAGO ONLINE"},{"codigoClasificador":211,"descripcion":"CHEQUE \u2013 CANAL PAGO - BILLETERA MOVIL"},{"codigoClasificador":212,"descripcion":"CHEQUE \u2013 CANAL PAGO - PAGO ONLINE"},{"codigoClasificador":213,"descripcion":"CHEQUE \u2013 BILLETERA MOVIL  \u2013 PAGO ONLINE"},{"codigoClasificador":214,"descripcion":"VALES \u2013 SWIFT - TRANSFERENCIA BANCARIA"},{"codigoClasificador":215,"descripcion":"VALES \u2013 SWIFT - DEPOSITO EN CUENTA"},{"codigoClasificador":216,"descripcion":"VALES \u2013 SWIFT - TRANSFERENCIA SWIFT"},{"codigoClasificador":217,"descripcion":"VALES \u2013 SWIFT - GIFT-CARD"},{"codigoClasificador":218,"descripcion":"VALES \u2013 SWIFT - CANAL DE PAGO"},{"codigoClasificador":219,"descripcion":"VALES \u2013 SWIFT - BILLETERA MOVIL"},{"codigoClasificador":220,"descripcion":"VALES \u2013 SWIFT - PAGO ONLINE"},{"codigoClasificador":221,"descripcion":"VALES \u2013 GIFT - DEPOSITO EN CUENTA"},{"codigoClasificador":222,"descripcion":"VALES \u2013 GIFT - TRANSFERENCIA SWIFT"},{"codigoClasificador":223,"descripcion":"VALES \u2013 GIFT-CARD \u2013 TARJETA"},{"codigoClasificador":224,"descripcion":"VALES \u2013 GIFT - CANAL DE PAGO"},{"codigoClasificador":225,"descripcion":"VALES \u2013 GIFT - BILLETERA MOVIL"},{"codigoClasificador":226,"descripcion":"VALES \u2013 GIFT - PAGO ONLINE"},{"codigoClasificador":227,"descripcion":"VALES \u2013 CANAL DE PAGO  \u2013 TRANSFERENCIA SWIFT"},{"codigoClasificador":228,"descripcion":"VALES \u2013 CANAL DE PAGO  \u2013 GIFT-CARD"},{"codigoClasificador":229,"descripcion":"VALES \u2013 CANAL DE PAGO  \u2013 CANAL DE PAGO"},{"codigoClasificador":230,"descripcion":"VALES \u2013 CANAL DE PAGO  \u2013 BILLETERA MOVIL"},{"codigoClasificador":231,"descripcion":"VALES \u2013 CANAL DE PAGO  \u2013 PAGO ONLINE"},{"codigoClasificador":232,"descripcion":"VALES \u2013 BILLETERA MOVIL \u2013 GIFT-CARD"},{"codigoClasificador":233,"descripcion":"VALES \u2013 BILLETERA MOVIL \u2013 CANAL DE PAGO"},{"codigoClasificador":234,"descripcion":"VALES \u2013 BILLETERA MOVIL \u2013 BILLETERA MOVIL"},{"codigoClasificador":235,"descripcion":"VALES \u2013 BILLETERA MOVIL \u2013 PAGO ONLINE"},{"codigoClasificador":236,"descripcion":"VALES \u2013 PAGO ONLINE - CANAL DE PAGO"},{"codigoClasificador":237,"descripcion":"VALES \u2013 PAGO ONLINE - BILLETERA MOVIL"},{"codigoClasificador":238,"descripcion":"VALES \u2013 PAGO ONLINE - PAGO ONLINE"},{"codigoClasificador":239,"descripcion":"PAGO POSTERIOR \u2013 TRANSFERENCIA BANCARIA  \u2013 DEPOSITO EN CUENTA"},{"codigoClasificador":240,"descripcion":"PAGO POSTERIOR \u2013 TRANSFERENCIA BANCARIA  \u2013 TRANSFERENCIA SWIFT"},{"codigoClasificador":241,"descripcion":"PAGO POSTERIOR \u2013 TRANSFERENCIA BANCARIA  \u2013 GIFT-CARD"},{"codigoClasificador":242,"descripcion":"PAGO POSTERIOR \u2013 TRANSFERENCIA BANCARIA  \u2013 CANAL DE PAGO"},{"codigoClasificador":243,"descripcion":"PAGO POSTERIOR \u2013 TRANSFERENCIA BANCARIA  \u2013 BILLETERA MOVIL"},{"codigoClasificador":244,"descripcion":"PAGO POSTERIOR \u2013 TRANSFERENCIA BANCARIA  \u2013 PAGO ONLINE"},{"codigoClasificador":245,"descripcion":"PAGO POSTERIOR \u2013 DEPOSITO EN CUENTA  \u2013 TRANSFERENCIA SWIFT"},{"codigoClasificador":246,"descripcion":"PAGO POSTERIOR \u2013 DEPOSITO EN CUENTA  \u2013 GIFT-CARD"},{"codigoClasificador":247,"descripcion":"PAGO POSTERIOR \u2013 DEPOSITO EN CUENTA  \u2013 CANAL DE PAGO"},{"codigoClasificador":248,"descripcion":"PAGO POSTERIOR \u2013 DEPOSITO EN CUENTA  \u2013 BILLETERA MOVIL"},{"codigoClasificador":249,"descripcion":"PAGO POSTERIOR \u2013 DEPOSITO EN CUENTA  \u2013 PAGO ONLINE"},{"codigoClasificador":250,"descripcion":"PAGO POSTERIOR \u2013 SWIFT - GIFT-CARD"},{"codigoClasificador":251,"descripcion":"PAGO POSTERIOR \u2013 SWIFT - CANAL DE PAGO"},{"codigoClasificador":252,"descripcion":"PAGO POSTERIOR \u2013 SWIFT - BILLETERA MOVIL"},{"codigoClasificador":253,"descripcion":"PAGO POSTERIOR \u2013 SWIFT - PAGO ONLINE"},{"codigoClasificador":254,"descripcion":"PAGO POSTERIOR \u2013 GIFT - CANAL DE PAGO"},{"codigoClasificador":255,"descripcion":"PAGO POSTERIOR \u2013 GIFT - BILLETERA MOVIL"},{"codigoClasificador":256,"descripcion":"PAGO POSTERIOR \u2013 GIFT - PAGO ONLINE"},{"codigoClasificador":257,"descripcion":"PAGO POSTERIOR \u2013 CANAL DE PAGO - BILLETERA MOVIL"},{"codigoClasificador":258,"descripcion":"PAGO POSTERIOR \u2013 CANAL DE PAGO - PAGO ONLINE"},{"codigoClasificador":259,"descripcion":"PAGO POSTERIOR \u2013 BILLETERA MOVIL - PAGO ONLINE"},{"codigoClasificador":260,"descripcion":"TRANSFERENCIA BANCARIA \u2013 DEPOSITO EN CUENTA  \u2013 TRANSFERENCIA SWIFT"},{"codigoClasificador":261,"descripcion":"TRANSFERENCIA BANCARIA \u2013 DEPOSITO  EN CUENTA \u2013 GIFT-CARD"},{"codigoClasificador":262,"descripcion":"TRANSFERENCIA BANCARIA \u2013 DEPOSITO  EN CUENTA \u2013 CANAL DE PAGO"},{"codigoClasificador":263,"descripcion":"TRANSFERENCIA BANCARIA \u2013 DEPOSITO EN CUENTA   \u2013 BILLETERA MOVIL"},{"codigoClasificador":264,"descripcion":"TRANSFERENCIA BANCARIA\u2013 DEPOSITO  EN CUENTA \u2013 PAGO ONLINE"},{"codigoClasificador":265,"descripcion":"TRANSFERENCIA BANCARIA \u2013 SWIFT  \u2013 GIFT-CARD"},{"codigoClasificador":266,"descripcion":"TRANSFERENCIA BANCARIA \u2013 SWIFT  \u2013 CANAL DE PAGO"},{"codigoClasificador":267,"descripcion":"TRANSFERENCIA BANCARIA \u2013 SWIFT  \u2013 BILLETERA MOVIL"},{"codigoClasificador":268,"descripcion":"TRANSFERENCIA BANCARIA \u2013 SWIFT  \u2013 PAGO ONLINE"},{"codigoClasificador":269,"descripcion":"TRANSFERENCIA BANCARIA \u2013 GIFT-CARD  \u2013 CANAL DE PAGO"},{"codigoClasificador":270,"descripcion":"TRANSFERENCIA BANCARIA \u2013 GIFT-CARD  \u2013 BILLETERA MOVIL"},{"codigoClasificador":271,"descripcion":"TRANSFERENCIA BANCARIA \u2013 GIFT-CARD  \u2013 PAGO ONLINE"},{"codigoClasificador":272,"descripcion":"TRANSFERENCIA BANCARIA \u2013 CANAL DE PAGO \u2013 BILLETERA MOVIL"},{"codigoClasificador":273,"descripcion":"TRANSFERENCIA BANCARIA \u2013 CANAL DE PAGO \u2013 PAGO ONLINE"},{"codigoClasificador":274,"descripcion":"TRANSFERENCIA BANCARIA \u2013 BILLETERA MOVIL \u2013 PAGO ONLINE"},{"codigoClasificador":275,"descripcion":"DEPOSITO EN CUENTA  \u2013 SWIFT  \u2013 GIFT-CARD"},{"codigoClasificador":276,"descripcion":"DEPOSITO EN CUENTA  \u2013 SWIFT  \u2013 CANAL DE PAGO"},{"codigoClasificador":277,"descripcion":"DEPOSITO EN CUENTA  \u2013 SWIFT  \u2013 BILLETERA MOVIL"},{"codigoClasificador":278,"descripcion":"DEPOSITO EN CUENTA  \u2013 SWIFT  \u2013 PAGO ONLINE"},{"codigoClasificador":279,"descripcion":"DEPOSITO EN CUENTA \u2013 GIFT-CARD  \u2013 CANAL DE PAGO"},{"codigoClasificador":280,"descripcion":"DEPOSITO EN CUENTA \u2013 GIFT-CARD  \u2013 BILLETERA MOVIL"},{"codigoClasificador":281,"descripcion":"DEPOSITO EN CUENTA  \u2013 GIFT-CARD  \u2013 PAGO ONLINE"},{"codigoClasificador":282,"descripcion":"DEPOSITO EN CUENTA \u2013  CANAL DE PAGO  \u2013 BILLETERA MOVIL"},{"codigoClasificador":283,"descripcion":"DEPOSITO EN CUENTA \u2013 CANAL DE PAGO   \u2013 PAGO ONLINE"},{"codigoClasificador":284,"descripcion":"DEPOSITO EN CUENTA \u2013 BILLETERA MOVIL  \u2013 PAGO ONLINE"},{"codigoClasificador":285,"descripcion":"SWIFT \u2013 GIFT - CANAL DE PAGO"},{"codigoClasificador":286,"descripcion":"SWIFT \u2013 GIFT - BILLETERA MOVIL"},{"codigoClasificador":287,"descripcion":"SWIFT \u2013 GIFT - PAGO ONLINE"},{"codigoClasificador":288,"descripcion":"SWIFT \u2013 CANAL DE PAGO  \u2013 BILLETERA MOVIL"},{"codigoClasificador":289,"descripcion":"SWIFT \u2013 CANAL  DE PAGO \u2013 PAGO ONLINE"},{"codigoClasificador":290,"descripcion":"SWIFT \u2013 BILLETERA MOVIL  \u2013 PAGO ONLINE"},{"codigoClasificador":291,"descripcion":"GIFT-CARD \u2013 CANAL DE PAGO  \u2013 BILLETERA MOVIL"},{"codigoClasificador":292,"descripcion":"GIFT-CARD \u2013 CANAL DE PAGO  \u2013 PAGO ONLINE"},{"codigoClasificador":293,"descripcion":"GIFT-CARD \u2013 BILLETERA MOVIL - PAGO ONLINE"},{"codigoClasificador":294,"descripcion":"CANAL DE PAGO \u2013 BILLETERA MOVIL  \u2013 PAGO ONLINE"},{"codigoClasificador":295,"descripcion":"DEBITO AUTOMATICO"},{"codigoClasificador":296,"descripcion":"DEBITO AUTOMATICO \u2013 EFECTIVO"},{"codigoClasificador":297,"descripcion":"DEBITO AUTOMATICO -TARJETA"},{"codigoClasificador":298,"descripcion":"DEBITO AUTOMATICO \u2013 CHEQUE"}]},"last_sync":"2024-04-16 08:32:22"}}
+
+
+### Validar NIT [GET /invoices/siat/v2/validate-nit?nit={nit}]
+
++ Request (application/json)
+    + Headers
+    
+                Authorization: Bearer [token_de_usuario]
+                
++ Response 200 (application/json)
+
+        {
+            "response": "ok",
+            "code": 200,
+            "data": {
+                "RespuestaVerificarNit": {
+                    "transaccion": true,
+                    "mensajesList": [
+                    ]
+                }
+            }
+        }
+        
+        
+## Operaciones [/invoices/siat/v2]
+
+
+### Obtener CUIS [GET /invoices/siat/v2/cuis?sucursal_id={codigo}&puntoventa_id={pvid}]
+
+<table>
+<tr>
+    <th>{codigo}</th>
+    <th>Codigo de sucursal asignado por impuestos</th>
+</tr>
+<tr>
+    <th>{pvid}</th>
+    <th>Codigo de punto de venta registrado en impuestos</th>
+</tr>
+</table>
++ Request (application/json)
+    + Headers
+    
+                Authorization: Bearer [token_de_usuario]
+    
++ Response 200 (application/json)
+
+        {
+            "response":"ok",
+            "code":200,
+            "data":
+            {
+                "codigo":"110B8ADF",
+                "direccion":null,
+                "fechaVigencia":"2023-06-07T13:02:04.284-04:00",
+                "timeVigencia":1686157324,
+                "mensajesList":
+                {
+                    "codigo":980,
+                    "descripcion":"SUCURSAL O PUNTO DE VENTA"
+                },
+                "transaccion":false
+            }
+        }
+
+### Obtener CUFD [GET /invoices/siat/v2/cufd?sucursal_id={codigo}&puntoventa_id={codigo}]
+
++ Request (application/json)
+    + Headers
+    
+                Authorization: Bearer [token_de_usuario]
+
++ Response 200 (application/json)
+    
+        {
+            "response":"ok",
+            "code":200,
+            "data":
+            {
+                "codigoControl":"496F6B109F96D74",
+                "codigo":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0s+UlhQRkhXVUFFFNzYzOEZGQkUwQ",
+                "direccion":"CALLE RUNA SIMI NRO.2126 ZONA SARCO",
+                "fechaVigencia":"2022-07-05 15:23:17",
+                "timeVigencia":1657048997,
+                "mensajesList":null,
+                "transaccion":null
+            }
+        }
+        
+### Obtener Listado de CUFDs [GET /invoices/siat/v2/cufds?sucursal_id={codigo}&puntoventa_id={codigo}]
+
++ Request (application/json)
+    + Headers
+    
+                Authorization: Bearer [token_de_usuario]
+
++ Response 200 (application/json)
+
+        {"response":"ok","code":200,"data":[{"id":"12","user_id":"2","codigo":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0s+UlhQRkhXVUFFFNzYzOEZGQkUwQ","codigo_control":"496F6B109F96D74","direccion":"CALLE RUNA SIMI NRO.2126 ZONA SARCO","sucursal_id":"0","puntoventa_id":"0","fecha_vigencia":"2022-07-05 15:23:17","last_modification_date":"2022-07-04 15:23:17","creation_date":"2022-07-04 15:23:17"},{"id":"11","user_id":"2","codigo":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0tHT1hQRkhXVUFFFNzYzOEZGQkUwQ","codigo_control":"3DC06B109F96D74","direccion":"CALLE RUNA SIMI NRO.2126 ZONA SARCO","sucursal_id":"0","puntoventa_id":"0","fecha_vigencia":"2022-07-05 15:23:14","last_modification_date":"2022-07-04 15:23:14","creation_date":"2022-07-04 15:23:14"},{"id":"10","user_id":"2","codigo":"BQUFBQ0ZxbkFBNzkZCODY1MzA2Qzc=Q8KhKjJXTUZIV1VFFNzYzOEZGQkUwQ","codigo_control":"91D1B05E8F96D74","direccion":"CALLE RUNA SIMI NRO.2126 ZONA SARCO","sucursal_id":"0","puntoventa_id":"0","fecha_vigencia":"2022-07-05 12:22:53","last_modification_date":"2022-07-04 12:22:53","creation_date":"2022-07-04 12:22:53"},{"id":"8","user_id":"2","codigo":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q2UpNDdVZUdXVUFFFNzYzOEZGQkUwQ","codigo_control":"418E23FC1E86D74","direccion":"CALLE RUNA SIMI NRO.2126 ZONA SARCO","sucursal_id":"0","puntoventa_id":"0","fecha_vigencia":"2022-06-30 20:58:55","last_modification_date":"2022-06-29 20:58:56","creation_date":"2022-06-29 20:58:56"},{"id":"6","user_id":"2","codigo":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0tFZFRUY0dXVUFFFNzYzOEZGQkUwQ","codigo_control":"21D819E4AD86D74","direccion":"CALLE RUNA SIMI NRO.2126 ZONA SARCO","sucursal_id":"0","puntoventa_id":"0","fecha_vigencia":"2022-06-28 19:19:29","last_modification_date":"2022-06-27 19:19:29","creation_date":"2022-06-27 19:19:29"},{"id":"4","user_id":"2","codigo":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0EpaTdKUEdXVUFFFNzYzOEZGQkUwQ","codigo_control":"86FE82589A86D74","direccion":"CALLE RUNA SIMI NRO.2126 ZONA SARCO","sucursal_id":"0","puntoventa_id":"0","fecha_vigencia":"2022-06-15 09:58:34","last_modification_date":"2022-06-14 09:58:35","creation_date":"2022-06-14 09:58:35"},{"id":"3","user_id":"2","codigo":"BQUFBQ0ZxbkFBNzkZCODY1MzA2Qzc=QznDmk1tSWNGV1VFFNzYzOEZGQkUwQ","codigo_control":"7C5870065676D74","direccion":"CALLE RUNA SIMI NRO.2126 ZONA SARCO","sucursal_id":"0","puntoventa_id":"0","fecha_vigencia":"2022-05-28 08:38:12","last_modification_date":"2022-05-27 08:38:17","creation_date":"2022-05-27 08:38:17"},{"id":"2","user_id":"2","codigo":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q1VIY2JOWUZXVUFFFNzYzOEZGQkUwQ","codigo_control":"5803BF7A6576D74","direccion":"CALLE RUNA SIMI NRO.2126 ZONA SARCO","sucursal_id":"0","puntoventa_id":"0","fecha_vigencia":"2022-05-24 13:27:28","last_modification_date":"2022-05-23 13:27:30","creation_date":"2022-05-23 13:27:30"},{"id":"1","user_id":"2","codigo":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0sqU2xNVUZXVUFFFNzYzOEZGQkUwQ","codigo_control":"13721B8B7476D74","direccion":"CALLE RUNA SIMI NRO.2126 ZONA SARCO","sucursal_id":"0","puntoventa_id":"0","fecha_vigencia":"2022-05-20 18:37:18","last_modification_date":"2022-05-19 18:37:22","creation_date":"2022-05-19 18:37:22"}]}
+    
+### Obtener Puntos de Venta [GET /invoices/siat/v2/puntos-venta]
+
++ Request (application/json)
+    + Headers
+    
+            Authorization: Bearer [token_de_usuario]
+
++ Response 200 (application/json)
+    
+        {"response":"ok","code":200,"data":[{"id":1,"user_id":2,"codigo":1,"sucursal_id":0,"nombre":"PUNTO DE VENTA 1","tipo_id":0,"tipo":"PUNTO VENTA VENTANILLA DE COBRANZA","last_modification_date":"2022-06-14 10:02:31","creation_date":"2022-06-14 10:02:31"}]}
+
+        
+### Crear Punto de Venta [POST /invoices/siat/v2/puntos-venta]
+
++ Request (application/json)
+    + Headers
+    
+            Authorization: Bearer JWT
+                
+
+    + Body
+    
+            {"sucursal_id":0,"tipo_id":2,"tipo":"PUNTO VENTA VENTANILLA DE COBRANZA","nombre":"Punto Venta 2"}
+        
+        
++ Response 200 (application/json)
+
+        {"response":"ok","code":200,"data":[{"id":3,"user_id":2,"codigo":2,"sucursal_id":0,"nombre":"Punto Venta 2","tipo_id":2,"tipo":"PUNTO VENTA VENTANILLA DE COBRANZA","last_modification_date":"2022-07-04 20:14:36","creation_date":"2022-07-04 20:14:36"},{"RespuestaRegistroPuntoVenta":{"codigoPuntoVenta":2,"transaccion":true}}]}
+        
+        
+### Borrar Punto de Venta [DELETE /invoices/siat/v2/puntos-venta/{id}]
+
++ Request (application/json)
+    + Headers
+
+            Authorization: Bearer JWT
+        
+
++ Response 200 (application/json)
+        
+        {"response":"ok","code":200,"data":{"RespuestaCierrePuntoVenta":{"codigoPuntoVenta":2,"transaccion":true}},"message":"Sincronizacion completada"}
+
+
+## Facturación [/invoices]
+
+### Crear Factura [POST /invoices]
+
+<table>
+<tr>
+    <th>customer_id</th>
+    <td>Identificador del cliente anteriormente creado</td>
+    <td>integer</td>
+</tr>
+<tr>
+    <th>customer</th>
+    <td>Nombre de el cliente para la factura</td>
+    <td>string</td>
+</tr>
+<tr>
+    <th>nit_ruc_nif</th>
+    <td>Numero de documento para la factura</td>
+    <td>string</td>
+</tr>  
+<tr>
+    <th>codigo_documento_sector</th>
+    <td>Documento sector aisgnado al NIT</td>
+    <td>integer</td>
+</tr>  
+<tr>
+    <th>tipo_documento_identidad</th>
+    <td>Codigo documento identidad (revisar catalogos)</td>
+    <td>integer</td>
+</tr>
+<tr>
+    <th>codigo_metodo_pago</th>
+    <td>Codigo del metodo de pago (revisar catalogo)</td>
+    <td>integer</td>
+</tr>
+<tr>
+    <th>codigo_moneda</th>
+    <td>Codigo de tipo de moneda (revisar catalogo)</td>
+    <td>integer</td>
+</tr>
+<tr>
+    <th>invoice_date_time (opcional)</th>
+    <td>Fecha de la emision de factura (solo para ventos 5,6,7)</td>
+    <td>DateTime</td>
+</tr>
+<tr>
+    <th>numero_tarjeta (opcional)</th>
+    <td>Solo para metodo de pago con tarjerta</td>
+    <td>integer</td>
+</tr>
+<tr>
+    <th>items</th>
+    <td>Arreglo para el detalle de la factura</td>
+    <td>Array</td>
+</tr>
+<tr>
+    <th>data</th>
+    <td>Puede contener valores y parametros adicionales a la factura dependiendo del documento de sector</td>
+    <td>Objeto</td>
+</tr>
+</table>
+
+<h5>Variable "items"</h5>
+
+<table>
+<tr>
+    <th>unidad_medida</th>
+    <td>Codigo de la unidad de medida (revisar catalogo)</td>
+    <td>integer</td>
+</tr>
+<tr>
+    <th>codigo_producto_sin</th>
+    <td>Codigo de producto SIN (revisar catalogo)</td>
+    <td>integer</td>
+</tr>
+<tr>
+    <th>codigo_actividad</th>
+    <td>Codigo de actividad econocmica (revisar catalogo)</td>
+    <td>string</td>
+</tr>
+<tr>
+    <th>data</th>
+    <td>Puede contener valores y parametros adicionales al detalle de la factura dependiendo del documento de sector</td>
+    <td>Objeto</td>
+</tr>
+</table>
+
+<h5>Variable "data"</h5>
+
+<table>
+<tr>
+    <th>excepcion</th>
+    <td>Indica si la factura debe ser emitida sin validacion de NIT</td>
+    <td>integer</td>
+</tr>
+<tr>
+    <th>nro_factura</th>
+    <td>Indica el numero de factura CAFC</td>
+    <td>integer</td>
+</tr>
+<tr>
+    <th>custom_fields</th>
+    <td>
+        Objeto que indica parametros adicionales de la factura y su documento sector<br/>
+        Ejemplo:<br/>
+        <code>
+        {
+            "nombreEstudiante": "XX",
+            "periodoFacturado": "2022-05-05"
+        }
+        </code>
+        Los campos son difinidos en la documentacion del documento sector SIAT
+    </td>
+    <td>Object</td>
+</tr>
+</table>
+
+<h5>Variable "data" de cada item de la factura</h5>
+
+<table>
+<tr>
+    <th>custom_fields</th>
+    <td>
+        Objeto que indica parametros adicionales de la factura y su documento sector<br/>
+        Ejemplo Factura Hospitales:<br/>
+        <code>{
+            "nroQuirofanoSalaOperaciones": "1",
+            "especialidadMedico": "Cirujano",
+            "nombreApellidoMedico": "",
+            "nitDocumentoMedico": ""
+        }</code>
+        Los campos son difinidos en la documentacion del documento sector SIAT
+    </td>
+    <td>Object</td>
+</tr>
+</table>
+
++ Request (application/json)
+    + Headers
+
+            Authorization: Bearer JWT
+    
+    + Body        
+            
+            {"customer_id":1,"customer":"Marcelo Aviles","nit_ruc_nif":"3301256","subtotal":1290,"total_tax":154.72,"discount":"10","monto_giftcard":"90","total":1190,"invoice_date_time":"","currency_code":"","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":28,"codigo_moneda":1,"complemento":null,"numero_tarjeta":null,"tipo_cambio":1,"tipo_factura_documento":1,"items":[{"product_id":0,"product_code":"001","product_name":"Item 001","price":1290,"quantity":1,"total":1290,"unidad_medida":58,"numero_serie":"","numero_imei":"","codigo_producto_sin":83141,"codigo_actividad":"620100","discount":0}],"data":{}}
+        
++ Response 200 (application/json)
+
+        {"response":"ok","code":200,"data":{"invoice_id":20,"dosage_id":0,"customer_id":1,"customer":"Cliente 01","user_id":2,"store_id":0,"nit_ruc_nif":"3301256","tax_id":0,"tax_rate":0,"subtotal":1290,"total_tax":154.7,"discount":10,"monto_giftcard":90,"total":1190,"cash":0,"invoice_number":19,"control_code":"496F6B109F96D74","authorization":"","invoice_date_time":"2022-07-04 20:26:24","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":28,"codigo_moneda":1,"cufd":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0s+UlhQRkhXVUFFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EB9F1ABEB4971A3DAEE863FBDA17DE2496F6B109F96D74","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"1a22cf45-fbf9-11ec-900e-07cde152d403","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":"{}","last_modification_date":"2022-07-04 20:26:33","creation_date":"2022-07-04 20:26:24","items":[{"item_id":0,"invoice_id":20,"product_id":0,"product_code":"001","product_name":"Item 001","price":1290,"quantity":1,"total":1290,"unidad_medida":58,"numero_serie":"","numero_imei":"","codigo_producto_sin":83141,"codigo_actividad":"620100","discount":0,"user_id":2}]}}
+
+
+
+
+
+### Anular Factura [POST /invoices/{id}/void]
+
++ Request (application/json)
+    + Headers
+
+            Authorization: Bearer JWT
+            
+    + Body
+    
+            {"invoice_id":1, "motivo_id": 1}
+        
++ Response 200 (application/json)
+
+        {"response":"ok","code":200,"data":{"invoice_id":20,"dosage_id":0,"customer_id":1,"customer":"Cliente 01","user_id":2,"store_id":0,"nit_ruc_nif":"3301256","tax_id":0,"tax_rate":0,"subtotal":1290,"total_tax":154.7,"discount":10,"monto_giftcard":90,"total":1190,"cash":0,"invoice_number":19,"control_code":"496F6B109F96D74","authorization":"","invoice_date_time":"2022-07-04 20:26:24","invoice_limite_date":null,"currency_code":"","status":"void","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":28,"codigo_moneda":1,"cufd":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0s+UlhQRkhXVUFFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EB9F1ABEB4971A3DAEE863FBDA17DE2496F6B109F96D74","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"1a22cf45-fbf9-11ec-900e-07cde152d403","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":"{}","last_modification_date":"2022-07-04 20:26:33","creation_date":"2022-07-04 20:26:24","items":[{"item_id":0,"invoice_id":20,"product_id":0,"product_code":"001","product_name":"Item 001","price":1290,"quantity":1,"total":1290,"unidad_medida":58,"numero_serie":"","numero_imei":"","codigo_producto_sin":83141,"codigo_actividad":"620100","discount":0,"user_id":2}]}}        
+
+
+### Reversion Factura Anulada [GET /invoices/siat/v2/invoices/{id}/revert-void]
+
++ Request (application/json)
+    + Headers
+
+            Authorization: Bearer JWT
+            
+        
++ Response 200 (application/json)
+
+        {"response":"ok","code":200,"data":{"invoice_id":20,"dosage_id":0,"customer_id":1,"customer":"Cliente 01","user_id":2,"store_id":0,"nit_ruc_nif":"3301256","tax_id":0,"tax_rate":0,"subtotal":1290,"total_tax":154.7,"discount":10,"monto_giftcard":90,"total":1190,"cash":0,"invoice_number":19,"control_code":"496F6B109F96D74","authorization":"","invoice_date_time":"2022-07-04 20:26:24","invoice_limite_date":null,"currency_code":"","status":"void","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":28,"codigo_moneda":1,"cufd":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0s+UlhQRkhXVUFFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EB9F1ABEB4971A3DAEE863FBDA17DE2496F6B109F96D74","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"1a22cf45-fbf9-11ec-900e-07cde152d403","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":"{}","last_modification_date":"2022-07-04 20:26:33","creation_date":"2022-07-04 20:26:24","items":[{"item_id":0,"invoice_id":20,"product_id":0,"product_code":"001","product_name":"Item 001","price":1290,"quantity":1,"total":1290,"unidad_medida":58,"numero_serie":"","numero_imei":"","codigo_producto_sin":83141,"codigo_actividad":"620100","discount":0,"user_id":2}]}}
+        
+### Listado de Facturas [GET /invoices/siat/v2/invoices]
+
++ Request (application/json)
+    + Headers
+    
+            Authorization: Bearer JWT
+            
++ Response 200 (application/json)
+        
+        {"response":"ok","code":200,"data":[{"invoice":{"invoice_id":20,"dosage_id":0,"customer_id":1,"customer":"Marcelo Aviles","user_id":2,"store_id":0,"nit_ruc_nif":"3301256","tax_id":0,"tax_rate":0,"subtotal":1290,"total_tax":154.7,"discount":10,"monto_giftcard":90,"total":1190,"cash":0,"invoice_number":19,"control_code":"496F6B109F96D74","authorization":"","invoice_date_time":"2022-07-04 20:26:24","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":28,"codigo_moneda":1,"cufd":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0s+UlhQRkhXVUFFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EB9F1ABEB4971A3DAEE863FBDA17DE2496F6B109F96D74","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"1a22cf45-fbf9-11ec-900e-07cde152d403","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":null,"last_modification_date":"2022-07-04 20:26:33","creation_date":"2022-07-04 20:26:24","items":[{"item_id":84,"invoice_id":20,"store_id":0,"product_id":0,"product_code":"1","product_name":"Item 001","price":1290,"quantity":1,"total":1290,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-07-04 20:26:33","creation_date":"2022-07-04 20:26:33"}]},"invoice_id":20,"dosage_id":0,"customer_id":1,"customer":"Marcelo Aviles","user_id":2,"store_id":0,"nit_ruc_nif":"3301256","tax_id":0,"tax_rate":0,"subtotal":1290,"total_tax":154.7,"discount":10,"monto_giftcard":90,"total":1190,"cash":0,"invoice_number":19,"control_code":"496F6B109F96D74","authorization":"","invoice_date_time":"2022-07-04 20:26:24","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":28,"codigo_moneda":1,"cufd":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0s+UlhQRkhXVUFFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EB9F1ABEB4971A3DAEE863FBDA17DE2496F6B109F96D74","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"1a22cf45-fbf9-11ec-900e-07cde152d403","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":null,"last_modification_date":"2022-07-04 20:26:33","creation_date":"2022-07-04 20:26:24","items":[{"item_id":84,"invoice_id":20,"store_id":0,"product_id":0,"product_code":"1","product_name":"Item 001","price":1290,"quantity":1,"total":1290,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-07-04 20:26:33","creation_date":"2022-07-04 20:26:33"}],"siat_url":"https:\/\/pilotosiat.impuestos.gob.bo\/consulta\/QR?nit=394205020&cuf=1AF8FC723A5EB9F1ABEB4971A3DAEE863FBDA17DE2496F6B109F96D74&numero=19&t=1"},{"invoice":{"invoice_id":19,"dosage_id":0,"customer_id":1,"customer":"Marcelo Aviles","user_id":2,"store_id":0,"nit_ruc_nif":"3301256","tax_id":0,"tax_rate":0,"subtotal":1200,"total_tax":65,"discount":200,"monto_giftcard":500,"total":500,"cash":0,"invoice_number":18,"control_code":"496F6B109F96D74","authorization":"","invoice_date_time":"2022-07-04 15:25:52","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":28,"codigo_moneda":1,"cufd":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0s+UlhQRkhXVUFFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EB9EF33EBEDCFE92573FD5DFD9FF746496F6B109F96D74","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"1e4d57df-fbcf-11ec-900e-07cde152d403","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":null,"last_modification_date":"2022-07-04 15:25:57","creation_date":"2022-07-04 15:25:52","items":[{"item_id":81,"invoice_id":19,"store_id":0,"product_id":0,"product_code":"1","product_name":"Item 01","price":1200,"quantity":1,"total":1200,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-07-04 15:25:57","creation_date":"2022-07-04 15:25:57"}]},"invoice_id":19,"dosage_id":0,"customer_id":1,"customer":"Marcelo Aviles","user_id":2,"store_id":0,"nit_ruc_nif":"3301256","tax_id":0,"tax_rate":0,"subtotal":1200,"total_tax":65,"discount":200,"monto_giftcard":500,"total":500,"cash":0,"invoice_number":18,"control_code":"496F6B109F96D74","authorization":"","invoice_date_time":"2022-07-04 15:25:52","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":28,"codigo_moneda":1,"cufd":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0s+UlhQRkhXVUFFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EB9EF33EBEDCFE92573FD5DFD9FF746496F6B109F96D74","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"1e4d57df-fbcf-11ec-900e-07cde152d403","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":null,"last_modification_date":"2022-07-04 15:25:57","creation_date":"2022-07-04 15:25:52","items":[{"item_id":81,"invoice_id":19,"store_id":0,"product_id":0,"product_code":"1","product_name":"Item 01","price":1200,"quantity":1,"total":1200,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-07-04 15:25:57","creation_date":"2022-07-04 15:25:57"}],"siat_url":"https:\/\/pilotosiat.impuestos.gob.bo\/consulta\/QR?nit=394205020&cuf=1AF8FC723A5EB9EF33EBEDCFE92573FD5DFD9FF746496F6B109F96D74&numero=18&t=1"},{"invoice":{"invoice_id":18,"dosage_id":0,"customer_id":1,"customer":"Marcelo Aviles","user_id":2,"store_id":0,"nit_ruc_nif":"3301256","tax_id":0,"tax_rate":0,"subtotal":1990,"total_tax":258.7,"discount":0,"monto_giftcard":0,"total":1990,"cash":0,"invoice_number":17,"control_code":"91D1B05E8F96D74","authorization":"","invoice_date_time":"2022-07-04 12:32:36","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":10,"codigo_moneda":1,"cufd":"BQUFBQ0ZxbkFBNzkZCODY1MzA2Qzc=Q8KhKjJXTUZIV1VFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EB9EDC1E6D2F97BE4D6BEA65D9E70A491D1B05E8F96D74","cafc":"","complemento":"","numero_tarjeta":"1234567890123456","tipo_cambio":1,"evento_id":0,"siat_id":"ea0cf4cd-fbb6-11ec-9ae1-29fe815e7f3e","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":null,"last_modification_date":"2022-07-04 12:32:38","creation_date":"2022-07-04 12:32:36","items":[{"item_id":78,"invoice_id":18,"store_id":0,"product_id":0,"product_code":"S002","product_name":"Sistema 002","price":2000,"quantity":1,"total":1990,"discount":10,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-07-04 12:32:38","creation_date":"2022-07-04 12:32:38"}]},"invoice_id":18,"dosage_id":0,"customer_id":1,"customer":"Marcelo Aviles","user_id":2,"store_id":0,"nit_ruc_nif":"3301256","tax_id":0,"tax_rate":0,"subtotal":1990,"total_tax":258.7,"discount":0,"monto_giftcard":0,"total":1990,"cash":0,"invoice_number":17,"control_code":"91D1B05E8F96D74","authorization":"","invoice_date_time":"2022-07-04 12:32:36","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":10,"codigo_moneda":1,"cufd":"BQUFBQ0ZxbkFBNzkZCODY1MzA2Qzc=Q8KhKjJXTUZIV1VFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EB9EDC1E6D2F97BE4D6BEA65D9E70A491D1B05E8F96D74","cafc":"","complemento":"","numero_tarjeta":"1234567890123456","tipo_cambio":1,"evento_id":0,"siat_id":"ea0cf4cd-fbb6-11ec-9ae1-29fe815e7f3e","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":null,"last_modification_date":"2022-07-04 12:32:38","creation_date":"2022-07-04 12:32:36","items":[{"item_id":78,"invoice_id":18,"store_id":0,"product_id":0,"product_code":"S002","product_name":"Sistema 002","price":2000,"quantity":1,"total":1990,"discount":10,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-07-04 12:32:38","creation_date":"2022-07-04 12:32:38"}],"siat_url":"https:\/\/pilotosiat.impuestos.gob.bo\/consulta\/QR?nit=394205020&cuf=1AF8FC723A5EB9EDC1E6D2F97BE4D6BEA65D9E70A491D1B05E8F96D74&numero=17&t=1"},{"invoice":{"invoice_id":17,"dosage_id":0,"customer_id":1,"customer":"Marcelo Aviles","user_id":2,"store_id":0,"nit_ruc_nif":"3301256","tax_id":0,"tax_rate":0,"subtotal":1000,"total_tax":117,"discount":100,"monto_giftcard":0,"total":900,"cash":0,"invoice_number":16,"control_code":"91D1B05E8F96D74","authorization":"","invoice_date_time":"2022-07-04 12:23:53","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":1,"codigo_moneda":1,"cufd":"BQUFBQ0ZxbkFBNzkZCODY1MzA2Qzc=Q8KhKjJXTUZIV1VFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EB9EDB6C1B27E60A8AC6C92259CEA0691D1B05E8F96D74","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"b20afe94-fbb5-11ec-9ae1-29fe815e7f3e","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":null,"last_modification_date":"2022-07-04 12:23:58","creation_date":"2022-07-04 12:23:53","items":[{"item_id":75,"invoice_id":17,"store_id":0,"product_id":0,"product_code":"S001","product_name":"Sistema 001","price":1000,"quantity":1,"total":1000,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-07-04 12:23:58","creation_date":"2022-07-04 12:23:58"}]},"invoice_id":17,"dosage_id":0,"customer_id":1,"customer":"Marcelo Aviles","user_id":2,"store_id":0,"nit_ruc_nif":"3301256","tax_id":0,"tax_rate":0,"subtotal":1000,"total_tax":117,"discount":100,"monto_giftcard":0,"total":900,"cash":0,"invoice_number":16,"control_code":"91D1B05E8F96D74","authorization":"","invoice_date_time":"2022-07-04 12:23:53","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":1,"codigo_moneda":1,"cufd":"BQUFBQ0ZxbkFBNzkZCODY1MzA2Qzc=Q8KhKjJXTUZIV1VFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EB9EDB6C1B27E60A8AC6C92259CEA0691D1B05E8F96D74","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"b20afe94-fbb5-11ec-9ae1-29fe815e7f3e","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":null,"last_modification_date":"2022-07-04 12:23:58","creation_date":"2022-07-04 12:23:53","items":[{"item_id":75,"invoice_id":17,"store_id":0,"product_id":0,"product_code":"S001","product_name":"Sistema 001","price":1000,"quantity":1,"total":1000,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-07-04 12:23:58","creation_date":"2022-07-04 12:23:58"}],"siat_url":"https:\/\/pilotosiat.impuestos.gob.bo\/consulta\/QR?nit=394205020&cuf=1AF8FC723A5EB9EDB6C1B27E60A8AC6C92259CEA0691D1B05E8F96D74&numero=16&t=1"},{"invoice":{"invoice_id":15,"dosage_id":0,"customer_id":10,"customer":"undefined undefined","user_id":2,"store_id":0,"nit_ruc_nif":"6443037AB","tax_id":0,"tax_rate":0,"subtotal":200,"total_tax":0,"discount":0,"monto_giftcard":0,"total":200,"cash":0,"invoice_number":15,"control_code":"418E23FC1E86D74","authorization":"","invoice_date_time":"2022-06-29 20:59:44","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":1,"codigo_moneda":1,"cufd":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q2UpNDdVZUdXVUFFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EAB800CBCB399BAD247F0327D9B6366418E23FC1E86D74","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"eeafd06e-f80f-11ec-a05b-2b6a36ec9dba","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":null,"last_modification_date":"2022-06-29 20:59:45","creation_date":"2022-06-29 20:59:44","items":[{"item_id":69,"invoice_id":15,"store_id":0,"product_id":0,"product_code":"S1","product_name":"SERVICIO IT","price":200,"quantity":1,"total":200,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-29 20:59:45","creation_date":"2022-06-29 20:59:45"}]},"invoice_id":15,"dosage_id":0,"customer_id":10,"customer":"undefined undefined","user_id":2,"store_id":0,"nit_ruc_nif":"6443037AB","tax_id":0,"tax_rate":0,"subtotal":200,"total_tax":0,"discount":0,"monto_giftcard":0,"total":200,"cash":0,"invoice_number":15,"control_code":"418E23FC1E86D74","authorization":"","invoice_date_time":"2022-06-29 20:59:44","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":1,"codigo_moneda":1,"cufd":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q2UpNDdVZUdXVUFFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EAB800CBCB399BAD247F0327D9B6366418E23FC1E86D74","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"eeafd06e-f80f-11ec-a05b-2b6a36ec9dba","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":null,"last_modification_date":"2022-06-29 20:59:45","creation_date":"2022-06-29 20:59:44","items":[{"item_id":69,"invoice_id":15,"store_id":0,"product_id":0,"product_code":"S1","product_name":"SERVICIO IT","price":200,"quantity":1,"total":200,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-29 20:59:45","creation_date":"2022-06-29 20:59:45"}],"siat_url":"https:\/\/pilotosiat.impuestos.gob.bo\/consulta\/QR?nit=394205020&cuf=1AF8FC723A5EAB800CBCB399BAD247F0327D9B6366418E23FC1E86D74&numero=15&t=1"},{"invoice":{"invoice_id":14,"dosage_id":0,"customer_id":10,"customer":"RUBEN BALDERRAMA","user_id":2,"store_id":0,"nit_ruc_nif":"6443037AB","tax_id":0,"tax_rate":0,"subtotal":1000,"total_tax":0,"discount":0,"monto_giftcard":0,"total":1000,"cash":0,"invoice_number":14,"control_code":"78EB23FC1E86D74","authorization":"","invoice_date_time":"2022-06-29 20:58:53","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":1,"codigo_documento_sector":1,"tipo_documento_identidad":3,"codigo_metodo_pago":1,"codigo_moneda":1,"cufd":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Qz5VNDdVZUdXVUJFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EAB800B96AA2A2E032A5A8C0599DCD278EB23FC1E86D74","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"d212add3-f80f-11ec-b5b2-0f1040ae69a7","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":null,"last_modification_date":"2022-06-29 20:58:57","creation_date":"2022-06-29 20:58:53","items":[{"item_id":66,"invoice_id":14,"store_id":0,"product_id":0,"product_code":"S1","product_name":"SERVICIO IT","price":1000,"quantity":1,"total":1000,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-29 20:58:57","creation_date":"2022-06-29 20:58:57"}]},"invoice_id":14,"dosage_id":0,"customer_id":10,"customer":"RUBEN BALDERRAMA","user_id":2,"store_id":0,"nit_ruc_nif":"6443037AB","tax_id":0,"tax_rate":0,"subtotal":1000,"total_tax":0,"discount":0,"monto_giftcard":0,"total":1000,"cash":0,"invoice_number":14,"control_code":"78EB23FC1E86D74","authorization":"","invoice_date_time":"2022-06-29 20:58:53","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":1,"codigo_documento_sector":1,"tipo_documento_identidad":3,"codigo_metodo_pago":1,"codigo_moneda":1,"cufd":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Qz5VNDdVZUdXVUJFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EAB800B96AA2A2E032A5A8C0599DCD278EB23FC1E86D74","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"d212add3-f80f-11ec-b5b2-0f1040ae69a7","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":null,"last_modification_date":"2022-06-29 20:58:57","creation_date":"2022-06-29 20:58:53","items":[{"item_id":66,"invoice_id":14,"store_id":0,"product_id":0,"product_code":"S1","product_name":"SERVICIO IT","price":1000,"quantity":1,"total":1000,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-29 20:58:57","creation_date":"2022-06-29 20:58:57"}],"siat_url":"https:\/\/pilotosiat.impuestos.gob.bo\/consulta\/QR?nit=394205020&cuf=1AF8FC723A5EAB800B96AA2A2E032A5A8C0599DCD278EB23FC1E86D74&numero=14&t=1"},{"invoice":{"invoice_id":13,"dosage_id":0,"customer_id":5,"customer":"PEDRO GARCIA","user_id":2,"store_id":0,"nit_ruc_nif":"34343FG","tax_id":0,"tax_rate":0,"subtotal":1500,"total_tax":0,"discount":0,"monto_giftcard":0,"total":1500,"cash":0,"invoice_number":13,"control_code":"83A219E4AD86D74","authorization":"","invoice_date_time":"2022-06-28 16:17:27","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":1,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":1,"codigo_moneda":1,"cufd":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q3x0YlRUY0dXVUJFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EAB4C90DD99E6F805B0FD44D598563083A219E4AD86D74","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"55395422-f71f-11ec-a05b-2b6a36ec9dba","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":null,"last_modification_date":"2022-06-28 16:17:29","creation_date":"2022-06-28 16:17:27","items":[{"item_id":63,"invoice_id":13,"store_id":0,"product_id":0,"product_code":"S02","product_name":"Servicio Extraordinario","price":1500,"quantity":1,"total":1500,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-28 16:17:29","creation_date":"2022-06-28 16:17:29"}]},"invoice_id":13,"dosage_id":0,"customer_id":5,"customer":"PEDRO GARCIA","user_id":2,"store_id":0,"nit_ruc_nif":"34343FG","tax_id":0,"tax_rate":0,"subtotal":1500,"total_tax":0,"discount":0,"monto_giftcard":0,"total":1500,"cash":0,"invoice_number":13,"control_code":"83A219E4AD86D74","authorization":"","invoice_date_time":"2022-06-28 16:17:27","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":1,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":1,"codigo_moneda":1,"cufd":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q3x0YlRUY0dXVUJFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EAB4C90DD99E6F805B0FD44D598563083A219E4AD86D74","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"55395422-f71f-11ec-a05b-2b6a36ec9dba","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":null,"last_modification_date":"2022-06-28 16:17:29","creation_date":"2022-06-28 16:17:27","items":[{"item_id":63,"invoice_id":13,"store_id":0,"product_id":0,"product_code":"S02","product_name":"Servicio Extraordinario","price":1500,"quantity":1,"total":1500,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-28 16:17:29","creation_date":"2022-06-28 16:17:29"}],"siat_url":"https:\/\/pilotosiat.impuestos.gob.bo\/consulta\/QR?nit=394205020&cuf=1AF8FC723A5EAB4C90DD99E6F805B0FD44D598563083A219E4AD86D74&numero=13&t=1"},{"invoice":{"invoice_id":12,"dosage_id":0,"customer_id":5,"customer":"PEDRO GARCIA","user_id":2,"store_id":0,"nit_ruc_nif":"34343FG","tax_id":0,"tax_rate":0,"subtotal":100,"total_tax":0,"discount":0,"monto_giftcard":0,"total":100,"cash":0,"invoice_number":12,"control_code":"21D819E4AD86D74","authorization":"","invoice_date_time":"2022-06-28 16:08:14","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":10,"codigo_moneda":1,"cufd":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0tFZFRUY0dXVUFFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EAB4C85578A00C20F17A40D6D96CF8221D819E4AD86D74","cafc":"","complemento":"","numero_tarjeta":"89","tipo_cambio":1,"evento_id":0,"siat_id":"0b7d678d-f71e-11ec-a113-051ec4ff4692","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":null,"last_modification_date":"2022-06-28 16:08:15","creation_date":"2022-06-28 16:08:14","items":[{"item_id":60,"invoice_id":12,"store_id":0,"product_id":0,"product_code":"S1","product_name":"Servicio","price":100,"quantity":1,"total":100,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-28 16:08:15","creation_date":"2022-06-28 16:08:15"}]},"invoice_id":12,"dosage_id":0,"customer_id":5,"customer":"PEDRO GARCIA","user_id":2,"store_id":0,"nit_ruc_nif":"34343FG","tax_id":0,"tax_rate":0,"subtotal":100,"total_tax":0,"discount":0,"monto_giftcard":0,"total":100,"cash":0,"invoice_number":12,"control_code":"21D819E4AD86D74","authorization":"","invoice_date_time":"2022-06-28 16:08:14","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":10,"codigo_moneda":1,"cufd":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0tFZFRUY0dXVUFFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EAB4C85578A00C20F17A40D6D96CF8221D819E4AD86D74","cafc":"","complemento":"","numero_tarjeta":"89","tipo_cambio":1,"evento_id":0,"siat_id":"0b7d678d-f71e-11ec-a113-051ec4ff4692","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":null,"last_modification_date":"2022-06-28 16:08:15","creation_date":"2022-06-28 16:08:14","items":[{"item_id":60,"invoice_id":12,"store_id":0,"product_id":0,"product_code":"S1","product_name":"Servicio","price":100,"quantity":1,"total":100,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-28 16:08:15","creation_date":"2022-06-28 16:08:15"}],"siat_url":"https:\/\/pilotosiat.impuestos.gob.bo\/consulta\/QR?nit=394205020&cuf=1AF8FC723A5EAB4C85578A00C20F17A40D6D96CF8221D819E4AD86D74&numero=12&t=1"},{"invoice":{"invoice_id":11,"dosage_id":0,"customer_id":9,"customer":"ROBERTO FLORES","user_id":2,"store_id":0,"nit_ruc_nif":"123564AC","tax_id":0,"tax_rate":0,"subtotal":1500,"total_tax":0,"discount":0,"monto_giftcard":0,"total":1500,"cash":0,"invoice_number":11,"control_code":"21D819E4AD86D74","authorization":"","invoice_date_time":"2022-06-28 15:54:59","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":10,"codigo_moneda":1,"cufd":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0tFZFRUY0dXVUFFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EAB4C41C099D29F10AD2A04759548E621D819E4AD86D74","cafc":"","complemento":"","numero_tarjeta":"12312312321","tipo_cambio":1,"evento_id":0,"siat_id":"3127f5aa-f71c-11ec-a05b-2b6a36ec9dba","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":null,"last_modification_date":"2022-06-28 15:55:00","creation_date":"2022-06-28 15:54:59","items":[{"item_id":57,"invoice_id":11,"store_id":0,"product_id":0,"product_code":"S1","product_name":"SERVICIO ASESORIA","price":1500,"quantity":1,"total":1500,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-28 15:55:00","creation_date":"2022-06-28 15:55:00"}]},"invoice_id":11,"dosage_id":0,"customer_id":9,"customer":"ROBERTO FLORES","user_id":2,"store_id":0,"nit_ruc_nif":"123564AC","tax_id":0,"tax_rate":0,"subtotal":1500,"total_tax":0,"discount":0,"monto_giftcard":0,"total":1500,"cash":0,"invoice_number":11,"control_code":"21D819E4AD86D74","authorization":"","invoice_date_time":"2022-06-28 15:54:59","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":10,"codigo_moneda":1,"cufd":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0tFZFRUY0dXVUFFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EAB4C41C099D29F10AD2A04759548E621D819E4AD86D74","cafc":"","complemento":"","numero_tarjeta":"12312312321","tipo_cambio":1,"evento_id":0,"siat_id":"3127f5aa-f71c-11ec-a05b-2b6a36ec9dba","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":null,"last_modification_date":"2022-06-28 15:55:00","creation_date":"2022-06-28 15:54:59","items":[{"item_id":57,"invoice_id":11,"store_id":0,"product_id":0,"product_code":"S1","product_name":"SERVICIO ASESORIA","price":1500,"quantity":1,"total":1500,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-28 15:55:00","creation_date":"2022-06-28 15:55:00"}],"siat_url":"https:\/\/pilotosiat.impuestos.gob.bo\/consulta\/QR?nit=394205020&cuf=1AF8FC723A5EAB4C41C099D29F10AD2A04759548E621D819E4AD86D74&numero=11&t=1"},{"invoice":{"invoice_id":10,"dosage_id":0,"customer_id":9,"customer":"ROBERTO FLORES","user_id":2,"store_id":0,"nit_ruc_nif":"123564AC","tax_id":0,"tax_rate":0,"subtotal":1500,"total_tax":0,"discount":0,"monto_giftcard":0,"total":1500,"cash":0,"invoice_number":10,"control_code":"","authorization":"","invoice_date_time":"2022-06-28 15:46:40","invoice_limite_date":null,"currency_code":"","status":"error","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":10,"codigo_moneda":1,"cufd":"","cuf":"","cafc":"","complemento":"","numero_tarjeta":"12312312321","tipo_cambio":1,"evento_id":0,"siat_id":"","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":0,"data":null,"last_modification_date":"2022-06-28 15:46:41","creation_date":"2022-06-28 15:46:40","items":[{"item_id":54,"invoice_id":10,"store_id":0,"product_id":0,"product_code":"","product_name":"SERVICIO ASESORIA","price":1500,"quantity":1,"total":1500,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-28 15:46:41","creation_date":"2022-06-28 15:46:41"}]},"invoice_id":10,"dosage_id":0,"customer_id":9,"customer":"ROBERTO FLORES","user_id":2,"store_id":0,"nit_ruc_nif":"123564AC","tax_id":0,"tax_rate":0,"subtotal":1500,"total_tax":0,"discount":0,"monto_giftcard":0,"total":1500,"cash":0,"invoice_number":10,"control_code":"","authorization":"","invoice_date_time":"2022-06-28 15:46:40","invoice_limite_date":null,"currency_code":"","status":"error","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":10,"codigo_moneda":1,"cufd":"","cuf":"","cafc":"","complemento":"","numero_tarjeta":"12312312321","tipo_cambio":1,"evento_id":0,"siat_id":"","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":0,"data":null,"last_modification_date":"2022-06-28 15:46:41","creation_date":"2022-06-28 15:46:40","items":[{"item_id":54,"invoice_id":10,"store_id":0,"product_id":0,"product_code":"","product_name":"SERVICIO ASESORIA","price":1500,"quantity":1,"total":1500,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-28 15:46:41","creation_date":"2022-06-28 15:46:41"}],"siat_url":null},{"invoice":{"invoice_id":9,"dosage_id":0,"customer_id":5,"customer":"PEDRO GARCIA","user_id":2,"store_id":0,"nit_ruc_nif":"34343FG","tax_id":0,"tax_rate":0,"subtotal":100,"total_tax":0,"discount":0,"monto_giftcard":0,"total":100,"cash":0,"invoice_number":9,"control_code":"","authorization":"","invoice_date_time":"2022-06-28 08:48:08","invoice_limite_date":null,"currency_code":"","status":"error","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":3,"codigo_metodo_pago":1,"codigo_moneda":1,"cufd":"","cuf":"","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":0,"data":null,"last_modification_date":"2022-06-28 08:48:09","creation_date":"2022-06-28 08:48:08","items":[{"item_id":51,"invoice_id":9,"store_id":0,"product_id":0,"product_code":"","product_name":"SERVICIO","price":10,"quantity":10,"total":100,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-28 08:48:09","creation_date":"2022-06-28 08:48:09"}]},"invoice_id":9,"dosage_id":0,"customer_id":5,"customer":"PEDRO GARCIA","user_id":2,"store_id":0,"nit_ruc_nif":"34343FG","tax_id":0,"tax_rate":0,"subtotal":100,"total_tax":0,"discount":0,"monto_giftcard":0,"total":100,"cash":0,"invoice_number":9,"control_code":"","authorization":"","invoice_date_time":"2022-06-28 08:48:08","invoice_limite_date":null,"currency_code":"","status":"error","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":3,"codigo_metodo_pago":1,"codigo_moneda":1,"cufd":"","cuf":"","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":0,"data":null,"last_modification_date":"2022-06-28 08:48:09","creation_date":"2022-06-28 08:48:08","items":[{"item_id":51,"invoice_id":9,"store_id":0,"product_id":0,"product_code":"","product_name":"SERVICIO","price":10,"quantity":10,"total":100,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-28 08:48:09","creation_date":"2022-06-28 08:48:09"}],"siat_url":null},{"invoice":{"invoice_id":8,"dosage_id":0,"customer_id":1,"customer":"undefined undefined","user_id":2,"store_id":0,"nit_ruc_nif":"3301256","tax_id":0,"tax_rate":0,"subtotal":800,"total_tax":0,"discount":0,"monto_giftcard":80,"total":800,"cash":0,"invoice_number":8,"control_code":"21D819E4AD86D74","authorization":"","invoice_date_time":"2022-06-28 00:19:08","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":28,"codigo_moneda":1,"cufd":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0tFZFRUY0dXVUFFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EAB44AFAA8F95A8FB06F5ECDD90B50921D819E4AD86D74","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"74c9476b-f699-11ec-85a7-8311ea00b46c","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":null,"last_modification_date":"2022-06-28 00:19:09","creation_date":"2022-06-28 00:19:08","items":[{"item_id":48,"invoice_id":8,"store_id":0,"product_id":0,"product_code":"0001","product_name":"Prod 001","price":800,"quantity":1,"total":800,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-28 00:19:09","creation_date":"2022-06-28 00:19:09"}]},"invoice_id":8,"dosage_id":0,"customer_id":1,"customer":"undefined undefined","user_id":2,"store_id":0,"nit_ruc_nif":"3301256","tax_id":0,"tax_rate":0,"subtotal":800,"total_tax":0,"discount":0,"monto_giftcard":80,"total":800,"cash":0,"invoice_number":8,"control_code":"21D819E4AD86D74","authorization":"","invoice_date_time":"2022-06-28 00:19:08","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":28,"codigo_moneda":1,"cufd":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0tFZFRUY0dXVUFFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EAB44AFAA8F95A8FB06F5ECDD90B50921D819E4AD86D74","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"74c9476b-f699-11ec-85a7-8311ea00b46c","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":null,"last_modification_date":"2022-06-28 00:19:09","creation_date":"2022-06-28 00:19:08","items":[{"item_id":48,"invoice_id":8,"store_id":0,"product_id":0,"product_code":"0001","product_name":"Prod 001","price":800,"quantity":1,"total":800,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-28 00:19:09","creation_date":"2022-06-28 00:19:09"}],"siat_url":"https:\/\/pilotosiat.impuestos.gob.bo\/consulta\/QR?nit=394205020&cuf=1AF8FC723A5EAB44AFAA8F95A8FB06F5ECDD90B50921D819E4AD86D74&numero=8&t=1"},{"invoice":{"invoice_id":7,"dosage_id":0,"customer_id":1,"customer":"Marcelo Aviles","user_id":2,"store_id":0,"nit_ruc_nif":"3301256","tax_id":0,"tax_rate":0,"subtotal":550,"total_tax":0,"discount":0,"monto_giftcard":120,"total":550,"cash":0,"invoice_number":7,"control_code":"21D819E4AD86D74","authorization":"","invoice_date_time":"2022-06-28 00:17:04","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":28,"codigo_moneda":1,"cufd":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0tFZFRUY0dXVUFFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EAB44AD1766BD59A0E0C563FD8F2E6821D819E4AD86D74","cafc":"","complemento":"1L","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"2ad00db7-f699-11ec-85a7-8311ea00b46c","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":null,"last_modification_date":"2022-06-28 00:17:05","creation_date":"2022-06-28 00:17:04","items":[{"item_id":45,"invoice_id":7,"store_id":0,"product_id":0,"product_code":"0001","product_name":"Prod01","price":550,"quantity":1,"total":550,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-28 00:17:05","creation_date":"2022-06-28 00:17:05"}]},"invoice_id":7,"dosage_id":0,"customer_id":1,"customer":"Marcelo Aviles","user_id":2,"store_id":0,"nit_ruc_nif":"3301256","tax_id":0,"tax_rate":0,"subtotal":550,"total_tax":0,"discount":0,"monto_giftcard":120,"total":550,"cash":0,"invoice_number":7,"control_code":"21D819E4AD86D74","authorization":"","invoice_date_time":"2022-06-28 00:17:04","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":28,"codigo_moneda":1,"cufd":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0tFZFRUY0dXVUFFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EAB44AD1766BD59A0E0C563FD8F2E6821D819E4AD86D74","cafc":"","complemento":"1L","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"2ad00db7-f699-11ec-85a7-8311ea00b46c","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":null,"last_modification_date":"2022-06-28 00:17:05","creation_date":"2022-06-28 00:17:04","items":[{"item_id":45,"invoice_id":7,"store_id":0,"product_id":0,"product_code":"0001","product_name":"Prod01","price":550,"quantity":1,"total":550,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-28 00:17:05","creation_date":"2022-06-28 00:17:05"}],"siat_url":"https:\/\/pilotosiat.impuestos.gob.bo\/consulta\/QR?nit=394205020&cuf=1AF8FC723A5EAB44AD1766BD59A0E0C563FD8F2E6821D819E4AD86D74&numero=7&t=1"},{"invoice":{"invoice_id":6,"dosage_id":0,"customer_id":1,"customer":"Marcelo Aviles","user_id":2,"store_id":0,"nit_ruc_nif":"3301256","tax_id":0,"tax_rate":0,"subtotal":500,"total_tax":0,"discount":0,"monto_giftcard":0,"total":500,"cash":0,"invoice_number":6,"control_code":"21D819E4AD86D74","authorization":"","invoice_date_time":"2022-06-28 00:13:47","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":28,"codigo_moneda":1,"cufd":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0tFZFRUY0dXVUFFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EAB44A895DF42CEC31DF074758DA7C121D819E4AD86D74","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"b636a95a-f698-11ec-85a7-8311ea00b46c","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":null,"last_modification_date":"2022-06-28 00:13:49","creation_date":"2022-06-28 00:13:47","items":[{"item_id":42,"invoice_id":6,"store_id":0,"product_id":0,"product_code":"1","product_name":"Prod 01","price":500,"quantity":1,"total":500,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-28 00:13:49","creation_date":"2022-06-28 00:13:49"}]},"invoice_id":6,"dosage_id":0,"customer_id":1,"customer":"Marcelo Aviles","user_id":2,"store_id":0,"nit_ruc_nif":"3301256","tax_id":0,"tax_rate":0,"subtotal":500,"total_tax":0,"discount":0,"monto_giftcard":0,"total":500,"cash":0,"invoice_number":6,"control_code":"21D819E4AD86D74","authorization":"","invoice_date_time":"2022-06-28 00:13:47","invoice_limite_date":null,"currency_code":"","status":"issued","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":28,"codigo_moneda":1,"cufd":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0tFZFRUY0dXVUFFFNzYzOEZGQkUwQ","cuf":"1AF8FC723A5EAB44A895DF42CEC31DF074758DA7C121D819E4AD86D74","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"b636a95a-f698-11ec-85a7-8311ea00b46c","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":394205020,"data":null,"last_modification_date":"2022-06-28 00:13:49","creation_date":"2022-06-28 00:13:47","items":[{"item_id":42,"invoice_id":6,"store_id":0,"product_id":0,"product_code":"1","product_name":"Prod 01","price":500,"quantity":1,"total":500,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-28 00:13:49","creation_date":"2022-06-28 00:13:49"}],"siat_url":"https:\/\/pilotosiat.impuestos.gob.bo\/consulta\/QR?nit=394205020&cuf=1AF8FC723A5EAB44A895DF42CEC31DF074758DA7C121D819E4AD86D74&numero=6&t=1"},{"invoice":{"invoice_id":5,"dosage_id":0,"customer_id":6,"customer":"undefined undefined","user_id":2,"store_id":0,"nit_ruc_nif":"6552","tax_id":0,"tax_rate":0,"subtotal":1000,"total_tax":0,"discount":0,"monto_giftcard":0,"total":1000,"cash":0,"invoice_number":5,"control_code":"","authorization":"","invoice_date_time":"2022-06-27 19:20:29","invoice_limite_date":null,"currency_code":"","status":"error","codigo_sucursal":0,"punto_venta":1,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":1,"codigo_moneda":1,"cufd":"","cuf":"","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":0,"data":"","last_modification_date":"2022-06-27 19:20:29","creation_date":"2022-06-27 19:20:29","items":[{"item_id":39,"invoice_id":5,"store_id":0,"product_id":0,"product_code":"1","product_name":"SERVICIO","price":10,"quantity":100,"total":1000,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-27 19:20:29","creation_date":"2022-06-27 19:20:29"}]},"invoice_id":5,"dosage_id":0,"customer_id":6,"customer":"undefined undefined","user_id":2,"store_id":0,"nit_ruc_nif":"6552","tax_id":0,"tax_rate":0,"subtotal":1000,"total_tax":0,"discount":0,"monto_giftcard":0,"total":1000,"cash":0,"invoice_number":5,"control_code":"","authorization":"","invoice_date_time":"2022-06-27 19:20:29","invoice_limite_date":null,"currency_code":"","status":"error","codigo_sucursal":0,"punto_venta":1,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":1,"codigo_moneda":1,"cufd":"","cuf":"","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":0,"data":"","last_modification_date":"2022-06-27 19:20:29","creation_date":"2022-06-27 19:20:29","items":[{"item_id":39,"invoice_id":5,"store_id":0,"product_id":0,"product_code":"1","product_name":"SERVICIO","price":10,"quantity":100,"total":1000,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-27 19:20:29","creation_date":"2022-06-27 19:20:29"}],"siat_url":null},{"invoice":{"invoice_id":4,"dosage_id":0,"customer_id":6,"customer":"undefined undefined","user_id":2,"store_id":0,"nit_ruc_nif":"6552","tax_id":0,"tax_rate":0,"subtotal":1000,"total_tax":0,"discount":0,"monto_giftcard":0,"total":1000,"cash":0,"invoice_number":4,"control_code":"","authorization":"","invoice_date_time":"2022-06-27 19:19:25","invoice_limite_date":null,"currency_code":"","status":"error","codigo_sucursal":0,"punto_venta":1,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":1,"codigo_moneda":1,"cufd":"","cuf":"","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":0,"data":"","last_modification_date":"2022-06-27 19:19:29","creation_date":"2022-06-27 19:19:25","items":[{"item_id":36,"invoice_id":4,"store_id":0,"product_id":0,"product_code":"1","product_name":"SERVICIO","price":10,"quantity":100,"total":1000,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-27 19:19:29","creation_date":"2022-06-27 19:19:29"}]},"invoice_id":4,"dosage_id":0,"customer_id":6,"customer":"undefined undefined","user_id":2,"store_id":0,"nit_ruc_nif":"6552","tax_id":0,"tax_rate":0,"subtotal":1000,"total_tax":0,"discount":0,"monto_giftcard":0,"total":1000,"cash":0,"invoice_number":4,"control_code":"","authorization":"","invoice_date_time":"2022-06-27 19:19:25","invoice_limite_date":null,"currency_code":"","status":"error","codigo_sucursal":0,"punto_venta":1,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":1,"codigo_moneda":1,"cufd":"","cuf":"","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":0,"data":"","last_modification_date":"2022-06-27 19:19:29","creation_date":"2022-06-27 19:19:25","items":[{"item_id":36,"invoice_id":4,"store_id":0,"product_id":0,"product_code":"1","product_name":"SERVICIO","price":10,"quantity":100,"total":1000,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-27 19:19:29","creation_date":"2022-06-27 19:19:29"}],"siat_url":null},{"invoice":{"invoice_id":3,"dosage_id":0,"customer_id":4,"customer":"Juan Fernando David Nu\u00f1ez","user_id":2,"store_id":0,"nit_ruc_nif":"7984652","tax_id":0,"tax_rate":0,"subtotal":1290,"total_tax":0,"discount":0,"monto_giftcard":0,"total":1290,"cash":0,"invoice_number":3,"control_code":"","authorization":"","invoice_date_time":"2022-06-14 10:17:35","invoice_limite_date":null,"currency_code":"","status":"error","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":1,"codigo_moneda":1,"cufd":"","cuf":"","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":0,"data":"","last_modification_date":"2022-06-14 10:17:36","creation_date":"2022-06-14 10:17:35","items":[{"item_id":29,"invoice_id":3,"store_id":0,"product_id":0,"product_code":"","product_name":"Software 01","price":500,"quantity":1,"total":490,"discount":10,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-14 10:17:36","creation_date":"2022-06-14 10:17:36"},{"item_id":30,"invoice_id":3,"store_id":0,"product_id":0,"product_code":"","product_name":"Software 02","price":1000,"quantity":1,"total":800,"discount":200,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-14 10:17:36","creation_date":"2022-06-14 10:17:36"},{"item_id":31,"invoice_id":3,"store_id":0,"product_id":0,"product_code":"","product_name":"Software 03","price":0,"quantity":1,"total":0,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-14 10:17:36","creation_date":"2022-06-14 10:17:36"},{"item_id":32,"invoice_id":3,"store_id":0,"product_id":0,"product_code":"","product_name":"Software 04","price":0,"quantity":1,"total":0,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-14 10:17:36","creation_date":"2022-06-14 10:17:36"},{"item_id":33,"invoice_id":3,"store_id":0,"product_id":0,"product_code":"","product_name":"Software 05","price":0,"quantity":1,"total":0,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-14 10:17:36","creation_date":"2022-06-14 10:17:36"}]},"invoice_id":3,"dosage_id":0,"customer_id":4,"customer":"Juan Fernando David Nu\u00f1ez","user_id":2,"store_id":0,"nit_ruc_nif":"7984652","tax_id":0,"tax_rate":0,"subtotal":1290,"total_tax":0,"discount":0,"monto_giftcard":0,"total":1290,"cash":0,"invoice_number":3,"control_code":"","authorization":"","invoice_date_time":"2022-06-14 10:17:35","invoice_limite_date":null,"currency_code":"","status":"error","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":1,"codigo_moneda":1,"cufd":"","cuf":"","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":0,"data":"","last_modification_date":"2022-06-14 10:17:36","creation_date":"2022-06-14 10:17:35","items":[{"item_id":29,"invoice_id":3,"store_id":0,"product_id":0,"product_code":"","product_name":"Software 01","price":500,"quantity":1,"total":490,"discount":10,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-14 10:17:36","creation_date":"2022-06-14 10:17:36"},{"item_id":30,"invoice_id":3,"store_id":0,"product_id":0,"product_code":"","product_name":"Software 02","price":1000,"quantity":1,"total":800,"discount":200,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-14 10:17:36","creation_date":"2022-06-14 10:17:36"},{"item_id":31,"invoice_id":3,"store_id":0,"product_id":0,"product_code":"","product_name":"Software 03","price":0,"quantity":1,"total":0,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-14 10:17:36","creation_date":"2022-06-14 10:17:36"},{"item_id":32,"invoice_id":3,"store_id":0,"product_id":0,"product_code":"","product_name":"Software 04","price":0,"quantity":1,"total":0,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-14 10:17:36","creation_date":"2022-06-14 10:17:36"},{"item_id":33,"invoice_id":3,"store_id":0,"product_id":0,"product_code":"","product_name":"Software 05","price":0,"quantity":1,"total":0,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-14 10:17:36","creation_date":"2022-06-14 10:17:36"}],"siat_url":null},{"invoice":{"invoice_id":2,"dosage_id":0,"customer_id":4,"customer":"Juan Fernando David Nu\u00f1ez","user_id":2,"store_id":0,"nit_ruc_nif":"7984652","tax_id":0,"tax_rate":0,"subtotal":1290,"total_tax":0,"discount":0,"monto_giftcard":0,"total":1290,"cash":0,"invoice_number":2,"control_code":"","authorization":"","invoice_date_time":"2022-06-14 10:17:15","invoice_limite_date":null,"currency_code":"","status":"error","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":2,"codigo_moneda":1,"cufd":"","cuf":"","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":0,"data":"","last_modification_date":"2022-06-14 10:17:17","creation_date":"2022-06-14 10:17:15","items":[{"item_id":14,"invoice_id":2,"store_id":0,"product_id":0,"product_code":"","product_name":"Software 01","price":500,"quantity":1,"total":490,"discount":10,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-14 10:17:17","creation_date":"2022-06-14 10:17:17"},{"item_id":15,"invoice_id":2,"store_id":0,"product_id":0,"product_code":"","product_name":"Software 02","price":1000,"quantity":1,"total":800,"discount":200,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-14 10:17:17","creation_date":"2022-06-14 10:17:17"},{"item_id":16,"invoice_id":2,"store_id":0,"product_id":0,"product_code":"","product_name":"Software 03","price":0,"quantity":1,"total":0,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-14 10:17:17","creation_date":"2022-06-14 10:17:17"},{"item_id":17,"invoice_id":2,"store_id":0,"product_id":0,"product_code":"","product_name":"Software 04","price":0,"quantity":1,"total":0,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-14 10:17:17","creation_date":"2022-06-14 10:17:17"},{"item_id":18,"invoice_id":2,"store_id":0,"product_id":0,"product_code":"","product_name":"Software 05","price":0,"quantity":1,"total":0,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-14 10:17:17","creation_date":"2022-06-14 10:17:17"}]},"invoice_id":2,"dosage_id":0,"customer_id":4,"customer":"Juan Fernando David Nu\u00f1ez","user_id":2,"store_id":0,"nit_ruc_nif":"7984652","tax_id":0,"tax_rate":0,"subtotal":1290,"total_tax":0,"discount":0,"monto_giftcard":0,"total":1290,"cash":0,"invoice_number":2,"control_code":"","authorization":"","invoice_date_time":"2022-06-14 10:17:15","invoice_limite_date":null,"currency_code":"","status":"error","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":2,"codigo_moneda":1,"cufd":"","cuf":"","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":0,"data":"","last_modification_date":"2022-06-14 10:17:17","creation_date":"2022-06-14 10:17:15","items":[{"item_id":14,"invoice_id":2,"store_id":0,"product_id":0,"product_code":"","product_name":"Software 01","price":500,"quantity":1,"total":490,"discount":10,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-14 10:17:17","creation_date":"2022-06-14 10:17:17"},{"item_id":15,"invoice_id":2,"store_id":0,"product_id":0,"product_code":"","product_name":"Software 02","price":1000,"quantity":1,"total":800,"discount":200,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-14 10:17:17","creation_date":"2022-06-14 10:17:17"},{"item_id":16,"invoice_id":2,"store_id":0,"product_id":0,"product_code":"","product_name":"Software 03","price":0,"quantity":1,"total":0,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-14 10:17:17","creation_date":"2022-06-14 10:17:17"},{"item_id":17,"invoice_id":2,"store_id":0,"product_id":0,"product_code":"","product_name":"Software 04","price":0,"quantity":1,"total":0,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-14 10:17:17","creation_date":"2022-06-14 10:17:17"},{"item_id":18,"invoice_id":2,"store_id":0,"product_id":0,"product_code":"","product_name":"Software 05","price":0,"quantity":1,"total":0,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":2,"last_modification_date":"2022-06-14 10:17:17","creation_date":"2022-06-14 10:17:17"}],"siat_url":null},{"invoice":{"invoice_id":1,"dosage_id":0,"customer_id":1,"customer":"Marcelo Aviles","user_id":2,"store_id":0,"nit_ruc_nif":"3301256","tax_id":0,"tax_rate":0,"subtotal":18,"total_tax":0,"discount":0,"monto_giftcard":0,"total":18,"cash":0,"invoice_number":1,"control_code":"","authorization":"","invoice_date_time":"2022-05-19 20:50:35","invoice_limite_date":null,"currency_code":"","status":"error","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":1,"codigo_moneda":1,"cufd":"","cuf":"","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":0,"data":"","last_modification_date":"2022-05-19 20:50:37","creation_date":"2022-05-19 20:50:35","items":[{"item_id":3,"invoice_id":1,"store_id":0,"product_id":0,"product_code":"P001","product_name":"Producto 01","price":18,"quantity":1,"total":18,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":0,"last_modification_date":"2022-05-19 20:50:37","creation_date":"2022-05-19 20:50:37"}]},"invoice_id":1,"dosage_id":0,"customer_id":1,"customer":"Marcelo Aviles","user_id":2,"store_id":0,"nit_ruc_nif":"3301256","tax_id":0,"tax_rate":0,"subtotal":18,"total_tax":0,"discount":0,"monto_giftcard":0,"total":18,"cash":0,"invoice_number":1,"control_code":"","authorization":"","invoice_date_time":"2022-05-19 20:50:35","invoice_limite_date":null,"currency_code":"","status":"error","codigo_sucursal":0,"punto_venta":0,"codigo_documento_sector":1,"tipo_documento_identidad":1,"codigo_metodo_pago":1,"codigo_moneda":1,"cufd":"","cuf":"","cafc":"","complemento":"","numero_tarjeta":"","tipo_cambio":1,"evento_id":0,"siat_id":"","tipo_emision":1,"tipo_factura_documento":1,"nit_emisor":0,"data":"","last_modification_date":"2022-05-19 20:50:37","creation_date":"2022-05-19 20:50:35","items":[{"item_id":3,"invoice_id":1,"store_id":0,"product_id":0,"product_code":"P001","product_name":"Producto 01","price":18,"quantity":1,"total":18,"discount":0,"codigo_actividad":620100,"codigo_producto_sin":83141,"unidad_medida":58,"numero_serie":"","numero_imei":"","user_id":0,"last_modification_date":"2022-05-19 20:50:37","creation_date":"2022-05-19 20:50:37"}],"siat_url":null}]}
+        
+### Obtener Factura [GET /invoices/siat/v2/invoices/{id}]
+
++ Request (application/json)
+    + Headers
+    
+            Authorization: Bearer [token_de_usuario]
+            
++ Response 200 (application/json)
+
+        {
+            "response":"ok",
+            "code":200,
+            "data":
+            {
+                "invoice_id":20,
+                "customer_id":1,
+                "customer":"Cliente 0001",
+                "user_id":2,
+                "nit_ruc_nif":"3343455",
+                "tax_id":0,
+                "tax_rate":0,
+                "subtotal":1290,
+                "total_tax":154.7,
+                "discount":10,
+                "monto_giftcard":90,
+                "total":1190,
+                "cash":0,
+                "invoice_number":19,
+                "control_code":"496F6B109F96D74",
+                "authorization":"",
+                "invoice_date_time":"2022-07-04 20:26:24",
+                "invoice_limite_date":null,
+                "currency_code":"",
+                "status":"issued",
+                "codigo_sucursal":0,
+                "punto_venta":0,
+                "codigo_documento_sector":1,
+                "tipo_documento_identidad":1,
+                "codigo_metodo_pago":28,
+                "codigo_moneda":1,
+                "cufd":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0s+UlhQRkhXVUFFFNzYzOEZGQkUwQ",
+                "cuf":"1AF8FC723A5EB9F1ABEB4971A3DAEE863FBDA17DE2496F6B109F96D74",
+                "cafc":"",
+                "complemento":"",
+                "numero_tarjeta":"",
+                "tipo_cambio":1,
+                "evento_id":0,
+                "siat_id":"1a22cf45-fbf9-11ec-900e-07cde152d403",
+                "tipo_emision":1,
+                "tipo_factura_documento":1,
+                "nit_emisor":394205020,
+                "data":null,
+                "last_modification_date":"2022-07-04 20:26:33",
+                "creation_date":"2022-07-04 20:26:24",
+                "items":[
+                    {
+                        "item_id":84,
+                        "invoice_id":20,
+                        "store_id":0,
+                        "product_id":0,
+                        "product_code":"1",
+                        "product_name":"Item 001",
+                        "price":1290,
+                        "quantity":1,
+                        "total":1290,
+                        "discount":0,
+                        "codigo_actividad":620100,
+                        "codigo_producto_sin":83141,
+                        "unidad_medida":58,"numero_serie":"",
+                        "numero_imei":"","user_id":2,
+                        "last_modification_date":"2022-07-04 20:26:33",
+                        "creation_date":"2022-07-04 20:26:33"
+                    }
+                ]
+            },
+        }
+
+### Obtener el PDF de la Factura [GET /invoices/{id}/pdf?tpl={plantilla}]
+
+Obtiene la representacion grafica de la factura en formato PDF
+
+<h3>Datos de la solicitud</h3>
+<table>
+<tr>
+    <th>id</th>
+    <td>Identificador de la factura</td>
+    <td>integer</td>
+</tr>
+<tr>
+    <th>tpl</th>
+    <td>
+        Plantilla para la generación del PDF<br>
+        pagina: Formato carta o cuarto oficio<br>
+        rollo: Formato de impresion para impresoras de tickets
+    </td>
+    <td>string</td>
+</tr>
+</table>
+
+
+<h3>Datos de la Respuesta</h3>
+<table>
+<tr>
+    <th>data</th>
+    <td>Buffer en base64 del pdf</td>
+    <td>string</td>
+</tr>
+</table>
+
++ Request (application/json)
+    + Headers
+    
+            Authorization: Bearer [token_de_usuario]
+            
++ Response 200 (application/json)
+
+        {
+            "response": "ok",
+            "code": 200,
+            "data": {
+                "buffer": "JVBERi0xLjcKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZwovT3V0bGluZXMgMiAwIFIKL1BhZ2VzIDMgMCBSID4+CmVuZG9iagoyIDAgb2JqCjw8IC9UeXBlIC9PdXRsaW5lcyAvQ29"
+            }
+        }
+
+## Eventos [/invoices/siat/v2/eventos]   
+
+### Crear Evento [POST /invoices/siat/v2/eventos]
+
++ Request (application/json)
+    + Headers
+    
+            Authorization: Bearer JWT
+            
+    + Body
+    
+            {"sucursal_id":0,"puntoventa_id":0,"evento_id":2,"fecha_inicio":"2022-08-04 13:48:20","fecha_fin":null,"cafc":null,"cufd_evento":""}
+            
++ Response 200 (application/json)
+
+        {"response":"ok","code":200,"data":{"id":16,"user_id":2,"evento_id":2,"sucursal_id":0,"puntoventa_id":0,"codigo_recepcion":null,"descripcion":"INACCESIBILIDAD AL SERVICIO WEB DE LA ADMINISTRACION TRIBUTARIA","fecha_inicio":"2022-08-04 09:48:20","fecha_fin":null,"cufd":"","cufd_evento":"BQUFDRnFuQUE=NzkZCODY1MzA2Qzc=Q0FpWUVXRUlXVUFFFNzYzOEZGQkUwQ","cafc":"","codigo_recepcion_paquete":"","stado_recepcion":"","status":"OPEN","data":"","last_modification_date":"2022-08-04 09:48:20","creation_date":"2022-08-04 09:48:20"}}
+
+
+### Cerrar Evento [GET /invoices/siat/v2/eventos/{id}/cerrar]
+
++ Request 
+    + Headers
+    
+            Authorization: Bearer JWT
+            
+    + Body
+    
++ Response 200 (application/json)
+    
+        {"response":"ok","code":200,"data":null,"message":"Evento cerrado correctamente"}
+
+        
+
+## Clientes [/customers]
+
+### Crear Cliente [POST /customers]
+
++ Request (application/json)
+    + Headers
+
+            Authorization: Bearer JWT
+    
+    + Body        
+            
+            {"code":"","group_id":-1,"store_id":0,"first_name":"Cliente","last_name":"Apellido","identity_document":23323432,"company":"","date_of_birth":null,"gender":"","phone":"","mobile":"","fax":"","email":"cliente@gmail.com","website":"","address_1":"Direccion 01","address_2":"","zip_code":"","city":"","country":"Bolivia","country_code":"BO","meta":{"_nit_ruc_nif":"4654654756","_billing_name":null}}
+        
++ Response 200 (application/json)
+
+        {"response":"ok","code":200,"data":{"customer_id": 89,"code":"","group_id":-1,"store_id":0,"first_name":"Cliente","last_name":"Apellido","identity_document":23323432,"company":"","date_of_birth":null,"gender":"","phone":"","mobile":"","fax":"","email":"cliente@gmail.com","website":"","address_1":"Direccion 01","address_2":"","zip_code":"","city":"","country":"Bolivia","country_code":"BO","meta":{"_nit_ruc_nif":"4654654756","_billing_name":null},"last_modification_date":"2022-05-17 20:03:54","creation_date":"2022-05-16 17:33:33"}}
+        
+### Actualizar Cliente [PUT /customers]
+
++ Request (application/json)
+    + Headers
+
+            Authorization: Bearer JWT
+    
+    + Body        
+            
+            {"customer_id":89, "code":"","group_id":-1,"store_id":0,"first_name":"Cliente","last_name":"Apellido","identity_document":23323432,"company":"","date_of_birth":null,"gender":"","phone":"","mobile":"","fax":"","email":"cliente@gmail.com","website":"","address_1":"Direccion 01","address_2":"","zip_code":"","city":"","country":"Bolivia","country_code":"BO","meta":{"_nit_ruc_nif":"4654654756","_billing_name":null}}
+        
++ Response 200 (application/json)
+
+        {"response":"ok","code":200,"data":{"customer_id": 89,"code":"","group_id":-1,"store_id":0,"first_name":"Cliente","last_name":"Apellido","identity_document":23323432,"company":"","date_of_birth":null,"gender":"","phone":"","mobile":"","fax":"","email":"cliente@gmail.com","website":"","address_1":"Direccion 01","address_2":"","zip_code":"","city":"","country":"Bolivia","country_code":"BO","meta":{"_nit_ruc_nif":"4654654756","_billing_name":null},"last_modification_date":"2022-05-17 20:03:54","creation_date":"2022-05-16 17:33:33"}}
+        
+### Obtener Cliente [GET /customers/{id}]
+
++ Response 200 (application/json)
+
+        {
+            "response": "ok",
+            "code": 200,
+            "data": {
+                "customer_id": 2,
+                "extern_id": 0,
+                "user_id": 4,
+                "code": "",
+                "group_id": -1,
+                "store_id": 1,
+                "first_name": "Marcelo",
+                "last_name": "Aviles",
+                "identity_document": 0,
+                "company": "Aviles",
+                "date_of_birth": null,
+                "gender": "",
+                "phone": "",
+                "mobile": "",
+                "fax": "",
+                "email": "marcenickg@gmail.com",
+                "website": "",
+                "address_1": "",
+                "address_2": "",
+                "zip_code": "",
+                "city": "",
+                "country": "Bolivia",
+                "country_code": "BO",
+                "meta": {
+                    "_nit_ruc_nif": "3301256",
+                    "_billing_name": null
+                },
+                "last_modification_date": "2022-09-16 17:50:28",
+                "creation_date": "2022-08-30 15:19:28"
+            }
+        }
+        
+## Notas de Credito/Debito [/notes-cd]
+
+### Creacion [POST /notes-cd]
+
++ Request (application/json)
+    
+        {
+            "invoice_id":12,
+            "numero_factura":12,
+            "monto_descuento_credito_debito":0,
+            "monto_total_original":200,
+            "monto_total_devuelto":200,
+            "items":[
+                {
+                    "actividad_economica":620901,
+                    "codigo_producto_sin":99100,
+                    "codigo_producto":"S001",
+                    "descripcion":"SERVICIOS DE HOSPEDAJE",
+                    "cantidad":1,
+                    "unidad_medida":58,
+                    "precio_unitario":200,
+                    "monto_descuento":0,
+                    "subtotal":200,
+                    "codigo_detalle_transaccion":1
+                },
+                {
+                    "actividad_economica":620901,
+                    "codigo_producto_sin":99100,
+                    "codigo_producto":"S001",
+                    "descripcion":"SERVICIOS DE HOSPEDAJE",
+                    "cantidad":1,
+                    "unidad_medida":58,
+                    "precio_unitario":200,
+                    "monto_descuento":0,
+                    "subtotal":200,
+                    "codigo_detalle_transaccion":2
+                }
+            ]
+        }
+
+
++ Response 200 (application/json)
+
+        {
+            "response":"ok",
+            "code":200,
+            "data":{    
+                "id":2,
+                "invoice_id":12,
+                "user_id":3,
+                "nit_emisor":4343656031,
+                "razon_social_emisor":"Empresa X",
+                "municipio":null,
+                "telefono":null,
+                "numero_nota_credito_debito":2,
+                "cuf":"12F5CF12C85CB3E27DE23C8A6BF6E313FB876710D441EDCD7C3F3A8E74",
+                "cufd":"BQTlCNWtyRUE=N0kYyNTQ4RUZGMkY=Q0E0ZmxWUEZZVUFM1NzQxQTAwNTk0Q",
+                "codigo_sucursal":0,
+                "codigo_puntoventa":0,
+                "direccion":null,
+                "nombre_razon_social":"Razon Social",
+                "codigo_tipo_documento_identidad":1,
+                "numero_documento":"4433656",
+                "complemento":null,
+                "codigo_cliente":2,
+                "numero_factura":12,
+                "numero_autorizacion_cuf":"12F5CF12C85CB3E262EC3F0DB2B909E0599AD384F851EDCD7C3F3A8E74",
+                "monto_total_original":200,
+                "monto_total_devuelto":200,
+                "monto_descuento_credito_debito":0,
+                "monto_efectivo_credito_debito":26,
+                "codigo_excepcion":null,
+                "leyenda":"Ley N\u00b0 453: Tienes derecho a recibir informaci\u00f3n sobre las caracter\u00edsticas y contenidos de los servicios que utilices.",
+                "usuario":"GrowingTestC",
+                "codigo_recepcion":"ded5b7a0-12ea-11ef-8e16-910706fd6b17",
+                "codigo_estado":"VALIDADA",
+                "fecha_emision_factura":"2024-05-15 11:00:45",
+                "fecha_emision":"2024-05-15 14:42:22",
+                "status":"ISSUED",
+                "ambiente":2,
+                "xml":"PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiIHN0YW5kYWxvbmU9InllcyI\/...",
+                "last_modification_date":"2024-05-15 14:42:24",
+                "creation_date":"2024-05-15 14:42:24"
+            }
+        }
