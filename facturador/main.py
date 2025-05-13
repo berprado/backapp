@@ -155,6 +155,7 @@ def main():
                 return
 
     # Si llega aquí, no hay conexión ni evento, mostrar error
+    logger.critical("FALLBACK ERROR: No se pudo activar el modo offline ni registrar un evento de contingencia.")
     st.error("❌ No se pudo activar el modo offline ni registrar un evento de contingencia.")
 
 def offline_main():
