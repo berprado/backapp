@@ -17,30 +17,38 @@ from logger_config import get_eventos_logger  # Importación corregida - elimina
 # Logger específico para eventos significativos
 logger = get_eventos_logger()
 
-def finalizar_evento_si_conectado():
+def finalizar_evento_si_conectado() -> tuple[str, bool, str | None]: # Actualizado tipo de retorno
     """
-    FUNCIÓN ORIGINAL: Verifica si hay un evento activo y finaliza el evento si el sistema ha recuperado la conexión.
+    Verifica la conectividad y devuelve el estado completo de la comunicación.
     
-    NOTA: Esta función está desactivada. El cierre de eventos ahora debe realizarse manualmente
-    mediante la función 'finalizar_evento_manual()' o desde la interfaz de Eventos Significativos.
+    NOTA: La funcionalidad original de cierre de eventos de esta función está desactivada 
+    y debe realizarse manualmente. En el flujo de inicio de main.py, su propósito
+    principal es realizar una verificación de comunicación inicial.
     
     Returns:
-        bool: True si hay conexión, False si no hay conexión
+        tuple[str, bool, str | None]: Una tupla conteniendo:
+            - mensaje (str): Descripción del estado de la comunicación.
+            - conectado (bool): True si hay conexión, False en caso contrario.
+            - tipo_deducido (str | None): Código del evento de contingencia sugerido si no hay conexión, o None.
     """
-    logger.info("Verificando conectividad para eventos pendientes")
-    mensaje, conectado, _ = verificar_comunicacion()
+    logger.info("Verificando conectividad inicial")
+    mensaje, conectado, tipo_deducido = verificar_comunicacion()
     
     if not conectado:
-        logger.warning(f"Conexión no disponible. Estado: {mensaje}")
-        return False
+        logger.warning(f"Conexión inicial no disponible. Estado: {mensaje}, Tipo deducido: {tipo_deducido}")
+    else:
+        logger.info(f"Conexión inicial disponible. Estado: {mensaje}")
 
     evento = obtener_evento_abierto()
     if not evento:
         logger.info("No hay eventos abiertos pendientes de cierre")
-        return True
+        # Devolvemos el estado de la comunicación independientemente de si hay evento o no.
+        # En main.py, si hay un evento_activo, este resultado de comunicación no se usará
+        # para la decisión online/offline directa, pero la función cumple con su contrato de retorno.
+    else:
+        logger.info(f"Hay un evento abierto (#{evento['id']}) pero se requiere cierre manual según la configuración actual.")
         
-    logger.info(f"Hay un evento abierto (#{evento['id']}) pero se requiere cierre manual según la configuración")
-    return True
+    return mensaje, conectado, tipo_deducido
 
 def finalizar_evento_manual(evento_id=None):
     """

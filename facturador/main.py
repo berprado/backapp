@@ -44,9 +44,10 @@ def main():
         initialize_app_state()
         logger.info("Estados inicializados con el nuevo sistema")
     
-    # Paso previo: solo verificar conexión, sin finalizar eventos automáticamente
-    logger.info("Verificando estado de conectividad")
-    resultado = finalizar_evento_si_conectado()
+    # Paso previo: verificar conexión inicial y obtener su estado detallado
+    logger.info("Verificando estado de conectividad inicial...")
+    # Ahora 'finalizar_evento_si_conectado' devuelve (mensaje, conectado, tipo_deducido)
+    mensaje_inicial, conectado_inicial, tipo_deducido_inicial = finalizar_evento_si_conectado()
     
     # Verificar si hay evento activo
     evento_activo = obtener_evento_abierto()
@@ -72,9 +73,10 @@ def main():
         offline_main()
         return  # Importante para evitar que siga el flujo y se duplique la UI
 
-    # Si no hay evento activo, verificar conexión
-    logger.info("Verificando conexión con el SIN")
-    mensaje, conectado, tipo_deducido = verificar_comunicacion()
+    # Si no hay evento activo, usar el resultado de la verificación de conexión inicial
+    # No es necesario llamar a verificar_comunicacion() de nuevo.
+    mensaje, conectado, tipo_deducido = mensaje_inicial, conectado_inicial, tipo_deducido_inicial
+    logger.info(f"Resultado de verificación de conexión para decisión de modo: Conectado={conectado}, Mensaje='{mensaje}', Tipo Deducido='{tipo_deducido}'")
 
     if conectado:
         logger.info("Conexión establecida con el SIN - iniciando modo online")
