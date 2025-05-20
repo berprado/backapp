@@ -73,3 +73,7 @@ __pycache__/
 *.pyc
 
 codigo/*
+
+echo "__pycache__/" >> .gitignore
+echo "*.pyc" >> .gitignore
+echo "facturador/invoice_number.txt" >> .gitignore
