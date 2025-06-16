@@ -19,6 +19,8 @@ backapp/
 # Archivos de base de datos MySQL (backups y dumps)
 *.sql.gz
 dump_*.sql
+sql/adminerp_copy_*.sql
+
 
 # Directorios de facturas generadas
 /xmls
