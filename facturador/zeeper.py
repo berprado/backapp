@@ -41,10 +41,10 @@ def validar_xml(xml_path, xsd_main_path):
 def comprimir_xml(xml_path):
     logger.debug(f"Comprimiendo XML: {xml_path}")
     gzip_path = xml_path + '.gz'
-    with open(xml_path, 'r', encoding='utf-8') as f_in, gzip.open(gzip_path, 'wb') as f_out:
+    with open(xml_path, 'r', encoding='utf-8') as f_in, gzip.open(gzip_path, 'wt', encoding='utf-8') as f_out:
         content = f_in.read()
         normalized_content = content.replace('\r\n', '\n')
-        f_out.write(normalized_content.encode('utf-8'))
+        f_out.write(normalized_content)
     logger.info(f"Archivo comprimido: {gzip_path}")
     return gzip_path
 

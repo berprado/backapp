@@ -1,8 +1,5 @@
 import os
 
-
-#config.py
-
 # Configuraciones generales del proyecto
 ENDPOINT_URL = "http://127.0.0.1:8000/"
 PDF_FOLDER_PATH = os.path.join(os.getcwd(), "pdfs")

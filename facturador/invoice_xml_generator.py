@@ -136,7 +136,7 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
     
     ET.SubElement(cabecera, "codigoExcepcion", attrib={"xsi:nil": "true"})
     ET.SubElement(cabecera, "cafc", attrib={"xsi:nil": "true"})
-    ET.SubElement(cabecera, "leyenda").text = leyenda
+    ET.SubElement(cabecera, "leyenda").text = str(leyenda)
     ET.SubElement(cabecera, "usuario").text = usuario
     ET.SubElement(cabecera, "codigoDocumentoSector").text = str(codigo_documento_sector)
 

@@ -27,10 +27,9 @@ def mark_invoice_as_contingency(numero_factura):
         
         if not factura:
             logger.warning(f"No se encontró la factura {numero_factura}")
-            return False
-        
+            return False        
         factura.estadoFirma = "CONTINGENCIA"
-        factura.tipoEmision = 2  # Tipo emisión fuera de línea
+        factura.tipoEmision = "2"  # Tipo emisión fuera de línea (String para coincidir con el modelo)
         factura.codigoRecepcion = None
         
         session.commit()
@@ -60,7 +59,7 @@ def save_offline_invoice(factura_cabecera_data, factura_detalle_data):
     try:
         # Asegurar que los campos críticos para contingencia estén configurados correctamente
         factura_cabecera_data['estadoFirma'] = "CONTINGENCIA"
-        factura_cabecera_data['tipoEmision'] = 2  # Tipo emisión fuera de línea
+        factura_cabecera_data['tipoEmision'] = "2"  # Tipo emisión fuera de línea (String para coincidir con el modelo)
         factura_cabecera_data['codigoRecepcion'] = None
         
         # Crear el objeto de la cabecera de factura
@@ -484,7 +483,7 @@ def offline_main():
                 "montoTotal": monto_total,
                 "descripcion": descripcion,
                 "estadoFirma": "CONTINGENCIA",
-                "tipoEmision": 2,  # Emisión offline
+                "tipoEmision": "2",  # Emisión offline (String para coincidir con el modelo)
                 "fechaEmision": datetime.now()
             }
             success, message = save_offline_invoice(factura_cabecera_data, [])

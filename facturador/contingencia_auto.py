@@ -1,7 +1,7 @@
 import os
 import zipfile
 from datetime import datetime
-from database import obtener_evento_abierto, get_cufd_vigente, actualizar_evento_final
+from facturador.database import obtener_evento_abierto, get_cufd_vigente, actualizar_evento_final
 from soap_services import verificar_comunicacion, enviar_evento_significativo
 
 def finalizar_evento_si_conectado():

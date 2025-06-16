@@ -1,52 +1,58 @@
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated, List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
-class ComandaSchema(BaseModel):
+class ComandaBase(BaseModel):
+    """Esquema base para comandas"""
     cantidad: Annotated[int, "Cantidad de productos"]
     id_comanda: int
-    id_producto: Optional[int] = None
-    id_salida_combo_coctel: int
-    id_bar_combo_coctel: int
-    precio_venta: Annotated[float, "Precio de venta"]
-    sub_total: Annotated[float, "Subtotal"]
-    producto_coctel: str
-    cor_subtotal_anterior: Annotated[float, "Subtotal anterior"]
+    precio_venta: Annotated[Decimal, "Precio de venta"]
+    sub_total: Annotated[Decimal, "Subtotal"]
     id_barra: int
-    comision: Annotated[float, "Comisión"]
     usuario_reg: str
-    fecha_reg: str
-    fecha_mod: str
     estado: str
     id_operacion: int
-    producto: str
-    id_producto_combo: int
     tipo_salida: int
     estado_comanda: int
-    estado_impresion: int
-    codigo: str
 
-class ComandaDetailSchema(BaseModel):
-    id: int
-    cantidad: Annotated[int, "Cantidad de productos"]
-    id_comanda: int
+class ComandaCreate(ComandaBase):
+    """Esquema para crear comandas (entrada)"""
     id_producto: Optional[str] = None
     id_salida_combo_coctel: Optional[int] = None
     id_bar_combo_coctel: Optional[str] = None
-    precio_venta: Annotated[Decimal, "Subtotal"]
-    sub_total: Annotated[Decimal, "Subtotal"]
     producto_coctel: Optional[str] = None
-    id_barra: int
-    usuario_reg: str
-    estado: str
-    id_operacion: int
+    cor_subtotal_anterior: Optional[Decimal] = None
+    comision: Optional[Decimal] = None
+    fecha_reg: date
+    fecha_mod: date
     nombre: str
     id_producto_combo: Optional[str] = None
-    tipo_salida: int
-    estado_comanda: int
     estado_impresion: Optional[int] = None
+    codigo: Optional[str] = None
 
+class ComandaResponse(ComandaBase):
+    """Esquema para respuestas (salida)"""
+    id: int
+    id_producto: Optional[str] = None
+    id_salida_combo_coctel: Optional[int] = None
+    id_bar_combo_coctel: Optional[str] = None
+    producto_coctel: Optional[str] = None
+    cor_subtotal_anterior: Optional[Decimal] = None
+    comision: Optional[Decimal] = None
+    fecha_reg: Optional[date] = None
+    fecha_mod: Optional[date] = None
+    nombre: str
+    id_producto_combo: Optional[str] = None
+    estado_impresion: Optional[int] = None
+    
+    model_config = ConfigDict(from_attributes=True)
+
+# Esquemas antiguos mantenidos por compatibilidad
+class ComandaSchema(ComandaCreate):
+    pass
+
+class ComandaDetailSchema(ComandaResponse):
     class Config:
         from_attributes = True
 

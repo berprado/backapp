@@ -76,7 +76,7 @@ def generate_qr(nit, cuf, numero_factura, tamano=1):
     url_qr = f'https://pilotosiat.impuestos.gob.bo/consulta/QR?nit={nit}&cuf={cuf}&numero={numero_factura}&t={tamano}'
     qr = qrcode.QRCode(
         version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        error_correction=qrcode.ERROR_CORRECT_L,
         box_size=10,
         border=4,
     )
@@ -84,7 +84,7 @@ def generate_qr(nit, cuf, numero_factura, tamano=1):
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
     buffered = BytesIO()
-    img.save(buffered, format="PNG")
+    img.save(buffered, "PNG")
     img_base64 = base64.b64encode(buffered.getvalue()).decode()
     return img_base64
 
@@ -141,6 +141,9 @@ SOAP_REQUEST_TEMPLATE = """<soapenv:Envelope xmlns:soapenv="http://schemas.xmlso
 # Función para verificar la comunicación con un servicio
 def verificar_comunicacion(servicio):
     url = ENDPOINTS[servicio]
+    if url is None:
+        return False, f"Error: URL no configurada para el servicio {servicio}"
+        
     headers = {
         "Content-Type": "text/xml;charset=UTF-8",
         "SOAPAction": "",

@@ -3,10 +3,14 @@
 import streamlit as st
 from datetime import datetime
 from soap_services import verificar_comunicacion
+import os
+import sys
+# Asegurar que estamos importando desde el directorio correcto 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Importar explícitamente desde el archivo database.py local del directorio facturador
 from database import get_eventos_parametricos, get_cufd_vigente, obtener_evento_abierto, insertar_evento_local
 from ui_copy import main as online_main
 from contingencia_auto import finalizar_evento_si_conectado
-import os
 
 st.set_page_config(
     page_title="BACKINVOICE",

@@ -1,4 +1,4 @@
-# Archivos de entorno
+﻿# Archivos de entorno
 .env
 
 # Archivos de certificados y claves privadas
@@ -20,53 +20,58 @@ backapp/
 *.sql
 *.sql.gz
 dump_*.sql
+*.mwb
 
-# Directorios de facturas generadas
-/xmls
+# Directorios de facturas generadas y temporales
+/xmls/
+facturador/xmls/
+facturador/offline/
+facturador/debug/
+facturador/offline_archivos/
 
-# Archivos de respaldo y copias
+# Archivos PDF generados automÃ¡ticamente
+*.pdf
+
+# Archivos de respaldo, copia y scripts temporales
 *-Copy.py
 *-Backup.py
+*_temp.py
 *.bak
 *.swp
+*.swo
+*.ps1
 
 # Archivos de log
 *.log
 
-# Archivos PDF generados automáticamente
-*.pdf
+# Archivos de cachÃ© y compilaciÃ³n
+__pycache__/
+*.pyc
+*.pyo
 
 # Archivos temporales de editores
-*.swp
-*.swo
 .idea/
 .vscode/
-*.DS_Store
+.DS_Store
 
-# Archivos de caché y compilación
-__pycache__/
+# Directorios especÃ­ficos de cachÃ© o logs
 facturador/__pycache__/
 facturador/logs/
 facturador/pages/__pycache__/
 
-# Archivos temporales de subida
+# Archivos de subida temporales
 .tmp.driveupload/
 
-# Archivos de documentación o estructura
+# Archivos de documentaciÃ³n o estructura local
 estructura.md
+static/*.md
 
-# Archivos temporales de compilación de Python
-*.pyc
-*.pyo
-
-# Directorios innecesarios o pruebas fuera del repositorio principal
+# Directorios innecesarios o pruebas
 facturador/off/
 
-# Directorios de datos de MySQL si usas Docker
+# Datos de contenedores Docker (MySQL, etc.)
 mysql_data/
 
-# Archivos de MySQL Workbench
-*.mwb
-
-__pycache__/
-*.pyc
+# Ignorar scripts SQL de estructuras o pruebas
+facturador/sql/
+sql/

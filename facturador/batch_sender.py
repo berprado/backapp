@@ -23,7 +23,7 @@ class BatchSender:
         self.session = SessionLocal()
         self.max_batch_size = 500  # Máximo 500 facturas por paquete según normativa
         self.soap_session = Session()
-        self.soap_session.headers.update({'apikey': os.getenv('API_KEY')})
+        self.soap_session.headers.update({'apikey': os.getenv('API_KEY') or ''})
         self.wsdl_url = os.getenv('WSDL_URL_OPERACIONES')
         
         # Asegurar que existe el directorio para archivos comprimidos

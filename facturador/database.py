@@ -17,6 +17,8 @@ from sqlalchemy.ext.declarative import declarative_base
 
 # Conexión ORM
 URL_DATABASE = os.getenv("DATABASE_URL")
+if URL_DATABASE is None:
+    raise ValueError("La variable de entorno DATABASE_URL no está definida")
 
 engine = create_engine(URL_DATABASE)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -48,15 +50,15 @@ if __name__ == "__main__":
 # 🛠️ PyMySQL directo (Contingencia y eventos)
 # ----------------------------------------
 import pymysql
-from datetime import datetime
+import pymysql.cursors
 
 def conectar_db():
     """Conexión directa para queries críticos"""
     return pymysql.connect(
-        host=os.getenv("MYSQL_HOST"),
-        user=os.getenv("MYSQL_USER"),
-        password=os.getenv("MYSQL_PASSWORD"),
-        database=os.getenv("MYSQL_DATABASE"),
+        host=os.getenv("MYSQL_HOST", ""),
+        user=os.getenv("MYSQL_USER", ""),
+        password=os.getenv("MYSQL_PASSWORD", ""),
+        database=os.getenv("MYSQL_DATABASE", ""),
         cursorclass=pymysql.cursors.DictCursor
     )
 

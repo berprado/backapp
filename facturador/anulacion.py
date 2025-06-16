@@ -120,9 +120,9 @@ def procesar_respuesta_anulacion(respuesta_xml, factura, descripcion_motivo):
     elif codigo_estado == "906":  # Anulación rechazada
         mensaje_error = tree.find('.//mensajesList/descripcion').text
 
-        if "YA SE ENCUENTRA ANULADA" in mensaje_error:
+        if mensaje_error is not None and "YA SE ENCUENTRA ANULADA" in mensaje_error:
             return False, "La factura ya fue anulada previamente."
-        elif "NO EXISTE EN LA BASE DE DATOS DEL SIN" in mensaje_error:
+        elif mensaje_error is not None and "NO EXISTE EN LA BASE DE DATOS DEL SIN" in mensaje_error:
             return False, "La factura no existe en la base de datos del SIN."
         else:
             return False, f"Error en la anulación: {mensaje_error}"
@@ -155,7 +155,7 @@ def anular_factura(numero_factura, descripcion_motivo):
             return False, f"Error al recuperar la factura: {factura}"
 
         # Verificar si la factura está revertida y bloquear una nueva anulación
-        if factura.estado == "Valida" and factura.fechaValidacion is not None:
+        if str(factura.estado) == "Valida" and factura.fechaValidacion is not None:
             return False, "La factura ya fue revertida y no puede ser anulada nuevamente."
 
         # Verificar si la fecha actual supera el plazo de anulación
