@@ -1,4 +1,4 @@
-﻿# Archivos de entorno
+# Archivos de entorno
 .env
 
 # Archivos de certificados y claves privadas
@@ -17,61 +17,55 @@ env/
 backapp/
 
 # Archivos de base de datos MySQL (backups y dumps)
-*.sql
 *.sql.gz
 dump_*.sql
-*.mwb
 
-# Directorios de facturas generadas y temporales
-/xmls/
-facturador/xmls/
-facturador/offline/
-facturador/debug/
-facturador/offline_archivos/
+# Directorios de facturas generadas
+/xmls
 
-# Archivos PDF generados automÃ¡ticamente
-*.pdf
-
-# Archivos de respaldo, copia y scripts temporales
+# Archivos de respaldo y copias
 *-Copy.py
 *-Backup.py
-*_temp.py
 *.bak
-*.swp
-*.swo
-*.ps1
 
 # Archivos de log
 *.log
 
-# Archivos de cachÃ© y compilaciÃ³n
+# Archivos PDF generados automáticamente
+*.pdf
+
+# Archivos temporales de editores
+*.swp
+*.swo
+.idea/
+.vscode/
+*.DS_Store
+
+# Archivos de caché y compilación de Python
 __pycache__/
+facturador/__pycache__/
+facturador/pages/__pycache__/
 *.pyc
 *.pyo
 
-# Archivos temporales de editores
-.idea/
-.vscode/
-.DS_Store
-
-# Directorios especÃ­ficos de cachÃ© o logs
-facturador/__pycache__/
-facturador/logs/
-facturador/pages/__pycache__/
-
-# Archivos de subida temporales
+# Archivos temporales de subida
 .tmp.driveupload/
 
-# Archivos de documentaciÃ³n o estructura local
+# Archivos de documentación o estructura
 estructura.md
-static/*.md
+# Considera usar una exclusión más específica en lugar de *.md para permitir README.md
+# *.md
+!README.md
 
-# Directorios innecesarios o pruebas
+# Directorios de logs
+facturador/logs/
+
+# Directorios innecesarios o pruebas fuera del repositorio principal
 facturador/off/
+*/sql/
 
-# Datos de contenedores Docker (MySQL, etc.)
+# Directorios de datos de MySQL si usas Docker
 mysql_data/
 
-# Ignorar scripts SQL de estructuras o pruebas
-facturador/sql/
-sql/
+# Archivos de MySQL Workbench
+*.mwb

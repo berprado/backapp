@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+        <facturaOffline>
+        <idEvento>26</idEvento>
+        <fecha>2025-06-09 20:00:32</fecha>
+        <numeroFactura>194</numeroFactura>
+        <nombre>PEPE</nombre>
+        <documento>3440960244</documento>
+        <monto>200.00</monto>
+        </facturaOffline>
+        
