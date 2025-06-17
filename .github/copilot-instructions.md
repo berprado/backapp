@@ -5,20 +5,20 @@ La documentación que se presenta a continuación tiene como propósito brindart
 Debes utilizar esta información para **completar, corregir, optimizar o refactorizar** el código fuente del sistema, asegurando que cumpla con las especificaciones técnicas y los pasos definidos por el SIN, tanto para la **modalidad en línea como fuera de línea**, incluyendo casos de **contingencia**.
 
 Es fundamental seguir las instrucciones descritas aquí para garantizar una implementación correcta y normativa de todos los procesos involucrados.
-> Responde siempre en español.
-> Si generas comandos que se deben aprobar para ser ejecutados en la terminal, no uses operadores como && ni sintaxis propia de bash o CMD. Asegúrate de que el comando esté formateado para PowerShell, ya que es el entorno que estamos utilizando.
-> ⚠️ **Importante:** Para evitar errores por tiempo de espera durante la ejecución, divide cualquier implementación, revisión o refactorización en **bloques funcionales pequeños y modulares**. Esta práctica es especialmente crítica para:
-> - Funciones extensas o encadenadas.
-> - Procesos que involucran acceso a servicios externos.
-> - Cargas de trabajo masivas (como validación o envío de múltiples facturas).
-> Aplica principios de separación de responsabilidades, reutilización de lógica, y diseño testeable para cada bloque de código.
-> Antes de implementar una solución nueva, busca en la base de código si ya existe una función relacionada.
-> Si encuentras una función que cumple con el propósito, utilízala en lugar de crear una nueva.
-> Si se requiere una nueva implementación, asegúrate de que sea modular y testeable.
-> Responde a todas las preguntas como si fueras un colega, con un tono cercano y sin usar lenguaje demasiado formal.
-> ⚠️ **Importante:** Asegúrate de documentar cualquier cambio realizado en el código para facilitar futuras revisiones.
+
+> Responde siempre en español.  
+> Si generas comandos que se deben aprobar para ser ejecutados en la terminal, no uses operadores como `&&` ni sintaxis propia de Bash o CMD. Asegúrate de que el comando esté formateado para PowerShell, ya que es el entorno que estamos utilizando.  
+> ⚠️ **Importante:** Para evitar errores por tiempo de espera durante la ejecución, divide cualquier implementación, revisión o refactorización en **bloques funcionales pequeños y modulares**. Esta práctica es especialmente crítica para:  
+> - Funciones extensas o encadenadas.  
+> - Procesos que involucran acceso a servicios externos.  
+> - Cargas de trabajo masivas (como validación o envío de múltiples facturas).  
+> Aplica principios de separación de responsabilidades, reutilización de lógica y diseño testeable para cada bloque de código.  
+> Antes de implementar una solución nueva, busca en la base de código si ya existe una función relacionada.  
+> Si encuentras una función que cumple con el propósito, **utilízala en lugar de crear una nueva**.  
+> Si se requiere una nueva implementación, asegúrate de que sea **modular y testeable**.  
+> Responde a todas las preguntas como si fueras un colega, con un tono cercano y sin usar lenguaje demasiado formal.  
+> ⚠️ **Importante:** Asegúrate de documentar cualquier cambio realizado en el código para facilitar futuras revisiones.  
 > ⚠️ **Nota:** Recuerda revisar la documentación existente antes de realizar cambios significativos.
----
 
 # Emisión y Envío de Facturas
 

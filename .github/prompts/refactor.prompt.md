@@ -1,58 +1,74 @@
-# 🧩 Dependencias Internas del Sistema de Facturación
 
-Este documento técnico resume los módulos propios del sistema que interactúan directamente con los principales puntos de entrada de la aplicación: `main.py` y `ui_copy.py`. Esta vista es útil para comprender cómo se organiza la lógica y qué componentes están acoplados a la ejecución principal.
 
----
+# Estrategia de Refactorización Gradual y Segura
+## "Guía para refactorizar funciones de manera segura y modular, permitiendo una transición fluida a nuevas implementaciones sin interrumpir la funcionalidad existente."
 
-## 🚀 Puntos de entrada analizados
-
-- `main.py`: módulo principal de arranque del sistema.
-- `ui_copy.py`: interfaz de usuario desarrollada con Streamlit.
+Permitir la migración de funciones o bloques de lógica a módulos más especializados, **sin interrumpir la funcionalidad existente** y facilitando la posibilidad de revertir cambios rápidamente en caso de fallas.
 
 ---
 
-## 📦 Módulos propios que interactúan con `main.py`
+## Proceso paso a paso
 
-Esta lista se ha generado tras una revisión exhaustiva del archivo.
+### **Paso 1: Renombrar la función original**
 
-| Módulo               | Funciones / Responsabilidad                                                                               |
-|----------------------|-----------------------------------------------------------------------------------------------------------|
-| `soap_services`      | `verificar_comunicacion` – Verifica conectividad con el SIN                                              |
-| `database`           | `get_eventos_parametricos`, `get_cufd_vigente`, `obtener_evento_abierto`, `insertar_evento_local`        |
-| `ui_copy`            | `main` – Se llama como interfaz principal del sistema en modo **en línea**                               |
-| `contingencia_auto`  | `finalizar_evento_si_conectado` – Intenta cerrar eventos abiertos si se recupera la conexión             |
+Antes de realizar cualquier cambio, **renombra la función original** (por ejemplo, de `generate_html_invoice` a `_original_generate_html_invoice`).  
+Esto te permite conservar la implementación previa como respaldo, sin que sea llamada accidentalmente por el resto del código.
 
----
-
-## 🖥️ Módulos propios que interactúan con `ui_copy.py`
-
-Lista confirmada tras revisión exhaustiva del archivo:
-
-| Módulo                        | Funciones / Elementos Importados                                                                 |
-|------------------------------|---------------------------------------------------------------------------------------------------|
-| `data_access`                | `fetch_comandas`, `fetch_metodos_pago`, `fetch_tipos_documento`, `fetch_cliente`, `fetch_random_leyenda`, `guardar_factura_cabecera`, `guardar_factura_detalle`, `obtener_nombre_unidad_medida`, `obtener_motivos_anulacion`, `obtener_cuf_por_numero_factura`, `obtener_facturas_por_estado`, `obtener_factura_completa` |
-| `business_logic`             | `calculate_totals`, `collect_product_lines`, `generate_invoice_link`, `generate_qr`              |
-| `invoice_xml_generator`      | `generate_xml_invoice`                                                                           |
-| `database`                   | `SessionLocal`                                                                                    |
-| `facturador.models`          | `Cufd`, `Cliente`                                                                                 |
-| `generate_cuf`               | `generate_cuf`                                                                                    |
-| `cufd`                       | `solicitar_cufd`                                                                                  |
-| `cuis`                       | *(importado directamente)*                                                                       |
-| `zeeper`                     | `validar_xml`, `comprimir_xml`, `obtener_hash`, `enviar_solicitud`                                |
-| `verifica_stream`            | *(importado directamente)*                                                                       |
-| `estado_factura`             | `verificar_estado_factura`                                                                        |
-| `anulacion`                  | `anular_factura`                                                                                  |
-| `reversion`                  | `enviar_solicitud_reversion`, `procesar_respuesta_reversion`                                     |
-| `facturador.response_handler`| `parse_siat_response`, `display_siat_response`                                                    |
-| `invoice_templates`          | `generate_compact_html_invoice`                                                                   |
-| `thermal_printer`            | `ThermalPrinter`                                                                                  |
-| `siat_pdf`                   | `html_to_pdf`                                                                                     |
-| `mostrar_lista_facturas`     | `mostrar_lista_facturas`                                                                          |
+```python
+# Versión original, ahora renombrada
+def _original_generate_html_invoice(...):
+    # Código original aquí
+```
 
 ---
 
-## 📝 Notas
+### **Paso 2: Implementar un wrapper usando la función importada**
 
-- Si se agregan nuevos módulos a la aplicación, esta lista deberá actualizarse.
-- También puede ser útil construir un grafo de dependencias o usar herramientas como `pydeps` o `import-tracker` para visualizaciones automáticas.
+Importa la nueva función desde el módulo especializado (por ejemplo, `invoice_templates.py`) y crea un **wrapper** en el archivo original.  
+Este wrapper debe mantener la misma firma y decoradores (como `@st.cache_data`), y simplemente delegar la llamada a la función importada.
 
+```python
+from invoice_templates import generate_html_invoice as imported_generate_html_invoice
+
+@st.cache_data
+def generate_html_invoice(...):
+    return imported_generate_html_invoice(...)
+```
+
+De esta forma, todo el código que ya usa `generate_html_invoice` seguirá funcionando igual, pero ahora utiliza la nueva implementación.
+
+---
+
+### **Paso 3: Reversión rápida en caso de problemas**
+
+Si durante las pruebas detectas algún problema, puedes **volver rápidamente a la versión anterior** simplemente reasignando la función original:
+
+```python
+# Para revertir, solo comenta el wrapper y descomenta la original:
+# @st.cache_data
+# def generate_html_invoice(...):
+#     return _original_generate_html_invoice(...)
+```
+
+O bien, puedes eliminar el wrapper y restaurar el nombre original de la función.
+
+---
+
+## Ventajas de este enfoque
+
+- **Seguridad:** Siempre tienes la versión anterior disponible para revertir rápidamente.
+- **Control:** Puedes comparar fácilmente ambas implementaciones y hacer pruebas A/B si lo necesitas.
+- **Facilidad de mantenimiento:** Una vez comprobado que todo funciona, puedes eliminar la función original y dejar solo la importación.
+- **Documentación clara:** El proceso queda explícito en el código y es fácil de seguir para cualquier miembro del equipo.
+
+---
+
+## Recomendaciones adicionales
+
+- Documenta cada cambio en los comentarios del código.
+- Realiza pruebas funcionales después de cada paso.
+- Elimina la función original solo cuando estés seguro de que la nueva implementación es estable.
+
+---
+
+Este lineamiento te permitirá realizar refactorizaciones modulares y seguras, minimizando riesgos y facilitando el trabajo colaborativo en el equipo.
