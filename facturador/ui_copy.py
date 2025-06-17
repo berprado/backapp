@@ -4,79 +4,79 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import time
 import streamlit as st
 import streamlit.components.v1 as components
+import re  # Necesario para algunas validaciones que quedan en el archivo
 from data_access import (
-    fetch_comandas, fetch_metodos_pago, fetch_tipos_documento, fetch_cliente, 
-    fetch_random_leyenda, guardar_factura_cabecera, guardar_factura_detalle, obtener_nombre_unidad_medida, obtener_motivos_anulacion, obtener_cuf_por_numero_factura
+    fetch_comandas, fetch_metodos_pago, fetch_tipos_documento, fetch_cliente,
+    fetch_random_leyenda, obtener_nombre_unidad_medida, obtener_motivos_anulacion,
+    obtener_cuf_por_numero_factura, obtener_factura_completa, 
+    guardar_factura_cabecera, guardar_factura_detalle, obtener_facturas_por_estado
 )
 from business_logic import calculate_totals, collect_product_lines, generate_invoice_link, generate_qr
 from invoice_xml_generator import generate_xml_invoice
 from num2words import num2words
 from database import SessionLocal
 from facturador.models import Cufd, Cliente
-from sqlalchemy.exc import IntegrityError
-import re
-from zeep import Client
-from zeep.transports import Transport
-from dotenv import load_dotenv
-from requests import Session
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from datetime import datetime
-from generate_cuf import generate_cuf
-from cufd import solicitar_cufd
-from lxml import etree
-from cryptography.hazmat.primitives import serialization, hashes
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography import x509
-#from cryptography.hazmat.backends import default_backend
-import base64
-import hashlib
-from zeeper import validar_xml, comprimir_xml, obtener_hash, enviar_solicitud
 from decimal import Decimal
 import logging
 import traceback
 import xml.etree.ElementTree as ET
+
+# Importaciones de los nuevos módulos modularizados
+from validators import es_email_valido, es_telefono_valido, validar_factura_cabecera, validar_factura_detalle
+from client_manager import save_or_fetch_client_data, verificar_nit_cliente
+from invoice_manager import guardar_factura_en_bd, increment_invoice_number, mostrar_lista_facturas
+from print_manager import initialize_print_state, reiniciar_estados, imprimir_en_hilo
+from xml_signer import sign_xml, calculate_hash
+
+# Zeep y solicitudes
+from zeep import Client
+from zeep.transports import Transport
+from requests import Session
+from dotenv import load_dotenv
+
+# Módulos relacionados con CUF/CUFD
+from generate_cuf import generate_cuf
+from cufd import solicitar_cufd
+import cuis
+
+# XML y criptografía
+from lxml import etree
+from cryptography.hazmat.primitives import serialization, hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography import x509
+import base64
+import hashlib
+
+# Utilidades para facturación
+from zeeper import validar_xml, comprimir_xml, obtener_hash, enviar_solicitud
 import verifica_stream
 from estado_factura import verificar_estado_factura
-import cuis
 from anulacion import anular_factura
 from reversion import enviar_solicitud_reversion, procesar_respuesta_reversion
-from facturador.export import imprimir_recibo # Importar la función `imprimir_recibo`
-from invoice_templates import generate_compact_html_invoice  # Importar la generación del HTML
-#from printer_utils import print_invoice_escpos
-from facturador.thermal_printer import ThermalPrinter
-#from export import guardar_recibo_como_pdf, generate_file_name
+from facturador.response_handler import parse_siat_response, display_siat_response
+
+# Impresión y exportación
+#from facturador.export import imprimir_recibo
+from invoice_templates import generate_compact_html_invoice, generate_html_invoice
+from thermal_printer import ThermalPrinter
+from siat_pdf import html_to_pdf
 import threading
-#from compact_pdf_generator import generate_invoice_pdf
-from facturador.siat_pdf import html_to_pdf
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
-# Create a custom logger for printing
-printer_logger = logging.getLogger('printer')
-printer_logger.setLevel(logging.DEBUG)
 
-# Create handlers
-file_handler = logging.FileHandler('printer_debug.log')
-console_handler = logging.StreamHandler()
+# Configuración de logger
+# Agregar la ruta del directorio padre al path de Python si no está ya
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if (parent_dir not in sys.path):
+    sys.path.append(parent_dir)
 
-# Create formatters and add it to handlers
-log_format = '%(asctime)s - %(levelname)s - %(message)s'
-file_handler.setFormatter(logging.Formatter(log_format))
-console_handler.setFormatter(logging.Formatter(log_format))
+from logger_config import get_logger, get_printer_logger, get_facturacion_logger, get_xml_logger
 
-# Add handlers to the logger
-printer_logger.addHandler(file_handler)
-printer_logger.addHandler(console_handler)
-
-# Agregar al inicio del script o en la configuración inicial
-if not os.path.exists('pdfs'):
-    os.makedirs('pdfs')
-    
-# Agregar al inicio del script
-try:
-    if not os.access('pdfs', os.W_OK):
-        logging.error("No hay permisos de escritura en la carpeta pdfs")
-        raise PermissionError("No hay permisos de escritura en la carpeta pdfs")
-except Exception as e:
-    logging.error(f"Error al verificar permisos: {str(e)}")
+# Obtener loggers específicos para diferentes componentes
+logger = get_logger()
+printer_logger = get_printer_logger()
+facturacion_logger = get_facturacion_logger()
+xml_logger = get_xml_logger()
 
 # Lista de códigos permitidos para gift cards
 gift_card_codes = [
@@ -87,79 +87,40 @@ gift_card_codes = [
     304, 35, 40, 49, 53, 60, 64, 68, 72, 76, 77, 78, 86, 94, 27
 ]
 
-# Configurar logging
-# Configurar logging (una sola vez, al principio del archivo)
-logging.basicConfig(
-    level=logging.DEBUG,  # Asegúrate de que el nivel sea DEBUG para capturar todos los mensajes
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler("ui_copy.log"), # Escribe en un archivo
-        logging.StreamHandler() # Muestra en consola
-    ]
-)
+# Agregar al inicio del script o en la configuración inicial
+if not os.path.exists('pdfs'):
+    os.makedirs('pdfs')
+    
+# Agregar al inicio del script
+try:
+    if not os.access('pdfs', os.W_OK):
+        logger.error("No hay permisos de escritura en la carpeta pdfs")
+        raise PermissionError("No hay permisos de escritura en la carpeta pdfs")
+except Exception as e:
+    logger.error(f"Error al verificar permisos: {str(e)}")
 
-
-def es_email_valido(email, message_placeholder):
-    patron = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-    return re.match(patron, email) is not None
-
-def es_telefono_valido(telefono):
-    return telefono.isdigit()
+# Estas funciones ahora están en validators.py
 
 load_dotenv()
 
-session = Session()
-session.headers.update({'apikey': os.getenv('API_KEY')})
+from contingency_manager import check_connectivity
 
-wsdl_url = os.getenv('WSDL_URL_CODIGOS')
-client = Client(wsdl_url, transport=Transport(session=session))
+# Verificar conectividad antes de inicializar el cliente SOAP
+is_connected, server_accessible = check_connectivity()
 
-def verificar_nit(nit):
-    
-    solicitud_verificar_nit = {
-        'codigoAmbiente': os.getenv('CODIGO_AMBIENTE'),
-        'codigoModalidad': os.getenv('CODIGO_MODALIDAD'),
-        'codigoSistema': os.getenv('CODIGO_SISTEMA'),
-        'codigoSucursal': os.getenv('CODIGO_SUCURSAL'),
-        'cuis': os.getenv('CUIS'),
-        'nit': os.getenv('NIT'),
-        'nitParaVerificacion': nit
-    }
+if is_connected and server_accessible:
+    session = Session()
+    session.headers.update({'apikey': os.getenv('API_KEY', '')})
 
-    try:
-        response = client.service.verificarNit(SolicitudVerificarNit=solicitud_verificar_nit)
-        if response.transaccion:
-            return True, response.mensajesList[0].descripcion
-        else:
-            return False, "Verifica el NIT o elige otro Tipo de Documento."
-    except Exception as e:
-        return False, f"Ocurrió un error: {str(e)}"
+    wsdl_url = os.getenv('WSDL_URL_CODIGOS')
+    client = Client(wsdl_url, transport=Transport(session=session))
+else:
+    client = None  # No inicializar el cliente SOAP en modo offline
 
-def validar_factura_cabecera(factura_cabecera_data):
-    required_fields = [
-        'nitEmisor', 'razonSocialEmisor', 'municipio', 'numeroFactura', 'cuf', 'cufd', 
-        'codigoSucursal', 'direccion', 'fechaEmision', 'codigoTipoDocumentoIdentidad', 
-        'numeroDocumento', 'codigoCliente', 'codigoMetodoPago', 'montoTotal', 'montoTotalSujetoIva', 
-        'codigoMoneda', 'tipoCambio', 'montoTotalMoneda', 'leyenda', 'usuario', 'codigoDocumentoSector'
-    ]
-    
-    for field in required_fields:
-        if factura_cabecera_data.get(field) is None or factura_cabecera_data.get(field) == '':
-            return False, f"El campo {field} es requerido y no puede estar vacío."
-    
-    return True, ""
+# Asegurarse de que las funciones dependientes del cliente SOAP manejen el caso de client=None
+# Esta función ahora está en validators.py
 
-def validar_factura_detalle(factura_detalle_data):
-    required_fields = [
-        'numeroFactura', 'actividadEconomica', 'codigoProductoSin', 'codigoProducto', 
-        'descripcion', 'cantidad', 'unidadMedida', 'precioUnitario', 'subTotal'
-    ]
-    
-    for field in required_fields:
-        if factura_detalle_data.get(field) is None or factura_detalle_data.get(field) == '':
-            return False, f"El campo {field} es requerido y no puede estar vacío."
-    
-    return True, ""
+# Estas funciones ahora están en validators.py
 
 def numero_a_palabras_con_decimales_como_fraccion(numero, lang='es'):
     if not numero:
@@ -175,222 +136,24 @@ def numero_a_palabras_con_decimales_como_fraccion(numero, lang='es'):
         return f" {parte_entera_palabras} 00/100 bolivianos."
 
 
-
-@st.cache_data
-def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_productos, nombre_cliente, fecha_emision, numero_factura, metodo_de_pago=None, codigo_clasificador_metodo_pago=None, tipo_documento=None, codigo_clasificador_documento=None, numero_documento=None, complemento=None, email=None, telefono=None, ultimos_digitos_tarjeta=None):
-    total = subtotal - descuento_adicional
-    total_final = total - monto_giftcard
-    
-    if codigo_clasificador_metodo_pago in gift_card_codes:
-        monto_total_sujeto_iva = total - monto_giftcard
-    else:
-        monto_total_sujeto_iva = total
-
-    total_en_palabras = numero_a_palabras_con_decimales_como_fraccion(total, lang='es') if total else ""
-
-    leyenda = fetch_random_leyenda()
-    
-    nit = os.getenv('NIT') # NIT del emisor
-    razon_social = os.getenv('RAZON_SOCIAL') # Razón social del emisor
-    nombre_sucursal = os.getenv('NOMBRE_SUCURSAL')  # Nombre de la sucursal
-    codigo_punto_venta = os.getenv('CODIGO_PUNTO_VENTA')  # Código del punto de venta
-    direccion = os.getenv('DIRECCION')  # Dirección de la empresa
-    municipio = os.getenv('MUNICIPIO')  # Municipio de la empresa
-    telefono_empresa = os.getenv('TELEFONO')  # Teléfono de la empresa
-    tipo_factura = os.getenv('DESCRIPCION_TIPO_FACTURA')  # Tipo de factura (original, copia, etc.)
-    subtitulo = os.getenv('SUBTITULO')    # Generar el código QR si el CUF está disponible
-
-
-    html_content = f"""
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Factura</title>
-        <style type="text/css">
-        .tg  {{border-collapse:collapse;border-spacing:0;margin:0px auto;}}
-        .tg td{{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-        overflow:hidden;padding:10px 5px;word-break:normal;}}
-        .tg th{{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-        font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}}
-        .tg .tg-4pi9{{background-color:#ffffff;border-color:#ffffff;font-family:"Lucida Console", Monaco, monospace !important;
-        font-size:12px;text-align:left;vertical-align:middle;word-break:break-all;}}
-        .tg .tg-tdlr{{background-color:#ffffff;border-color:#ffffff;font-size:12px;text-align:left;vertical-align:top;}}
-        .tg .tg-c01i{{background-color:#9b9b9b;border-color:#ffffff;font-family:"Lucida Console", Monaco, monospace !important;
-        font-size:12px;font-weight:bold;text-align:right;vertical-align:middle;}}
-        .tg .tg-n17z{{background-color:#ffffff;border-color:#ffffff;font-family:"Lucida Console", Monaco, monospace !important;
-        font-size:12px;text-align:center;vertical-align:middle;}}
-        .tg .tg-i6l2{{background-color:#ffffff;border-color:#ffffff;font-family:"Lucida Console", Monaco, monospace !important;
-        font-size:12px;text-align:right;vertical-align:middle;}}
-        .tg .tg-gayi{{background-color:#9b9b9b;border-color:#efefef;font-family:"Lucida Console", Monaco, monospace !important;
-        font-size:12px;font-weight:bold;text-align:center;vertical-align:middle;}}
-        .tg .tg-1kjo{{background-color:#c0c0c0c0;border-color:#efefef;font-family:"Lucida Console", Monaco, monospace !important;
-        font-size:12px;text-align:center;vertical-align:middle;}}
-        .tg .tg-tm6e{{background-color:#c0c0c0;border-color:#ffffff;font-family:"Lucida Console", Monaco, monospace !important;
-        font-size:12px;text-align:left;vertical-align:middle;}}
-        .tg .tg-q5sf{{background-color:#ffffff;border-color:#ffffff;font-family:"Lucida Console", Monaco, monospace !important;
-        font-size:9px;text-align:center;vertical-align:middle;}}
-        .tg .tg-e8cb{{background-color:#9b9b9b;border-color:#ffffff;font-family:"Lucida Console", Monaco, monospace !important;
-        font-size:12px;text-align:right;vertical-align:middle;}}
-        .tg .tg-6l70{{background-color:#9b9b9b;border-color:#ffffff;font-family:"Lucida Console", Monaco, monospace !important;
-        font-size:12px;text-align:center;vertical-align:middle;}}
-        </style>
-    </head>
-    <body>
-    <table class="tg"><tbody>
-    <tr>
-        <td class="tg-n17z" colspan="4"><span style="font-weight:bold">{razon_social}</span><br><span style="font-weight:bold">{nombre_sucursal}</span><br><span style="font-weight:bold">Punto de Venta:</span> {codigo_punto_venta}</td>
-        <td class="tg-n17z"></td>
-        <td class="tg-i6l2"><span style="font-weight:bold">NIT:</span><br><span style="font-weight:bold">Factura N°:</span></td>
-        <td class="tg-4pi9">{nit}<br>{numero_factura}</td>
-    </tr>
-    <tr>
-        <td class="tg-n17z" colspan="4">{direccion}<br><span style="font-weight:bold">{municipio}</span><br><span style="font-weight:bold">Teléfono:</span> {telefono_empresa}</td>
-        <td class="tg-n17z"></td>
-        <td class="tg-i6l2"><span style="font-weight:bold">Código de</span><br><span style="font-weight:bold">Autorización</span></td>
-        <td class="tg-4pi9">{{cuf}}</td>
-    </tr>
-    <tr>
-        <td class="tg-n17z" colspan="7"><span style="font-weight:bold">{tipo_factura}</span><br>{subtitulo}</td>
-    </tr>
-    <tr>
-        <td class="tg-n17z" colspan="4"><span style="font-weight:bold">Fecha/Hora:</span> {fecha_emision}<br><span style="font-weight:bold">Nombre/Razón Social:</span> {nombre_cliente.upper()}</td>
-        <td class="tg-n17z"></td>
-        <td class="tg-i6l2"><span style="font-weight:bold">NIT/CI/CEX:</span><br><span style="font-weight:bold">Cod. Cliente:</span></td>
-        <td class="tg-4pi9">{numero_documento}<br>{numero_documento}</td>
-    </tr>
-    <tr>
-        <td class="tg-tdlr" colspan="7"></td>
-    </tr>
-    <tr>
-        <td class="tg-gayi" width="10%">CODIGO</td>
-        <td class="tg-gayi" width="5%">CANTIDAD</td>
-        <td class="tg-gayi" width="10%">UNIDAD</td>
-        <td class="tg-gayi" width="35%">DESCRIPCIÓN</td>
-        <td class="tg-gayi" width="10%">PRECIO UNIT.</td>
-        <td class="tg-gayi" width="15%">DESCUENTO</td>
-        <td class="tg-gayi" width="15%">SUBTOTAL</td>
-    </tr>
-    """
-
-    for linea in lineas_productos:
-        html_content += f"""
-        <tr>
-            <td class="tg-1kjo">{linea["codigo"]}</td>
-            <td class="tg-1kjo">{linea["cantidad"]}</td>
-            <td class="tg-1kjo">{linea["unidad"]}</td>
-            <td class="tg-1kjo">{linea["nombre"]}</td>
-            <td class="tg-1kjo">{linea["precio_venta"]}</td>
-            <td class="tg-1kjo">{linea.get("montoDescuento", 0)}</td>
-            <td class="tg-1kjo">{linea["sub_total"]}</td>
-        </tr>
-        """
-
-    html_content += f"""
-    <tr>
-        <td class="tg-n17z" colspan="5"></td>
-        <td class="tg-c01i">Sub Total:</td>
-        <td class="tg-tm6e"><span style="font-weight:bold">{subtotal:.2f}</span></td>
-    </tr>
-    <tr>
-        <td class="tg-q5sf" colspan="5"></td>
-        <td class="tg-c01i">Descuento:</td>
-        <td class="tg-tm6e"><span style="font-weight:bold">{descuento_adicional:.2f}</span></td>
-    </tr>
-    <tr>
-        <td class="tg-n17z" colspan="5"><span style="font-weight:bold">Son: {total_en_palabras}</span></td>
-        <td class="tg-e8cb"><span style="font-weight:bold">Total:</span></td>
-        <td class="tg-tm6e"><span style="font-weight:bold">{total:.2f}</span></td>
-    </tr>
-    <tr>
-        <td class="tg-q5sf" colspan="5"></td>
-        <td class="tg-e8cb"><span style="font-weight:bold">Gift Card:</span></td>
-        <td class="tg-tm6e"><span style="font-weight:bold">{monto_giftcard:.2f}</span></td>
-    </tr>
-    <tr>
-        <td class="tg-q5sf" colspan="5"></td>
-        <td class="tg-e8cb"><span style="font-weight:bold">Monto a Pagar:</span></td>
-        <td class="tg-tm6e"><span style="font-weight:bold">{total_final:.2f}</span></td>
-    </tr>
-    <tr>
-        <td class="tg-q5sf" colspan="5"></td>
-        <td class="tg-6l70"><span style="font-weight:bold">Imp. Base Cred. Fiscal:</span></td>
-        <td class="tg-tm6e"><span style="font-weight:bold">{monto_total_sujeto_iva:.2f}</span></td>
-    </tr>
-    <tr>
-        <td class="tg-n17z" colspan="5"><span class="tg-q5sf">ESTA FACTURA CONTRIBUYE AL DESARROLLO DEL PAÍS, EL USO ILÍCITO SERÁ SANCIONADO PENALMENTE DE ACUERDO A LEY</span><br><br><span style="font-weight:bold">{leyenda}</span><br><br><span class="tg-q5sf">“Este documento es la Representación Gráfica de un Documento Fiscal Digital emitido en una modalidad de facturación en línea”</span></td>
-        <td class="tg-n17z" colspan="2">{{codigo_qr}}</td>
-    </tr>
-    </tbody></table>
-    </body>
-    </html>
-    """
-    return html_content
-
 def get_next_invoice_number():
     try:
         with open("invoice_number.txt", "r") as file:
             numero_factura = int(file.read().strip())
     except FileNotFoundError:
-        logging.warning("Archivo 'invoice_number.txt' no encontrado. Se creará uno nuevo con el número de factura inicial 0.")
+        logger.warning("Archivo 'invoice_number.txt' no encontrado. Se creará uno nuevo con el número de factura inicial 0.")
         numero_factura = 0
     except ValueError as e:
-        logging.error(f"Error de formato en 'invoice_number.txt': {e}")
+        logger.error(f"Error de formato en 'invoice_number.txt': {e}")
         raise ValueError("El archivo 'invoice_number.txt' contiene un valor no válido.")
     except Exception as e:
-        logging.error(f"Error inesperado al leer 'invoice_number.txt': {e}")
+        logger.error(f"Error inesperado al leer 'invoice_number.txt': {e}")
         raise e
     return numero_factura + 1
 
-def increment_invoice_number(numero_factura):
-    try:
-        with open("invoice_number.txt", "w") as file:
-            file.write(str(numero_factura))
-    except Exception as e:
-        logging.error(f"Error al escribir en 'invoice_number.txt': {e}")
-        raise e
+# Esta función ahora está en invoice_manager.py
 
-def save_or_fetch_client_data(codigo_cliente, codigo_tipo_documento_identidad, complemento, email, nombre_razon_social, numero_documento, telefono, message_placeholder):
-    if not nombre_razon_social:
-        message_placeholder.error("❌El campo 'Razón Social' es obligatorio.")
-        return None
-
-    if email and not es_email_valido(email, message_placeholder):
-        message_placeholder.error("❌Por favor, ingrese un email válido.")
-        return None
-
-    if telefono and not es_telefono_valido(telefono):
-        message_placeholder.error("❌Por favor, ingrese un número de teléfono válido.")
-        return None
-
-    cliente_data, error = fetch_cliente(codigo_cliente)
-    if error:
-        session = SessionLocal()
-        try:
-            nuevo_cliente = Cliente(
-                codigo_cliente=numero_documento,  # Set codigo_cliente to numero_documento
-                codigo_tipo_documento_identidad=codigo_tipo_documento_identidad,
-                complemento=complemento,
-                email=email if email else None,
-                nombre_razon_social=nombre_razon_social,
-                numero_documento=numero_documento,
-                telefono=telefono if telefono else None
-            )
-            session.add(nuevo_cliente)
-            session.commit()
-            cliente_data = nuevo_cliente.to_dict()
-        except IntegrityError:
-            session.rollback()
-            message_placeholder.error("❌El cliente ya existe en la base de datos.")
-            return None
-        except Exception as e:
-            session.rollback()
-            message_placeholder.error(f"❌Error al guardar los datos del cliente: {e}")
-            return None
-        finally:
-            session.close()
-    return cliente_data
+# Esta función ahora está in client_manager.py
 
 def get_cufd():
     session = SessionLocal()
@@ -421,167 +184,15 @@ def verificar_y_obtener_cufd(message_placeholder):
     finally:
         session.close()
 
-def load_private_key(private_key_path, password=None):
-    with open(private_key_path, "rb") as key_file:
-        return serialization.load_pem_private_key(key_file.read(), password=password.encode() if password else None)
-
-def load_certificate(cert_path):
-    with open(cert_path, 'rb') as file:
-        return x509.load_pem_x509_certificate(file.read())
-
-def calculate_hash(xml_str):
-    hasher = hashlib.sha256()
-    hasher.update(xml_str.encode('utf-8'))
-    return hasher.hexdigest()
-
-def sign_xml(xml_str, private_key_path, cert_path, cuf):
-    logging.info("Iniciando proceso de firma del XML")
-    xml_str = xml_str.replace('\r\n', '\n')
-
-    original_hash = calculate_hash(xml_str)
-    logging.info(f"Hash del XML original: {original_hash}")
-
-    try:
-        xml_root = etree.fromstring(xml_str.encode('utf-8'))
-        canonical_xml = etree.tostring(xml_root, method="c14n").decode()
-        logging.info("XML canonicalizado exitosamente.")
-    except Exception as e:
-        logging.error(f"Error al parsear o canonicalizar el XML: {e}")
-        traceback.print_exc()
-        return None
-
-    try:
-        digest = hashes.Hash(hashes.SHA256())
-        digest.update(canonical_xml.encode())
-        hash_value = digest.finalize()
-        logging.info(f"Hash del XML: {hash_value.hex()}")
-    except Exception as e:
-        logging.error(f"Error al calcular el hash SHA256: {e}")
-        traceback.print_exc()
-        return None
-
-    try:
-        digest_base64 = base64.b64encode(hash_value).decode()
-        logging.info(f"Hash del XML en Base64: {digest_base64}")
-    except Exception as e:
-        logging.error(f"Error al codificar el hash en Base64: {e}")
-        traceback.print_exc()
-        return None
-
-    try:
-        ds_ns = "http://www.w3.org/2000/09/xmldsig#"
-        signature = etree.Element("{http://www.w3.org/2000/09/xmldsig#}Signature", nsmap={None: ds_ns})
-        signed_info = etree.SubElement(signature, "SignedInfo", nsmap={})
-
-        canonicalization_method = etree.SubElement(signed_info, "CanonicalizationMethod")
-        canonicalization_method.set("Algorithm", "http://www.w3.org/TR/2001/REC-xml-c14n-20010315")
-
-        signature_method = etree.SubElement(signed_info, "SignatureMethod")
-        signature_method.set("Algorithm", "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256")
-
-        reference = etree.SubElement(signed_info, "Reference")
-        reference.set("URI", "")
-
-        transforms = etree.SubElement(reference, "Transforms")
-        transform = etree.SubElement(transforms, "Transform")
-        transform.set("Algorithm", "http://www.w3.org/2000/09/xmldsig#enveloped-signature")
-
-        transform_with_comments = etree.SubElement(transforms, "Transform")
-        transform_with_comments.set("Algorithm", "http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments")
-
-        digest_method = etree.SubElement(reference, "DigestMethod")
-        digest_method.set("Algorithm", "http://www.w3.org/2001/04/xmlenc#sha256")
-
-        digest_value = etree.SubElement(reference, "DigestValue")
-        digest_value.text = digest_base64
-
-        xml_root.append(signature)
-        logging.info("Etiquetas de signature añadidas al XML.")
-    except Exception as e:
-        logging.error(f"Error al adicionar las etiquetas de signature al XML: {e}")
-        traceback.print_exc()
-        return None
-
-    try:
-        signed_info_canonical = etree.tostring(signed_info, method="c14n").decode()
-        logging.info("SignedInfo canonicalizado exitosamente.")
-    except Exception as e:
-        logging.error(f"Error al canonicalizar SignedInfo: {e}")
-        traceback.print_exc()
-        return None
-
-    try:
-        private_key = load_private_key(private_key_path)
-        signature_value = private_key.sign(
-            signed_info_canonical.encode(),
-            padding.PKCS1v15(),
-            hashes.SHA256()
-        )
-        logging.info("SignedInfo firmado exitosamente.")
-    except Exception as e:
-        logging.error(f"Error al firmar SignedInfo: {e}")
-        traceback.print_exc()
-        return None
-
-    try:
-        signature_value_base64 = base64.b64encode(signature_value).decode()
-        logging.info(f"SignatureValue en Base64: {signature_value_base64}")
-    except Exception as e:
-        logging.error(f"Error al codificar SignatureValue en Base64: {e}")
-        traceback.print_exc()
-        return None
-
-    try:
-        signature_value_element = etree.SubElement(signature, "SignatureValue")
-        signature_value_element.text = signature_value_base64
-        logging.info("SignatureValue añadido al XML.")
-    except Exception as e:
-        logging.error(f"Error al adicionar SignatureValue al XML: {e}")
-        traceback.print_exc()
-        return None
-
-    try:
-        certificate = load_certificate(cert_path)
-        key_info = etree.SubElement(signature, "KeyInfo")
-        x509_data = etree.SubElement(key_info, "X509Data")
-        x509_certificate = etree.SubElement(x509_data, "X509Certificate")
-        x509_certificate.text = base64.b64encode(certificate.public_bytes(serialization.Encoding.DER)).decode()
-        logging.info("X509Certificate añadido al XML.")
-    except Exception as e:
-        logging.error(f"Error al adicionar X509Certificate al XML: {e}")
-        traceback.print_exc()
-        return None
-
-    try:
-        signed_xml_str = etree.tostring(xml_root, xml_declaration=True, encoding='UTF-8').decode()
-
-        signed_xml_root = etree.fromstring(signed_xml_str.encode('utf-8'))
-        signature_element = signed_xml_root.find(".//{http://www.w3.org/2000/09/xmldsig#}Signature")
-        if signature_element is not None:
-            signed_xml_root.remove(signature_element)
-        else:
-            return None
-
-        signed_xml_canonical = etree.tostring(signed_xml_root, method="c14n").decode()
-        signed_hash = calculate_hash(signed_xml_canonical)
-        logging.info(f"Hash del XML firmado (sin nodo de firma): {signed_hash}")
-
-        if signed_hash == hash_value.hex():
-            logging.info("El XML no se ha modificado después de la firma.")
-        else:
-            logging.warning("El XML se ha modificado después de la firma.")
-
-        return signed_xml_str
-    except Exception as e:
-        logging.error(f"Error al devolver el XML firmado: {e}")
-        traceback.print_exc()
-        return None
+# Se elimina la función local load_private_key porque ya está implementada y centralizada en xml_signer.py
+# Si necesitas usarla, impórtala directamente: from xml_signer import load_private_key
 
 
 with open('verifica_stream.py', 'r') as file:
     file_content = file.read()
-with open('cuis.py', 'r') as file:
-    file_content += file.read()
+# Eliminando la lectura de cuis.py ya que estamos importando el módulo directamente
+# with open('cuis.py', 'r') as file:
+#     file_content += file.read()
 @st.cache_data
 def render_sidebar():
     # Toda la lógica relacionada con st.sidebar aquí
@@ -600,102 +211,81 @@ def render_sidebar():
 
     return numero_documento, nit_valido, nombre_cliente, complemento, email, telefono, seleccion_tipo_documento, codigo_clasificador_documento, codigo_clasificador_metodo_pago, ultimos_digitos_tarjeta, codigo_cliente
 
-def initialize_print_state():
-    keys_defaults = {
-        'print_status': "⏳ Procesando...",
-        'datos_impresion': {},
-        'cuf': None,
-        'ultima_factura': None
-    }
-    for key, default in keys_defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = default
-
-def reiniciar_estados():
-    keys_to_reset = [
-        'factura_validada', 'print_status', 'datos_impresion', 
-        'cuf', 'ultima_factura'
-    ]
-    for key in keys_to_reset:
-        if key in st.session_state:
-            del st.session_state[key]
-
-def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
-    """
-    Crea un hilo para manejar la impresión de la factura y generación del PDF.
-
-    Args:
-        html_content_orig (str): Contenido HTML original de la factura.
-        cuf (str): Código Único de Facturación.
-        nit (str): NIT del emisor.
-        numero_factura (str): Número de factura.
-    """
-    def imprimir():
-        try:
-            logging.info(f"Iniciando proceso de impresión para factura {numero_factura}")
-
-            # Actualizar HTML con CUF
-            html_content = html_content_orig.replace("{cuf}", cuf)
-
-            # Guardar HTML para debug y referencia
-            debug_path = "debug_factura_.html"
-            with open(debug_path, "w", encoding="utf-8") as f:
-                f.write(html_content)
-                f.flush()
-                os.fsync(f.fileno())  # Asegurar escritura al disco
-            logging.info(f"HTML guardado en {debug_path}")
-
-            # Intentar generar el PDF
-            try:
-                output_pdf_path = f"pdfs/factura_{numero_factura}_{nit}_{cuf}.pdf"
-                html_to_pdf(html_content, output_pdf_path)
-                logging.info(f"PDF generado exitosamente: {output_pdf_path}")
-            except Exception as e:
-                raise Exception(f"Error al generar PDF: {str(e)}")
-
-            # Proceder con la impresión térmica
-            try:
-                printer = ThermalPrinter()
-                success = printer.print_invoice(html_content, nit, cuf, numero_factura)
-                if success:
-                    st.session_state['print_status'] = "✅ Impresión completada exitosamente"
-                else:
-                    raise Exception("Error durante la impresión térmica")
-            except Exception as e:
-                raise Exception(f"Error en impresión térmica: {str(e)}")
-        except Exception as e:
-            error_msg = f"❌ Error general: {str(e)}"
-            logging.error(error_msg)
-            st.session_state['print_status'] = error_msg
-
-    # Crear y ejecutar el hilo
-    hilo = threading.Thread(
-        target=imprimir,
-        name=f"impresion_factura_{numero_factura}",
-        daemon=False
-    )
-    hilo.start()
-    return hilo
-
-def monitorear_hilo_impresion(hilo):
+# Estas funciones ahora están en print_manager.py def monitorear_hilo_impresion(hilo):
     try:
+        # Crear un placeholder para actualizar el mensaje de estado
+        status_placeholder = st.empty()
+        
+        # Obtener el número de factura del nombre del hilo
+        numero_factura = hilo.name.split('_')[-1]
+        complete_signal = f"debug/print_complete_{numero_factura}.signal"
+        error_signal = f"debug/print_error_{numero_factura}.signal"
+        
         timeout = 30  # Tiempo máximo de espera en segundos
         start_time = time.time()
-        while hilo.is_alive():
+        
+        # Mostrar mensaje inicial
+        status_placeholder.info("⏳ Procesando...")
+        
+        # Mientras el hilo está activo y no hay señal de finalización
+        while (hilo.is_alive() or st.session_state.get('impresion_en_progreso', False)):
+            # Verificar si hay archivos de señal que indiquen finalización
+            if os.path.exists(complete_signal):
+                st.session_state['print_status'] = "✅ Impresión completada exitosamente"
+                st.session_state['impresion_en_progreso'] = False
+                try:
+                    os.remove(complete_signal)  # Limpiar la señal
+                except:
+                    pass
+                break
+                
+            if os.path.exists(error_signal):
+                try:
+                    with open(error_signal, 'r') as f:
+                        error_info = f.read().strip()
+                except:
+                    error_info = "Error desconocido durante la impresión"
+                
+                st.session_state['print_status'] = f"❌ {error_info}"
+                st.session_state['impresion_en_progreso'] = False
+                try:
+                    os.remove(error_signal)  # Limpiar la señal
+                except:
+                    pass
+                break
+            # Verificar timeout
             elapsed_time = time.time() - start_time
             if elapsed_time > timeout:
-                st.session_state['print_status'] = "❌ Tiempo de espera excedido para la impresión."
+                st.session_state['print_status'] = "⚠️ Tiempo de espera excedido, pero el proceso continúa en segundo plano."
+                st.session_state['impresion_en_progreso'] = False
+                printer_logger.warning(f"Tiempo de espera excedido al monitorear hilo de impresión {hilo.name}")
                 break
+                
+            # Obtener el estado actual y actualizar el placeholder (sin duplicar mensajes)
             print_status = st.session_state.get('print_status', "⏳ Procesando...")
-            st.info(print_status)
+            status_placeholder.info(print_status)
+            
+            # Breve pausa para no sobrecargar la UI
             time.sleep(0.5)
-        # Verificar estado final del hilo
-        print_status = st.session_state.get('print_status', "❓ Estado desconocido.")
-        if print_status == "❓ Estado desconocido.":
-            st.session_state['print_status'] = "❌ El proceso no se completó correctamente."
+        
+        # Verificar estado final una vez que el hilo ha terminado
+        final_status = st.session_state.get('print_status', "❓ Estado desconocido.")
+        
+        # Actualizar el placeholder una última vez con el estado final
+        if "✅" in final_status:
+            status_placeholder.success(final_status)
+        elif "❌" in final_status:
+            status_placeholder.error(final_status)
+        else:
+            status_placeholder.warning(final_status)
+            
     except Exception as e:
-        st.session_state['print_status'] = f"❌ Error durante el monitoreo del hilo: {str(e)}"
-        logging.exception("Error en monitorear_hilo_impresion")
+        st.error(f"❌ Error durante el monitoreo del proceso: {str(e)}")
+        printer_logger.exception("Error en monitorear_hilo_impresion")
+        st.session_state['impresion_en_progreso'] = False
+
+# Esta función ahora está en invoice_manager.py
+
 def main():
     message_placeholder = st.empty()
     # Definición de las pestañas
@@ -707,7 +297,21 @@ def main():
     # Pestaña 2: Ver Facturas Generadas
     with tab2:
         st.header("Facturas Generadas")
-        st.write("Aquí se mostrarán las facturas generadas.")   
+        
+        # Crear pestañas para diferentes estados de facturas
+        facturas_tabs = st.tabs(["Todas", "Pendientes", "Validadas", "Anuladas"])
+        
+        with facturas_tabs[0]:
+            mostrar_lista_facturas("TODAS")
+        
+        with facturas_tabs[1]:
+            mostrar_lista_facturas("PENDIENTE")
+            
+        with facturas_tabs[2]:
+            mostrar_lista_facturas("VALIDADA")
+            
+        with facturas_tabs[3]:
+            mostrar_lista_facturas("ANULADA")
     
     # Pestaña 3: Validar NIT
     with tab3:
@@ -867,7 +471,7 @@ def main():
                 telefono = st.sidebar.text_input("Teléfono:", key="telefono")
 
                 if seleccion_tipo_documento == "NIT - NÚMERO DE IDENTIFICACIÓN TRIBUTARIA":
-                    valido, mensaje = verificar_nit(numero_documento)
+                    valido, mensaje = verificar_nit_cliente(numero_documento, message_placeholder)
                     if valido:
                         message_placeholder.success(f"✔️ NIT válido: {mensaje}")
                         nit_valido = True
@@ -965,7 +569,11 @@ def main():
         lineas_productos = []
 
     fecha_emision = datetime.now()
+    # Este formato se usa para el XML y comunicación con SIAT (ISO 8601 con milisegundos)
     fecha_emision_str = fecha_emision.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
+    
+    # Para mostrar en la interfaz y factura impresa se usa el formato:
+    fecha_emision_display = fecha_emision.strftime("%d/%m/%Y %H:%M:%S")
     numero_factura = get_next_invoice_number()
 
     ACTIVIDAD_ECONOMICA = os.getenv('ACTIVIDAD_ECONOMICA')
@@ -976,7 +584,7 @@ def main():
     with tab1:
         html_invoice = generate_html_invoice(
             subtotal, descuento_adicional, monto_giftcard, lineas_productos,
-            nombre_cliente, fecha_emision_str, numero_factura, seleccion_metodo_pago,
+            nombre_cliente, fecha_emision_display, numero_factura, seleccion_metodo_pago,
             codigo_clasificador_metodo_pago, seleccion_tipo_documento,
             codigo_clasificador_documento, numero_documento, complemento,
             email, telefono, ultimos_digitos_tarjeta
@@ -1043,116 +651,93 @@ def main():
                             hash_archivo = obtener_hash(gzip_path)
                             response = enviar_solicitud(filename, xsd_main_path, fecha_emision_str, cufd)
 
+                            # Envío y procesamiento de la respuesta
                             if isinstance(response, dict) and response.get("error"):
                                 message_placeholder.error(f"❌Error al enviar la factura: {response['error']}")
                             else:
                                 try:
-                                    root = ET.fromstring(response.content)
-                                    ns = {'soap': 'http://schemas.xmlsoap.org/soap/envelope/', 'ns2': 'https://siat.impuestos.gob.bo/'}
-                                    respuesta_servicio = root.find('.//RespuestaServicioFacturacion')
+                                    # Usar el nuevo manejador de respuestas
+                                    success, response_data = parse_siat_response(response.content)
                                     
-                                    if respuesta_servicio is not None:
-                                        codigo_descripcion = respuesta_servicio.find('codigoDescripcion')
-                                        codigo_estado = respuesta_servicio.find('codigoEstado')
-                                        codigo_recepcion = respuesta_servicio.find('codigoRecepcion')
-                                        transaccion = respuesta_servicio.find('transaccion')
+                                    if success:
+                                        # Mostrar la respuesta apropiadamente
+                                        transaccion_exitosa = display_siat_response(response_data, message_placeholder)
                                         
-                                        if all([codigo_descripcion is not None, codigo_estado is not None, 
-                                                codigo_recepcion is not None, transaccion is not None]):
+                                        if transaccion_exitosa:
+                                            # Almacenar datos en session_state
+                                            st.session_state['cuf'] = cuf
+                                            st.session_state['ultima_factura'] = numero_factura
+                                            st.session_state['factura_validada'] = True
+                                            st.session_state['datos_impresion'] = {
+                                                'subtotal': subtotal,
+                                                'descuento_adicional': descuento_adicional,
+                                                'monto_giftcard': monto_giftcard,
+                                                'lineas_productos': lineas_productos,
+                                                'nombre_cliente': nombre_cliente,
+                                                'fecha_emision_str': fecha_emision_display, 
+                                                'seleccion_metodo_pago': seleccion_metodo_pago,
+                                                'codigo_clasificador_metodo_pago': codigo_clasificador_metodo_pago,
+                                                'seleccion_tipo_documento': seleccion_tipo_documento,
+                                                'codigo_clasificador_documento': codigo_clasificador_documento,
+                                                'numero_documento': numero_documento,
+                                                'complemento': complemento,
+                                                'email': email,
+                                                'telefono': telefono,
+                                                'ultimos_digitos_tarjeta': ultimos_digitos_tarjeta
+                                            }                                            # Guardar factura en base de datos
+                                            # Asignar explícitamente tipoEmision=1 para factura online (normal)
+                                            factura_cabecera_data['tipoEmision'] = "1"  # Tipo emisión online/normal
                                             
-                                            codigo_descripcion = codigo_descripcion.text
-                                            codigo_estado = codigo_estado.text
-                                            codigo_recepcion = codigo_recepcion.text
-                                            transaccion = transaccion.text.lower() == 'true'
-                                            
-                                            if transaccion:
-                                                message_placeholder.success(f""":heavy_check_mark: FACTURA {codigo_descripcion}""")
-                                                
-                                                # Almacenar datos en session_state
-                                                st.session_state['cuf'] = cuf
-                                                st.session_state['ultima_factura'] = numero_factura
-                                                st.session_state['factura_validada'] = True
-                                                st.session_state['datos_impresion'] = {
-                                                    'subtotal': subtotal,
-                                                    'descuento_adicional': descuento_adicional,
-                                                    'monto_giftcard': monto_giftcard,
-                                                    'lineas_productos': lineas_productos,
-                                                    'nombre_cliente': nombre_cliente,
-                                                    'fecha_emision_str': fecha_emision_str,
-                                                    'seleccion_metodo_pago': seleccion_metodo_pago,
-                                                    'codigo_clasificador_metodo_pago': codigo_clasificador_metodo_pago,
-                                                    'seleccion_tipo_documento': seleccion_tipo_documento,
-                                                    'codigo_clasificador_documento': codigo_clasificador_documento,
-                                                    'numero_documento': numero_documento,
-                                                    'complemento': complemento,
-                                                    'email': email,
-                                                    'telefono': telefono,
-                                                    'ultimos_digitos_tarjeta': ultimos_digitos_tarjeta
-                                                }
+                                            is_valid, error_message = validar_factura_cabecera(factura_cabecera_data)
+                                            if is_valid:
+                                                guardar_factura_cabecera(factura_cabecera_data)
+                                                increment_invoice_number(numero_factura)
+                                            else:
+                                                message_placeholder.error(error_message)
+                                                return
 
-                                                # Guardar factura en base de datos
-                                                is_valid, error_message = validar_factura_cabecera(factura_cabecera_data)
+                                            for detalle in detalles_data:
+                                                is_valid, error_message = validar_factura_detalle(detalle)
                                                 if is_valid:
-                                                    guardar_factura_cabecera(factura_cabecera_data)
-                                                    increment_invoice_number(numero_factura)
+                                                    guardar_factura_detalle(detalle)
                                                 else:
                                                     message_placeholder.error(error_message)
                                                     return
-
-                                                for detalle in detalles_data:
-                                                    is_valid, error_message = validar_factura_detalle(detalle)
-                                                    if is_valid:
-                                                        guardar_factura_detalle(detalle)
-                                                    else:
-                                                        message_placeholder.error(error_message)
-                                                        return
-                                            else:
-                                                mensajes_list = respuesta_servicio.find('mensajesList')
-                                                error_message = "❌La factura no fue procesada correctamente."
-                                                if mensajes_list is not None:
-                                                    for mensaje in mensajes_list:
-                                                        codigo = mensaje.find('codigo')
-                                                        descripcion = mensaje.find('descripcion')
-                                                        if codigo is not None and descripcion is not None:
-                                                            error_message += f"\nCódigo: {codigo.text}, Descripción: {descripcion.text}"
-                                                    
-                                                    message_placeholder.error(f"""{error_message}
-                                                        Código de recepción: {codigo_recepcion}\n
-                                                        Descripción: {codigo_descripcion}\n
-                                                        Estado: {codigo_estado}\n
-                                                    """)
-                                                else:
-                                                    message_placeholder.error("❌La respuesta del servicio no contiene todos los campos esperados.")
-                                                    st.write("Contenido de la respuesta:", response.content)
                                     else:
-                                        message_placeholder.error("❌No se pudo encontrar RespuestaServicioFacturacion en la respuesta XML.")
-                                        st.write("Contenido de la respuesta:", response.content)
-                                except ET.ParseError as e:
-                                    message_placeholder.error(f"❌Error al parsear la respuesta XML: {str(e)}")
-                                    st.write("Contenido de la respuesta:", response.content)
+                                        # El parser ya reportó el error
+                                        facturacion_logger.error(f"Error al procesar respuesta: {response_data.get('error')}")
+                                        if 'xml_content' in response_data:
+                                            xml_logger.error(f"Contenido XML problemático: {response_data['xml_content'][:500]}...")
                                 except Exception as e:
-                                    message_placeholder.error(f"❌Error inesperado al procesar la respuesta: {str(e)}")
-                                    if 'response' in locals():
-                                        st.write("Contenido de la respuesta:", response.content)
+                                    message_placeholder.error(f"❌Error al procesar la respuesta: {str(e)}")
+                                    facturacion_logger.exception("Error inesperado al procesar respuesta")
                     except Exception as e:
                         message_placeholder.error(f"❌Error en el proceso de facturación: {str(e)}")
                         logging.exception("Error en facturación")
-                else:
+                else:   
                     message_placeholder.error("❌Por favor, complete todos los campos requeridos.")
 
         with col2:
-    # Asegurarse de que el estado esté inicializado
+            # Asegurarse de que el estado esté inicializado
             initialize_print_state()
 
             if st.session_state.get('factura_validada'):
-                if st.button("Imprimir Factura"):
+                # Determinar si el botón de imprimir debe estar desactivado
+                impresion_en_progreso = st.session_state.get('impresion_en_progreso', False)
+                
+                if st.button("Imprimir Factura", disabled=impresion_en_progreso):
                     try:
+                        # Marcar que la impresión está en progreso
+                        st.session_state['impresion_en_progreso'] = True
+                        st.session_state['print_status'] = "⏳ Procesando..."
+                        
                         # Validar que las claves necesarias estén presentes
                         required_keys = ['datos_impresion', 'cuf', 'ultima_factura']
                         missing_keys = [key for key in required_keys if key not in st.session_state]
                         if missing_keys:
-                            st.error(f"❌ Faltan datos necesarios para la impresión: {', '.join(missing_keys)}")
-                            logging.error(f"Faltan claves requeridas en session_state: {missing_keys}")
+                            st.session_state['print_status'] = f"❌ Faltan datos necesarios: {', '.join(missing_keys)}"
+                            st.session_state['impresion_en_progreso'] = False
+                            printer_logger.error(f"Faltan claves requeridas en session_state: {missing_keys}")
                         else:
                             # Generar contenido HTML para la factura
                             datos = st.session_state['datos_impresion']
@@ -1175,6 +760,7 @@ def main():
                                 ultimos_digitos_tarjeta=datos.get('ultimos_digitos_tarjeta'),
                                 cuf=st.session_state['cuf']
                             )
+                            
                             # Iniciar el hilo de impresión
                             hilo_impresion = imprimir_en_hilo(
                                 html_content,
@@ -1182,35 +768,29 @@ def main():
                                 os.getenv('NIT'),
                                 st.session_state['ultima_factura']
                             )
+                            
                             # Monitorear el estado del hilo
-                            monitorear_hilo_impresion(hilo_impresion)
-
-                            # Manejar el resultado de la impresión
-                            print_status = st.session_state.get('print_status', "")
-                            if "✅" in print_status:
-                                st.success(print_status)
-                                if st.button("Generar Nueva Factura"):
-                                    reiniciar_estados()
-                                    st.experimental_rerun()
-                            elif "❌" in print_status:
-                                st.error(print_status)
-                                if st.button("Generar Nueva Factura"):
-                                    reiniciar_estados()
-                                    st.experimental_rerun()
+                            # La función de monitoreo ahora está incorporada en imprimir_en_hilo
                     except Exception as e:
-                        st.error(f"❌ Error durante la impresión: {str(e)}")
-                        logging.exception("Error en el proceso de impresión")
-
-
-
-
+                        st.session_state['print_status'] = f"❌ Error: {str(e)}"
+                        st.session_state['impresion_en_progreso'] = False
+                        printer_logger.exception("Error en el proceso de impresión")
+                
+                # Mostrar un botón para generar nueva factura si la impresión está completa o ha fallado
+                if st.session_state.get('print_status') and not st.session_state.get('impresion_en_progreso', False):
+                    if st.button("Generar Nueva Factura"):
+                        reiniciar_estados()
+                        # Usar st.rerun() en lugar de st.experimental_rerun()
+                        st.rerun()
+        
         with col3:
             if st.session_state.get('factura_validada'):
                 nit_emisor = int(os.getenv('NIT'))
                 enlace = generate_invoice_link(nit_emisor, st.session_state['cuf'], st.session_state['ultima_factura'])
                 st.link_button("Consultar factura", enlace)
 
-
-if __name__ == "__main__":
-    initialize_print_state()
-    main()
+# Esta función ahora está en invoice_manager.py
+    
+    if __name__ == "__main__":
+        initialize_print_state()
+        main()

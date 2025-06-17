@@ -1,9 +1,9 @@
 @echo off
-:: Cambiar al directorio principal (donde está app.py de FastAPI)
+:: Cambiar al directorio principal (donde está api.py de FastAPI)
 cd /d %~dp0
 
-:: Iniciar FastAPI desde el directorio actual
-start cmd /k "uvicorn main:app --reload"
+:: Iniciar FastAPI desde el directorio actual (usando api.py en lugar de main.py)
+start cmd /k "uvicorn api:app --reload"
 
 :: Cambiar al subdirectorio de Streamlit
 cd facturador

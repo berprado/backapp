@@ -2,7 +2,7 @@
 
 ## Introducción
 
-El sistema de facturación es una aplicación compleja que maneja la generación, validación e impresión de facturas electrónicas. Esta guía te ayudará a comprender cómo funciona cada parte del sistema y cómo interactúan entre sí.
+El sistema de facturación es una aplicación compleja que maneja la generación, validación e impresión de facturas electrónicas. Esta guía te ayudará a comprender cómo funciona cada parte del sistema.
 
 ## 1. La Estructura del Sistema
 

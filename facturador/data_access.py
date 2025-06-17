@@ -1,6 +1,10 @@
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Agregar la ruta del directorio padre al path de Python si no está ya
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if (parent_dir not in sys.path):
+    sys.path.append(parent_dir)
+
 import random
 import requests
 import streamlit as st
@@ -14,27 +18,35 @@ from typing import List, Dict, Union
 from sqlalchemy.exc import SQLAlchemyError
 import logging
 from sqlalchemy.orm import Session
+from sqlalchemy import inspect
 from datetime import datetime
 from zeep import Client
+from logger_config import get_logger
+import traceback
 
+# Obtener logger para este módulo
+logger = get_logger()
 
-
+# Configurar logging básico - NO REPETIR ESTO
 logging.basicConfig(level=logging.DEBUG, 
                     format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
                     filename='invoice_log.log')
+# Cargar variables de entorno solo una vez
 load_dotenv()
+# Definir metadata y engine solo una vez
 metadata = MetaData()
 engine = create_engine(URL_DATABASE)
-# Create the engine to connect to the database
-
 
 @st.cache_resource
 def fetch_comandas():
     try:
+        logger.info("Obteniendo comandas")
         response = requests.get(f"{ENDPOINT_URL}")
         response.raise_for_status()
         return response.json(), None
     except requests.exceptions.RequestException as e:
+        logger.error(f"Error al obtener comandas: {e}")
+        logger.error(traceback.format_exc())
         return [], f"Error al obtener los id_comanda: {e}"
 
 @st.cache_data
@@ -110,58 +122,86 @@ def guardar_factura_cabecera(cabecera: Dict[str, Union[str, float, int]]) -> Non
 
     session = SessionLocal()
     try:
-        query = FacturaCabecera.__table__.insert().values(
-            nitEmisor=cabecera['nitEmisor'],
-            razonSocialEmisor=cabecera['razonSocialEmisor'],
-            municipio=cabecera['municipio'],
-            telefono=cabecera['telefono'],
-            numeroFactura=cabecera['numeroFactura'],
-            cuf=cabecera['cuf'],
-            cufd=cabecera['cufd'],
-            codigoSucursal=cabecera['codigoSucursal'],
-            direccion=cabecera['direccion'],
-            codigoPuntoVenta=cabecera['codigoPuntoVenta'],
-            fechaEmision=cabecera['fechaEmision'],
-            nombreRazonSocial=cabecera['nombreRazonSocial'],
-            codigoTipoDocumentoIdentidad=cabecera['codigoTipoDocumentoIdentidad'],
-            numeroDocumento=cabecera['numeroDocumento'],
-            complemento=cabecera['complemento'],
-            codigoCliente=cabecera['codigoCliente'],
-            codigoMetodoPago=cabecera['codigoMetodoPago'],
-            numeroTarjeta=cabecera['numeroTarjeta'],
-            montoTotal=cabecera['montoTotal'],
-            montoTotalSujetoIva=cabecera['montoTotalSujetoIva'],
-            codigoMoneda=cabecera.get('codigoMoneda', 1),
-            tipoCambio=cabecera.get('tipoCambio', 1.00),
-            montoTotalMoneda=cabecera['montoTotalMoneda'],
-            montoGiftCard=cabecera.get('montoGiftCard'),
-            descuentoAdicional=cabecera.get('descuentoAdicional', 0.00),
-            codigoExcepcion=cabecera.get('codigoExcepcion'),
-            cafc=cabecera.get('cafc'),
-            leyenda=cabecera['leyenda'],
-            usuario=cabecera['usuario'],
-            codigoDocumentoSector=cabecera.get('codigoDocumentoSector', 1),
-            estadoValidacion=cabecera.get('estadoValidacion', 'VALIDADA'),
-            fechaCreacion=cabecera.get('fechaCreacion', 'CURRENT_TIMESTAMP'),
-            creadoPor=cabecera.get('creadoPor', 'ADMIN'),
-            fechaActualizacion=cabecera.get('fechaActualizacion', 'CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'),
-            actualizadoPor=cabecera.get('actualizadoPor', 'ADMIN'),
-            detallesFirmaDigital=cabecera.get('detallesFirmaDigital'),
-            mensajeError=cabecera.get('mensajeError'),
-            fechaValidacion=cabecera.get('fechaValidacion'),
-            resultadoValidacion=cabecera.get('resultadoValidacion'),
-            estadoFirma=cabecera.get('estadoFirma', 'Pendiente'),
-            mensajeErrorFirma=cabecera.get('mensajeErrorFirma'),
-            fechaErrorFirma=cabecera.get('fechaErrorFirma'),
-            intentosFirma=cabecera.get('intentosFirma', 0),
-            estado=cabecera.get('estado', 'Activa'),
-            fechaAnulacion=cabecera.get('fechaAnulacion'),
-            anuladaPor=cabecera.get('anuladaPor'),
-            motivoAnulacion=cabecera.get('motivoAnulacion')
-        )
+        # Crear un diccionario con los valores básicos que sabemos que existen en la tabla
+        values = {
+            "nitEmisor": cabecera['nitEmisor'],
+            "razonSocialEmisor": cabecera['razonSocialEmisor'],
+            "municipio": cabecera['municipio'],
+            "telefono": cabecera['telefono'],
+            "numeroFactura": cabecera['numeroFactura'],
+            "cuf": cabecera['cuf'],
+            "cufd": cabecera['cufd'],
+            "codigoSucursal": cabecera['codigoSucursal'],
+            "direccion": cabecera['direccion'],
+            "codigoPuntoVenta": cabecera['codigoPuntoVenta'],
+            "fechaEmision": cabecera['fechaEmision'],
+            "nombreRazonSocial": cabecera['nombreRazonSocial'],
+            "codigoTipoDocumentoIdentidad": cabecera['codigoTipoDocumentoIdentidad'],
+            "numeroDocumento": cabecera['numeroDocumento'],
+            "complemento": cabecera['complemento'],
+            "codigoCliente": cabecera['codigoCliente'],
+            "codigoMetodoPago": cabecera['codigoMetodoPago'],
+            "numeroTarjeta": cabecera['numeroTarjeta'],
+            "montoTotal": cabecera['montoTotal'],
+            "montoTotalSujetoIva": cabecera['montoTotalSujetoIva'],
+            "codigoMoneda": cabecera.get('codigoMoneda', 1),
+            "tipoCambio": cabecera.get('tipoCambio', 1.00),
+            "montoTotalMoneda": cabecera['montoTotalMoneda'],
+            "montoGiftCard": cabecera.get('montoGiftCard'),
+            "descuentoAdicional": cabecera.get('descuentoAdicional', 0.00),
+            "codigoExcepcion": cabecera.get('codigoExcepcion'),
+            "cafc": cabecera.get('cafc'),
+            "leyenda": cabecera['leyenda'],
+            "usuario": cabecera['usuario'],
+            "codigoDocumentoSector": cabecera.get('codigoDocumentoSector', 1),
+            "estadoValidacion": cabecera.get('estadoValidacion', 'VALIDADA'),
+            "fechaCreacion": datetime.now(),  # Usar datetime en lugar de string
+            "creadoPor": cabecera.get('creadoPor', 'ADMIN'),
+            "actualizadoPor": cabecera.get('actualizadoPor', 'ADMIN'),
+            "detallesFirmaDigital": cabecera.get('detallesFirmaDigital'),
+            "mensajeError": cabecera.get('mensajeError'),
+            "fechaValidacion": cabecera.get('fechaValidacion'),
+            "resultadoValidacion": cabecera.get('resultadoValidacion'),
+            "estadoFirma": cabecera.get('estadoFirma', 'Pendiente'),
+            "mensajeErrorFirma": cabecera.get('mensajeErrorFirma'),
+            "fechaErrorFirma": cabecera.get('fechaErrorFirma'),
+            "intentosFirma": cabecera.get('intentosFirma', 0),
+            "estado": cabecera.get('estado', 'Activa'),
+            "fechaAnulacion": cabecera.get('fechaAnulacion'),
+            "anuladaPor": cabecera.get('anuladaPor'),
+            "motivoAnulacion": cabecera.get('motivoAnulacion'),
+            "enlaceSiat": cabecera.get('enlaceSiat'),
+            "codigoRecepcion": cabecera.get('codigoRecepcion')
+        }
+
+        # Intentar añadir campos de contingencia si existen en la tabla
+        try:
+            # Verificar si las columnas existen en la tabla
+            insp = inspect(engine)
+            columns = insp.get_columns('factura_cabecera')
+            column_names = [col['name'] for col in columns]
+            
+            # Solo añadir columnas que existen en la tabla
+            contingency_fields = [
+                'tipoEmision', 'codigoEvento', 'descripcionEvento', 'fechaInicioEvento',
+                'fechaFinEvento', 'idPaquete', 'estadoPaquete', 'numeroSecuencia',
+                'estadoContingencia', 'fechaSincronizacion'
+            ]
+            
+            for field in contingency_fields:
+                if field in column_names and field in cabecera:
+                    values[field] = cabecera.get(field)
+            
+            logging.debug(f"Campos de contingencia detectados y añadidos: {[f for f in contingency_fields if f in column_names]}")
+        except Exception as e:
+            logging.warning(f"No se pudieron verificar columnas de contingencia: {str(e)}")
+            # Continuar sin añadir campos de contingencia
+
+        # Ejecutar la inserción con los campos que sabemos que existen
+        query = FacturaCabecera.__table__.insert().values(**values)
         session.execute(query)
         session.commit()
-        logging.info(f"Cabecera almacenada exitosamente: {cabecera}")
+        logging.info(f"Cabecera almacenada exitosamente: {cabecera['numeroFactura']}")
     except SQLAlchemyError as e:
         session.rollback()
         logging.error(f"Error al guardar la cabecera de la factura: {e}")
@@ -179,7 +219,7 @@ def guardar_factura_detalle(detalle: Dict[str, Union[str, float, int]]) -> None:
     # Crear una nueva sesión
     session = SessionLocal()
     try:
-        query = factura_detalle_table.insert().values(
+        nuevo_detalle = FacturaDetalle(
             numeroFactura=detalle['numeroFactura'],
             actividadEconomica=detalle.get('actividadEconomica', '56110'),
             codigoProductoSin=detalle.get('codigoProductoSin', 99100),
@@ -190,28 +230,25 @@ def guardar_factura_detalle(detalle: Dict[str, Union[str, float, int]]) -> None:
             precioUnitario=detalle['precioUnitario'],
             montoDescuento=detalle.get('montoDescuento', 0.00),
             subTotal=detalle['subTotal'],
-            numeroSerie=detalle['numeroSerie'] if detalle['numeroSerie'] is not None else None,
-            numeroImei=detalle['numeroImei'] if detalle['numeroImei'] is not None else None
+            numeroSerie=detalle['numeroSerie'] if detalle.get('numeroSerie') is not None else None,
+            numeroImei=detalle['numeroImei'] if detalle.get('numeroImei') is not None else None
         )
-        with session.begin():
-            session.execute(query)
-        session.commit()  # Confirmar la transacción
+        session.add(nuevo_detalle)
+        session.commit()
         logging.info(f"Detalle almacenado exitosamente: {detalle}")
     except SQLAlchemyError as e:
-        session.rollback()  # Revertir la transacción en caso de error
+        session.rollback()
         logging.error(f"Error al guardar el detalle de la factura: {e}")
         raise
     finally:
         session.close()
-
-
 
 def obtener_nombre_unidad_medida(codigo_producto: str, db: Session) -> str:
     try:
         producto = db.query(ProductoSiat).filter(ProductoSiat.codigo == codigo_producto).first()
         if producto and producto.unidad_medida:
             return producto.unidad_medida
-        return "Unidad."  # Valor por defecto si la unidad no se encuentra
+        return "Unidadxxx."  # Valor por defecto si la unidad no se encuentra
     except SQLAlchemyError as e:
         logging.error(f"Error al obtener el nombre de la unidad de medida: {e}")
         return "Error"
@@ -383,6 +420,101 @@ def obtener_cuf_por_numero_factura(numero_factura):
         else:
             return None, None
     except Exception as e:
-        return None, str(e)
+        logger.error(f"Error al consultar factura #{numero_factura}: {str(e)}")
+        logger.error(traceback.format_exc())
+        return None, None  # Devolver None, None en lugar de None, str(e)
+    finally:
+        session.close()
+
+# Nueva función para obtener facturas pendientes de validación
+@st.cache_data(ttl=60)  # Caché por 60 segundos para no sobrecargar la BD
+def obtener_facturas_por_estado(estado=None, page=1, per_page=10):
+    """
+    Obtiene facturas filtradas por estado de validación.
+    
+    Args:
+        estado: Estado de validación a filtrar ('PENDIENTE', 'VALIDADA', 'ANULADA' o None para todas)
+        page: Número de página para paginación
+        per_page: Cantidad de registros por página
+        
+    Returns:
+        tuple: (facturas, total_registros, mensaje_error)
+    """
+    session = SessionLocal()
+    try:
+        query = session.query(FacturaCabecera)
+        
+        # Aplicar filtros según el estado solicitado
+        if estado == "PENDIENTE":
+            query = query.filter(FacturaCabecera.resultadoValidacion.is_(None))
+        elif estado == "VALIDADA":
+            query = query.filter(FacturaCabecera.resultadoValidacion == "VALIDADA")
+        elif estado == "ANULADA":
+            # Una factura puede tener estado "Anulada" o resultadoValidacion "ANULADA"
+            query = query.filter((FacturaCabecera.estado == "Anulada") | 
+                                 (FacturaCabecera.resultadoValidacion == "ANULADA"))
+        
+        # Obtener el conteo total de registros para la paginación
+        total = query.count()
+        
+        # Aplicar ordenamiento y paginación
+        facturas = query.order_by(FacturaCabecera.fechaEmision.desc())\
+                        .offset((page - 1) * per_page)\
+                        .limit(per_page)\
+                        .all()
+        
+        # Convertir a diccionarios para usar en la interfaz
+        facturas_dict = [
+            {
+                "numeroFactura": f.numeroFactura,
+                "cuf": f.cuf,
+                "fechaEmision": f.fechaEmision,
+                "nombreRazonSocial": f.nombreRazonSocial,
+                "numeroDocumento": f.numeroDocumento,
+                "montoTotal": float(f.montoTotal),
+                "estadoValidacion": f.estadoValidacion,
+                "resultadoValidacion": f.resultadoValidacion,
+                "estado": f.estado
+            } for f in facturas
+        ]
+        
+        return facturas_dict, total, None
+    except Exception as e:
+        logger.error(f"Error al obtener facturas: {str(e)}")
+        logger.error(traceback.format_exc())
+        return [], 0, f"Error al obtener facturas: {str(e)}"
+    finally:
+        session.close()
+
+# Nueva función para obtener una factura completa con sus detalles
+def obtener_factura_completa(numero_factura):
+    """
+    Obtiene una factura y sus detalles por número de factura.
+    
+    Args:
+        numero_factura: Número de factura a buscar
+        
+    Returns:
+        tuple: (cabecera, detalles, error)
+    """
+    session = SessionLocal()
+    try:
+        # Obtener la cabecera de la factura
+        cabecera = session.query(FacturaCabecera).filter_by(numeroFactura=numero_factura).first()
+        if not cabecera:
+            return None, None, "Factura no encontrada"
+        
+        # Obtener los detalles de la factura
+        detalles = session.query(FacturaDetalle).filter_by(numeroFactura=numero_factura).all()
+        
+        # Convertir a diccionarios
+        cabecera_dict = cabecera.to_dict()
+        detalles_dict = [detalle.to_dict() for detalle in detalles]
+        
+        return cabecera_dict, detalles_dict, None
+    except Exception as e:
+        logger.error(f"Error al obtener factura completa #{numero_factura}: {str(e)}")
+        logger.error(traceback.format_exc())
+        return None, None, f"Error: {str(e)}"
     finally:
         session.close()

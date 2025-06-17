@@ -1,6 +1,0 @@
-{
-    "python.analysis.extraPaths": [
-        "./facturador/pages/sync",
-        "./facturador/pages/sync"
-    ]
-}

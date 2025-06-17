@@ -1,0 +1,26 @@
+{
+    "include": [
+        "facturador",
+        "*.py"
+    ],
+    "exclude": [
+        "**/__pycache__",
+        "**/node_modules",
+        "**/venv",
+        "**/env"
+    ],
+    "reportMissingImports": "warning",
+    "reportUnknownMemberType": "none",
+    "reportUnknownParameterType": "none",
+    "reportUnknownVariableType": "none",
+    "reportUnknownArgumentType": "none",
+    "reportOptionalSubscript": "none",
+    "reportOptionalMemberAccess": "none",
+    "reportOptionalCall": "none",
+    "reportOptionalIterable": "none",
+    "reportOptionalContextManager": "none",
+    "reportOptionalOperand": "none",
+    "typeCheckingMode": "basic",
+    "useLibraryCodeForTypes": false,
+    "strictParameterNoneValue": false
+}

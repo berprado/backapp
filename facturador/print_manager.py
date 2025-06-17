@@ -1,0 +1,147 @@
+"""
+Módulo para la gestión de impresión de facturas.
+
+Este módulo contiene funciones para la impresión de facturas en impresoras térmicas 
+y generación de documentos PDF.
+"""
+
+import os
+import threading
+from datetime import datetime
+import logging
+import traceback
+import streamlit as st
+from thermal_printer import ThermalPrinter
+from siat_pdf import html_to_pdf
+from logger_config import get_printer_logger
+
+# Configuración de logger
+printer_logger = get_printer_logger()
+
+def initialize_print_state():
+    """
+    Inicializa el estado de impresión en la sesión de Streamlit.
+    
+    Esta función establece los valores predeterminados para el estado
+    de impresión en la sesión de Streamlit.
+    """
+    keys_defaults = {
+        'print_status': None,
+        'datos_impresion': {},
+        'cuf': None,
+        'ultima_factura': None,
+        'impresion_en_progreso': False,
+        'impresion_finalizada': False
+    }
+    for key, default in keys_defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = default
+
+def reiniciar_estados():
+    """
+    Reinicia los estados de impresión en la sesión de Streamlit.
+    
+    Esta función elimina las claves relacionadas con la impresión
+    de la sesión de Streamlit.
+    """
+    keys_to_reset = [
+        'factura_validada', 'print_status', 'datos_impresion', 
+        'cuf', 'ultima_factura', 'impresion_en_progreso', 
+        'impresion_finalizada'
+    ]
+    for key in keys_to_reset:
+        if key in st.session_state:
+            del st.session_state[key]
+
+def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
+    """
+    Crea un hilo para manejar la impresión de la factura y generación del PDF.
+    Esta función incorpora toda la lógica de monitoreo del hilo.
+
+    Args:
+        html_content_orig (str): Contenido HTML original de la factura.
+        cuf (str): Código Único de Facturación.
+        nit (str): NIT del emisor.
+        numero_factura (str): Número de factura.
+    """
+    def imprimir():
+        try:
+            printer_logger.info(f"Iniciando proceso de impresión para factura {numero_factura}")
+
+            # Actualizar HTML con CUF
+            html_content = html_content_orig.replace("{cuf}", cuf)
+
+            # Guardar HTML para debug y referencia
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            debug_path = f"debug/factura_{numero_factura}_{timestamp}.html"
+            os.makedirs("debug", exist_ok=True)
+            
+            with open(debug_path, "w", encoding="utf-8") as f:
+                f.write(html_content)
+                f.flush()
+                os.fsync(f.fileno())  # Asegurar escritura al disco
+            printer_logger.info(f"HTML guardado en {debug_path}")
+
+            # Intentar generar el PDF
+            try:
+                output_pdf_path = f"pdfs/factura_{numero_factura}_{nit}_{cuf[-8:]}.pdf"
+                html_to_pdf(html_content, output_pdf_path)
+                printer_logger.info(f"PDF generado exitosamente: {output_pdf_path}")
+            except Exception as e:
+                raise Exception(f"Error al generar PDF: {str(e)}")
+
+            # Proceder con la impresión térmica
+            try:
+                printer = ThermalPrinter()
+                success = printer.print_invoice(html_content, nit, cuf, numero_factura)
+                if success:
+                    st.session_state['print_status'] = "✅ Impresión completada exitosamente"
+                else:
+                    raise Exception("Error durante la impresión térmica")
+            except Exception as e:
+                raise Exception(f"Error en impresión térmica: {str(e)}")
+
+            # Crear un archivo de señalización para indicar que la impresión ha terminado
+            signal_file = f"debug/print_complete_{numero_factura}.signal"
+            with open(signal_file, "w") as f:
+                f.write(f"Impresión completada: {datetime.now().isoformat()}")
+                f.flush()
+                os.fsync(f.fileno())  # Asegurar escritura al disco
+            printer_logger.info(f"Señal de finalización creada: {signal_file}")
+
+        except Exception as e:
+            error_msg = f"❌ Error de impresión: {str(e)}"
+            printer_logger.error(error_msg)
+            printer_logger.error(traceback.format_exc())
+            st.session_state['print_status'] = error_msg
+        finally:
+            st.session_state['impresion_en_progreso'] = False
+            st.session_state['impresion_finalizada'] = True
+    
+    # Evitar múltiples procesos de impresión simultáneos
+    if st.session_state.get('impresion_en_progreso', False):
+        printer_logger.warning("Se intentó iniciar una nueva impresión mientras otra está en progreso.")
+        return
+    
+    # Verificar carpeta de destino PDF
+    if not os.path.exists('pdfs'):
+        os.makedirs('pdfs')
+    
+    # Verificar permisos de escritura
+    if not os.access('pdfs', os.W_OK):
+        printer_logger.error("No hay permisos de escritura en la carpeta pdfs")
+        st.session_state['print_status'] = "❌ No hay permisos de escritura en la carpeta de PDFs"
+        return
+    
+    # Actualizar el estado e iniciar el hilo de impresión
+    st.session_state['impresion_en_progreso'] = True
+    st.session_state['impresion_finalizada'] = False
+    st.session_state['print_status'] = "⏱️ Impresión en progreso..."
+    
+    # Iniciar hilo de impresión
+    thread = threading.Thread(target=imprimir)
+    thread.daemon = True
+    thread.start()
+
+    printer_logger.info(f"Hilo de impresión iniciado para la factura {numero_factura}")
+    return True

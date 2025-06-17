@@ -1,0 +1,22 @@
+[
+  {
+    "id": 66719,
+    "cantidad": 1,
+    "id_comanda": 50929,
+    "id_producto": null,
+    "id_salida_combo_coctel": 48539,
+    "id_bar_combo_coctel": "30",
+    "precio_venta": "70.00",
+    "sub_total": "70.00",
+    "producto_coctel": "",
+    "id_barra": 1,
+    "usuario_reg": "ANGELA",
+    "estado": "HAB",
+    "id_operacion": 834,
+    "nombre": "V JAGER BOMB",
+    "id_producto_combo": "30",
+    "tipo_salida": 50,
+    "estado_comanda": 26,
+    "estado_impresion": 31
+  }
+]

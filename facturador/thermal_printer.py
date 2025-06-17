@@ -1,3 +1,17 @@
+import os
+import sys
+# Agregar la ruta del directorio padre al path de Python si no está ya
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
+
+from logger_config import get_logger, get_printer_logger
+import traceback  # Añadir la importación de traceback
+
+# Obtener loggers para este módulo
+logger = get_logger()
+printer_logger = get_printer_logger()
+
 from escpos.printer import Usb
 from bs4 import BeautifulSoup
 import logging
@@ -5,6 +19,7 @@ from contextlib import contextmanager
 
 class ThermalPrinter:
     def __init__(self, vendor_id=0x04B8, product_id=0x0E15):
+        printer_logger.info("Inicializando ThermalPrinter")
         self.vendor_id = vendor_id
         self.product_id = product_id
         self.line_width = 64  # Ancho ajustado para fuente pequeña
@@ -83,6 +98,7 @@ class ThermalPrinter:
     def print_invoice(self, html_content, nit, cuf, numero_factura):
         """Imprime la factura completa con código QR"""
         try:
+            printer_logger.info(f"Imprimiendo factura {numero_factura}")
             soup = BeautifulSoup(html_content, 'html.parser')
             
             with self.printer_connection() as printer:
@@ -250,5 +266,7 @@ class ThermalPrinter:
             return True
             
         except Exception as e:
+            printer_logger.error(f"Error en impresión térmica: {e}")
+            printer_logger.error(traceback.format_exc())
             self.logger.error(f"Error durante la impresión: {str(e)}")
             return False

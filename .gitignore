@@ -17,9 +17,10 @@ env/
 backapp/
 
 # Archivos de base de datos MySQL (backups y dumps)
-*.sql
 *.sql.gz
 dump_*.sql
+sql/adminerp_copy_*.sql
+
 
 # Directorios de facturas generadas
 /xmls
@@ -28,7 +29,6 @@ dump_*.sql
 *-Copy.py
 *-Backup.py
 *.bak
-*.swp
 
 # Archivos de log
 *.log
@@ -43,24 +43,28 @@ dump_*.sql
 .vscode/
 *.DS_Store
 
-# Archivos de caché y compilación
+# Archivos de caché y compilación de Python
 __pycache__/
 facturador/__pycache__/
-facturador/logs/
 facturador/pages/__pycache__/
+*.pyc
+*.pyo
 
 # Archivos temporales de subida
 .tmp.driveupload/
 
 # Archivos de documentación o estructura
 estructura.md
+# Considera usar una exclusión más específica en lugar de *.md para permitir README.md
+# *.md
+!README.md
 
-# Archivos temporales de compilación de Python
-*.pyc
-*.pyo
+# Directorios de logs
+facturador/logs/
 
 # Directorios innecesarios o pruebas fuera del repositorio principal
 facturador/off/
+*/sql/
 
 # Directorios de datos de MySQL si usas Docker
 mysql_data/

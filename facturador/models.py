@@ -106,11 +106,11 @@ class Cliente(Base):
 class Cufd(Base):
     __tablename__ = 'cufd'
     __table_args__ = {'extend_existing': True}
-
+    
     id = Column(Integer, primary_key=True, autoincrement=True)
     codigo = Column(String(255), nullable=True)
     codigo_control = Column(String(20), nullable=True, unique=True)
-    fecha_solicitud = Column(TIMESTAMP, nullable=False, server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))
+    fecha_solicitud = Column(TIMESTAMP, nullable=False, server_default=text('CURRENT_TIMESTAMP'))
     fecha_vigencia = Column(TIMESTAMP, nullable=True)
     vigente = Column(Integer, nullable=True)
     id_punto_venta = Column(Integer, ForeignKey('punto_venta.id'), nullable=False)
@@ -183,6 +183,19 @@ class FacturaCabecera(Base):
     motivoAnulacion = Column(Text)
     enlaceSiat = Column(String(255))
     codigoRecepcion = Column(String(255))
+    tipoEmision = Column(String(10), nullable=True, comment='Referencia a codigoClasificador')
+    codigoEvento = Column(Integer, ForeignKey('eventos_significativos_registrados.id'), nullable=True, comment='ID del evento significativo relacionado')
+    descripcionEvento = Column(String(255), nullable=True, comment='Descripción del evento significativo')
+    fechaInicioEvento = Column(DateTime, nullable=True, comment='Fecha de inicio del evento significativo')
+    fechaFinEvento = Column(DateTime, nullable=True, comment='Fecha de fin del evento significativo')
+    idPaquete = Column(String(50), nullable=True, comment='Identificador del paquete en emisión masiva')
+    estadoPaquete = Column(String(20), nullable=True, comment='Estado del paquete: PENDIENTE, PROCESADO, ERROR')
+    numeroSecuencia = Column(Integer, nullable=True, comment='Número de secuencia dentro del paquete')
+    estadoContingencia = Column(String(20), nullable=True, comment='Estado de contingencia: PENDIENTE, SINCRONIZADO, ERROR')
+    fechaSincronizacion = Column(DateTime, nullable=True, comment='Fecha en que se sincronizó la factura de contingencia')
+
+    # Relación con eventos significativos registrados
+    evento_significativo = relationship("EventoSignificativoRegistrado", backref="facturas")
   
 
     def to_dict(self):
@@ -235,7 +248,17 @@ class FacturaCabecera(Base):
             'anuladaPor': self.anuladaPor,
             'motivoAnulacion': self.motivoAnulacion,
             'enlaceSiat': self.enlaceSiat,
-            'codigoRecepcion': self.codigoRecepcion
+            'codigoRecepcion': self.codigoRecepcion,
+            'tipoEmision': self.tipoEmision,
+            'codigoEvento': self.codigoEvento,
+            'descripcionEvento': self.descripcionEvento,
+            'fechaInicioEvento': self.fechaInicioEvento.isoformat() if self.fechaInicioEvento else None,
+            'fechaFinEvento': self.fechaFinEvento.isoformat() if self.fechaFinEvento else None,
+            'idPaquete': self.idPaquete,
+            'estadoPaquete': self.estadoPaquete,
+            'numeroSecuencia': self.numeroSecuencia,
+            'estadoContingencia': self.estadoContingencia,
+            'fechaSincronizacion': self.fechaSincronizacion.isoformat() if self.fechaSincronizacion else None
         }
 
 
@@ -322,8 +345,8 @@ class PuntoVenta(Base):
     tipo = Column(String(255), nullable=True)
     estado = Column(Enum('Habilitado', 'Deshabilitado'), nullable=False, default='Habilitado')
     cod_sucursal = Column(Integer, nullable=False)
-    fecha_creacion = Column(DateTime, nullable=False, default=datetime.utcnow)
-    fecha_modificacion = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    fecha_creacion = Column(TIMESTAMP, nullable=False, server_default=text('CURRENT_TIMESTAMP'))
+    fecha_modificacion = Column(TIMESTAMP, nullable=False, server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))
 
     # Relación con CUIS
     cuis = relationship("Cuis", back_populates="punto_venta")
@@ -348,7 +371,7 @@ class Cuis(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     codigo = Column(String(10), nullable=True)  # Ajustado para permitir NULL si la base de datos lo permite
-    fecha_solicitud = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)  # Agregado este campo
+    fecha_solicitud = Column(TIMESTAMP, nullable=False, server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))
     fecha_vigencia = Column(DateTime, nullable=True)
     vigente = Column(Boolean, default=True)
     codigo_punto_venta = Column(Integer, ForeignKey('punto_venta.codigo_punto_venta'), nullable=False)
@@ -459,6 +482,34 @@ class SincronizarParametricaEventosSignificativos(Base):
             "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
             "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
             "estado_sincronizacion": self.estado_sincronizacion
+        }
+
+class EventoSignificativoRegistrado(Base):
+    __tablename__ = 'eventos_significativos_registrados'
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    codigo_evento = Column(String(10), ForeignKey('sincronizarparametricaeventossignificativos.codigoClasificador'), nullable=False)
+    descripcion = Column(String(255), nullable=False)
+    fecha_inicio = Column(DateTime, nullable=False)
+    fecha_fin = Column(DateTime, nullable=False)
+    cufd = Column(String(100), nullable=False)
+    codigo_recepcion = Column(String(50), nullable=True)
+    fecha_registro = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    # Relación con el catálogo de eventos significativos
+    tipo_evento = relationship("SincronizarParametricaEventosSignificativos", backref="eventos_registrados")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "codigo_evento": self.codigo_evento,
+            "descripcion": self.descripcion,
+            "fecha_inicio": self.fecha_inicio.isoformat() if self.fecha_inicio else None,
+            "fecha_fin": self.fecha_fin.isoformat() if self.fecha_fin else None,
+            "cufd": self.cufd,
+            "codigo_recepcion": self.codigo_recepcion,
+            "fecha_registro": self.fecha_registro.isoformat() if self.fecha_registro else None
         }
     
 class SincronizarActividades(Base):
@@ -750,3 +801,17 @@ class SincronizarListaLeyendasFactura(Base):
             "fecha_sincronizacion": self.fecha_sincronizacion.isoformat() if self.fecha_sincronizacion else None,
             "estado_sincronizacion": self.estado_sincronizacion
         }
+
+class SincronizacionEstado(Base):
+    __tablename__ = "sincronizacion_estado"
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    ultima_sincronizacion = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "ultima_sincronizacion": self.ultima_sincronizacion.isoformat() if self.ultima_sincronizacion else None
+        }
+        

@@ -29,13 +29,13 @@ def main():
         message_placeholder.empty()  # Limpiar mensajes previos
         
         # Validación de los campos requeridos
-        if not numero_factura_anular or not descripcion_motivo:
+        if not numero_factura_anular or not descripcion_motivo: 
             message_placeholder.warning("Por favor, ingrese todos los datos requeridos.")
         else:
             # Obtener el código de motivo a partir de la descripción
             codigo_motivo = obtener_codigo_motivo(descripcion_motivo)
             
-            if not codigo_motivo:
+            if not codigo_motivo: 
                 message_placeholder.error("No se pudo obtener el código del motivo de anulación.")
                 return
 

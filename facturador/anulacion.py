@@ -1,6 +1,17 @@
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Agregar la ruta del directorio padre al path de Python si no está ya
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
+
+from logger_config import get_logger, get_facturacion_logger
+import traceback  # Añadir la importación de traceback
+
+# Obtener loggers para este módulo
+logger = get_logger()
+facturacion_logger = get_facturacion_logger()
+
 import requests
 import xml.etree.ElementTree as ET
 from dotenv import load_dotenv
@@ -72,9 +83,11 @@ def enviar_solicitud_anulacion(cuf, cufd, codigo_motivo):
 
     solicitud_xml = construir_solicitud_anulacion(cuf, cufd, codigo_motivo)
     try:
-        response = requests.post(url, headers=headers, data=solicitud_xml)
+        response = requests.post(url, headers=headers, data=solicitud_xml, timeout=45)  # Set timeout explicitly
         response.raise_for_status()
         return True, response.content
+    except requests.exceptions.Timeout:
+        return False, "Error inesperado: Timeout al intentar conectar con el servicio de anulación."
     except requests.exceptions.HTTPError as http_err:
         return False, f"HTTP error occurred: {http_err}"
     except Exception as e:
@@ -107,9 +120,9 @@ def procesar_respuesta_anulacion(respuesta_xml, factura, descripcion_motivo):
     elif codigo_estado == "906":  # Anulación rechazada
         mensaje_error = tree.find('.//mensajesList/descripcion').text
 
-        if "YA SE ENCUENTRA ANULADA" in mensaje_error:
+        if mensaje_error is not None and "YA SE ENCUENTRA ANULADA" in mensaje_error:
             return False, "La factura ya fue anulada previamente."
-        elif "NO EXISTE EN LA BASE DE DATOS DEL SIN" in mensaje_error:
+        elif mensaje_error is not None and "NO EXISTE EN LA BASE DE DATOS DEL SIN" in mensaje_error:
             return False, "La factura no existe en la base de datos del SIN."
         else:
             return False, f"Error en la anulación: {mensaje_error}"
@@ -128,29 +141,41 @@ def procesar_respuesta_anulacion(respuesta_xml, factura, descripcion_motivo):
 
 
 def anular_factura(numero_factura, descripcion_motivo):
-    cuf, factura = obtener_cuf_por_numero_factura(numero_factura)
+    try:
+        facturacion_logger.info(f"Iniciando anulación de la factura {numero_factura}")
+        cuf, factura = obtener_cuf_por_numero_factura(numero_factura)
 
-    if factura is None:
-        return False, "No se encontró la factura especificada."
+        # Verificar si la factura no se encontró o si hubo un error
+        if factura is None:
+            return False, "No se encontró la factura especificada."
+        
+        # Verificar si factura es un mensaje de error (str)
+        if isinstance(factura, str):
+            facturacion_logger.error(f"Error al obtener la factura: {factura}")
+            return False, f"Error al recuperar la factura: {factura}"
 
-    # Verificar si la factura está revertida y bloquear una nueva anulación
-    if factura.estado == "Valida" and factura.fechaValidacion is not None:
-        return False, "La factura ya fue revertida y no puede ser anulada nuevamente."
+        # Verificar si la factura está revertida y bloquear una nueva anulación
+        if str(factura.estado) == "Valida" and factura.fechaValidacion is not None:
+            return False, "La factura ya fue revertida y no puede ser anulada nuevamente."
 
-    # Verificar si la fecha actual supera el plazo de anulación
-    if datetime.now().month > factura.fechaEmision.month + 1:
-        return False, "La factura está fuera del plazo para su anulación."
+        # Verificar si la fecha actual supera el plazo de anulación
+        if datetime.now().month > factura.fechaEmision.month + 1:
+            return False, "La factura está fuera del plazo para su anulación."
 
-    cufd = obtener_cufd_vigente()
-    if cufd is None:
-        return False, "No se pudo obtener el CUFD vigente."
+        cufd = obtener_cufd_vigente()
+        if cufd is None:
+            return False, "No se pudo obtener el CUFD vigente."
 
-    codigo_motivo = obtener_codigo_motivo(descripcion_motivo)
-    if codigo_motivo is None:
-        return False, "No se pudo obtener el código del motivo de anulación."
+        codigo_motivo = obtener_codigo_motivo(descripcion_motivo)
+        if codigo_motivo is None:
+            return False, "No se pudo obtener el código del motivo de anulación."
 
-    exito, respuesta = enviar_solicitud_anulacion(cuf, cufd, codigo_motivo)
-    if exito:
-        return procesar_respuesta_anulacion(respuesta, factura, descripcion_motivo)
-    else:
-        return False, respuesta
+        exito, respuesta = enviar_solicitud_anulacion(cuf, cufd, codigo_motivo)
+        if exito:
+            return procesar_respuesta_anulacion(respuesta, factura, descripcion_motivo)
+        else:
+            return False, respuesta
+    except Exception as e:
+        facturacion_logger.error(f"Error al anular factura {numero_factura}: {e}")
+        facturacion_logger.error(traceback.format_exc())
+        return False, f"Error durante la anulación: {str(e)}"

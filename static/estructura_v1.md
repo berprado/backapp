@@ -1,0 +1,71 @@
+# Estructura del Proyecto
+
+## Archivos principales
+- crud.py
+- database.py
+- main.py
+- models.py
+- requirements.txt
+- response_handler.py
+- run_app.bat
+
+## Directorios
+- backapp/
+  - etc/
+  - Include/
+  - Lib/
+  - Scripts/
+  - share/
+- facturador/
+  - __init__.py
+  - analisis.py
+  - anulacion.py
+  - batch_sender.py
+  - business_logic.py
+  - compact_pdf_generator.py
+  - config.py
+  - contingency_manager.py
+  - cufd.py
+  - cuis.py
+  - data_access.py
+  - database.py
+  - estado_factura.py
+  - export.py
+  - factura_pdf.py
+  - factura_print.py
+  - factura_xml.py
+  - formatos.py
+  - generate_cuf.py
+  - generate_pdf.py
+  - id_finder.py
+  - invoice_exporter.py
+  - invoice_templates.py
+  - invoice_xml_generator.py
+  - logger_config.py
+  - main.py
+  - models.py
+  - offline_billing.py
+  - print_invoice.py
+  - proceso_anulacion.py
+  - response_handler.py
+  - reversion.py
+  - siat_pdf.py
+  - significant_events.py
+  - sincro_productos.py
+  - test_epson.py
+  - thermal_printer.py
+  - ui.py
+  - verifica_stream.py
+  - verificacion.py
+  - verificador.py
+  - verificanit.py
+  - verinit_conex.py
+  - zeeper.py
+- sql/
+  - comandas.sql
+- static/
+  - 20241217_000836.jpg
+  - actualiza_unidades_combos_copy.sql
+
+## Notas
+Se han omitido directorios irrelevantes como `__pycache__/`, `logs/`, `debug/`, `off/`, `pages/`, `pdfs/`, `xmls/`, y otros mencionados en el archivo `.gitignore`.

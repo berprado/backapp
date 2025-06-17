@@ -1,0 +1,221 @@
+# CARACTERÍSTICAS DEL SISTEMA
+
+El Sistema Informático de Facturación que interactúe con los servicios de la Administración Tributaria de Bolivia deberá estar **autorizado por el Servicio de Impuestos Nacionales (SIN)** y contar, como mínimo, con los siguientes componentes o funcionalidades:
+
+## a) Emisor de Facturas Digitales
+
+Responsable de generar Facturas Digitales en formato XML, para las modalidades de Facturación Electrónica en Línea y Computarizada en Línea.
+
+Este componente debe contar, como mínimo, con funcionalidades de emisión **individual** y **por contingencia**, pudiendo incluir **emisión masiva** según el giro del negocio.
+
+### Emisión Individual
+
+Secuencia mínima para emitir una Factura Digital:
+
+1. Generar archivo XML conforme a la actividad económica.
+2. Firmar el XML según estándar XMLDSig.
+3. Validar contra el XSD correspondiente.
+4. Comprimir el XML en formato Gzip (enviado en la etiqueta `archivo`).
+5. Generar HASH SHA256 del archivo comprimido (enviado en la etiqueta `hashArchivo`, también usado como Huella Digital para la modalidad Computarizada en Línea).
+
+### Emisión por Contingencia
+
+Durante un evento significativo que impida la emisión en línea, las facturas deben agruparse en **paquetes de hasta 500** y enviarse una vez restablecido el servicio, a través del servicio web habilitado.
+
+### Emisión Masiva
+
+Utilizada por entidades con emisión automatizada fuera de horarios hábiles (bancos, telecomunicaciones, servicios básicos, etc.). Los paquetes pueden contener **hasta 1000 facturas** y deben enviarse mediante los servicios correspondientes.
+
+## b) Gestor de Facturas Digitales
+
+Encargado del envío y validación de transacciones como el registro y la anulación de facturas. Su implementación técnica y estructura XML se detalla en apartados específicos del manual.
+
+## c) Sincronización de Catálogos
+
+Permite la descarga/actualización diaria de catálogos (productos, servicios, países, eventos significativos, etc.). Su implementación está disponible en el módulo de Sincronización de Servicios de Facturación.
+
+## d) Sincronización de Fecha y Hora
+
+Obligatoria a diario. Asegura la alineación temporal con la Administración Tributaria. Debe realizarse antes de obtener el CUFD, pudiendo repetirse varias veces al día.
+
+## e) Registro de Eventos Significativos
+
+Permite documentar eventos que afecten la emisión de facturas. Detalles disponibles en la sección de Contingencia.
+
+## f) Gestor de Envío e Impresión de Documentos Digitales
+
+Gestiona la impresión, envío o publicación de la representación gráfica y el XML. En ausencia de funcionalidades electrónicas, el sistema debe permitir la **impresión física y posterior distribución digital**.
+
+# Emisión y Envío de Facturas
+
+La emisión y envío de Facturas Digitales puede realizarse de manera individual (en tiempo real, interactuando en línea con el SIN), por paquetes (fuera de línea), o de forma masiva. A continuación, se describen los pasos para cada caso.
+
+## Consideraciones Previas a la Emisión
+
+- Obtener el **Token Delegado** para consumir los servicios requeridos (disponible en el Portal SIAT).
+- Obtener el **CUIS** (Código Único de Inicio de Sistemas), consumiendo el servicio web respectivo.
+- Obtener el **CUFD** (Código Único de Facturación Diario), de forma diaria.
+- Realizar la **sincronización de catálogos** (actividades, sectores, productos, fecha, hora, documento sector) diariamente.
+
+> **Nota:** Si el contribuyente tiene varias sucursales y/o puntos de venta, la sincronización de catálogos puede realizarse una sola vez desde la casa matriz (en esquemas centralizados), o por cada sucursal/punto de venta en caso contrario.
+
+> **Buena práctica:** Consumir regularmente el servicio `Verifica Comunicación`. Si se recibe un código de error (-1, serie 400 o 500), cambiar automáticamente a modo de facturación fuera de línea.
+
+## Emisión y Envío Individual
+
+1. Generar el archivo XML del Documento Fiscal.
+2. Firmar el XML conforme a XMLDSig (solo en modalidad Electrónica en Línea).
+3. Validar contra el XSD correspondiente.
+4. Comprimir en Gzip (etiqueta `archivo`).
+5. Generar HASH SHA256 (etiqueta `hashArchivo`, Huella Digital).
+6. Enviar individualmente usando el servicio **Recepción de Factura**:
+   - Código de estado `908`: Validado.
+   - Código de estado `904`: Observado (se adjunta lista de errores o advertencias).
+   - Transacción devuelta como `True` o `False`.
+
+## Emisión y Envío por Contingencia (Fuera de Línea)
+
+Se utiliza cuando un evento significativo impide emitir en línea. Se agrupan facturas en paquetes de hasta 500, que se envían una vez superado el evento.
+
+### Primera Etapa (durante la contingencia)
+
+- Registrar internamente el inicio del evento y motivo.
+- Generar XML con modalidad fuera de línea.
+- Firmar el XML (solo para modalidad Electrónica en Línea).
+- Validar contra el XSD.
+- Almacenar temporalmente las facturas.
+
+### Segunda Etapa (posterior a la contingencia)
+
+- Recuperar XMLs generados.
+- Formar paquetes de hasta 500 facturas.
+- Comprimir con Gzip (etiqueta `archivo`).
+- Generar HASH SHA256 (etiqueta `hashArchivo`).
+- Obtener nuevo CUFD.
+- Registrar el evento con fecha de inicio/fin y CUFD utilizado.
+- Enviar los paquetes vía **Recepción de Paquetes**.
+   - Código `901`: Pendiente.
+   - Validar con servicio de **Validación de Paquetes**:
+     - `901`: Pendiente
+     - `904`: Observado
+     - `908`: Validado
+
+> **Nota:** Mantener un registro de facturas sin código de respuesta. Tras superar la contingencia, verificar con el servicio `verificaciónEstadoFactura` y anular si es necesario.
+
+## Emisión y Envío de Paquetes Masivos
+
+Aplica para empresas que emiten grandes volúmenes (bancos, telecomunicaciones, servicios básicos).
+
+### Requisitos Previos
+
+Registrar en el Portal Web del SIN:
+- Frecuencia de envío (diaria, semanal o mensual).
+- Tamaño de paquete (máximo 1000 facturas).
+
+### Primera Etapa
+
+- Generar XML por documento (modalidad en línea).
+- Firmar el XML (solo modalidad Electrónica en Línea).
+- Validar contra el XSD.
+- Almacenar temporalmente las facturas.
+
+### Segunda Etapa
+
+- Recuperar facturas almacenadas.
+- Formar paquetes de hasta 1000.
+- Comprimir con Gzip (etiqueta `archivo`).
+- Generar HASH SHA256 (etiqueta `hashArchivo`).
+- Obtener nuevo CUFD.
+- Enviar paquetes por el servicio **Recepción de Paquetes**.
+- Validar la recepción usando **Validación de Paquetes**:
+   - `901`: Pendiente
+   - `904`: Observado
+   - `908`: Validado
+
+# Emisión y Envío de Facturas por Contingencia Manual
+
+Cuando el sistema de facturación no está disponible (por corte de energía, fallas de software/hardware), se permite la emisión de **Facturas Manuales de Contingencia** previamente solicitadas e impresas.
+
+## 0. Registro del Evento
+
+Registrar el evento a través del servicio correspondiente, incluyendo:
+
+- Fecha de inicio y fin (mínimo hasta el minuto).
+- Código de evento (5, 6 o 7).
+- CUFD del evento (debe corresponder a la fecha del evento).
+- CUFD del envío.
+- Descripción del evento.
+
+## 1. Primera Etapa (Transcripción)
+
+- Transcribir la factura manual a XML (tipo de emisión: "fuera de línea").
+- Utilizar el CUFD vigente al momento del evento.
+- Completar todos los campos requeridos.
+- Firmar el archivo XML (solo modalidad Electrónica en Línea).
+- Validar contra el XSD correspondiente.
+- Almacenar temporalmente.
+
+## 2. Segunda Etapa (Armado de Paquetes)
+
+- Recuperar los XML transcritos.
+- Formar paquetes de hasta 500 facturas.
+- Comprimir con Gzip (`archivo`).
+- Obtener el HASH SHA256 (`hashArchivo`).
+- Obtener nuevo CUFD.
+- Enviar los paquetes mediante el servicio de **Recepción de Paquetes**, incluyendo:
+  - Código de recepción del evento.
+  - CAFC utilizado para las facturas.
+- Validar recepción con el servicio de **Validación de Paquetes**:
+  - `901`: Pendiente
+  - `904`: Observado
+  - `908`: Validado
+
+> **Nota:**
+> - En ambiente de pruebas (PILOTO), solicitar CAFC para documentos y sucursales autorizadas.
+> - Códigos especiales 99001, 99002 y 99003 deben usar tipo de documento NIT y código de excepción 1.
+> - Validar que los valores de C.I. o NIT sean numéricos.
+> - Por defecto, enviar código de excepción 0. En fuera de línea con NIT, usar código de excepción 1.
+> - El tipo de emisión "CONTINGENCIA" sincronizado es de uso exclusivo del SIN.
+
+# Códigos de Autorización
+
+Los códigos de autorización permiten emitir Documentos Fiscales de acuerdo a parámetros definidos por el SIN. Según el tipo, pueden o no estar consignados en el documento.
+
+- **CUIS (Código Único de Inicio de Sistemas):**
+  Identifica la relación entre el sistema, contribuyente, sucursal y punto de venta. Vigencia: 365 días.
+
+- **CUFD (Código Único de Facturación Diaria):**
+  Autoriza la emisión diaria de Documentos Fiscales Electrónicos. Vigencia: 24 horas.
+
+- **CUF (Código Único de Factura):**
+  Generado automáticamente al emitir la factura, permite identificarla individualmente.
+
+- **CAFC (Código Autorización Facturas Contingencia):**
+  Autorización para imprimir y emitir facturas manuales. Se obtiene mediante solicitud al SIN.
+
+> **Nota:** Para facturas Prevaloradas en Línea, se debe solicitar autorización indicando periodo, rango y precio.  
+> En registros obligatorios (excepto Mis Facturas, SIAT, Compras/Ventas), registrar el valor `99` como número de autorización cuando se utilice Facturación Electrónica en Línea.
+
+# Contingencias y Eventos Significativos
+
+Los eventos significativos afectan el funcionamiento del sistema de facturación y deben ser registrados hasta 48 horas después de finalizada la contingencia, a través del sistema autorizado por la Administración Tributaria.
+
+## Tipos de Eventos Significativos
+
+| Evento | Detalle de Acción |
+|--------|-------------------|
+| **1) Corte del servicio de Internet** | Emitir facturas fuera de línea según el Anexo Técnico. |
+| **2) Inaccesibilidad al Servicio Web del SIN** | Emitir fuera de línea. |
+| **3) Ingreso a zonas sin Internet por despliegue** | Emitir fuera de línea. |
+| **4) Venta en lugares sin Internet** | Emitir fuera de línea. |
+| **5) Virus o falla de software** | Emitir Facturas por Contingencia autorizadas o usar la modalidad Portal Web. |
+| **6) Falla de hardware / cambio de infraestructura** | Emitir Facturas por Contingencia autorizadas. |
+| **7) Corte de energía eléctrica** | Emitir Facturas por Contingencia autorizadas. |
+
+## Procedimiento ante Contingencias
+
+- Si el sistema sigue operativo: cambiar a emisión fuera de línea usando el CUFD vigente.
+- Al superar la contingencia: emitir nuevo CUFD, registrar el evento, y enviar los paquetes.
+
+> **Nota:** Mantener un registro de facturas sin código de respuesta. Al superar la contingencia, verificar con `verificaciónEstadoFactura` y anular si es necesario.  
+> Si se utiliza NIT como tipo de documento en fuera de línea, el código de excepción debe ser 1.
