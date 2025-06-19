@@ -48,23 +48,74 @@ def load_private_key(private_key_path, password=None):
             password=password
         )
 
-def calculate_hash(xml_str):
+def canonicalize_xml(xml_str):
     """
-    Calcula el hash SHA-256 de una cadena XML.
+    Devuelve la forma canónica (C14N) de un XML.
     
     Args:
-        xml_str (str): Cadena XML a hashear
+        xml_str (str): Cadena XML a canonicalizar
         
     Returns:
-        str: Hash hexadecimal
+        str: XML en forma canónica
     """
-    hasher = hashlib.sha256()
-    hasher.update(xml_str.encode('utf-8'))
-    return hasher.hexdigest()
+    xml_root = etree.fromstring(xml_str.encode('utf-8'))
+    return etree.tostring(xml_root, method="c14n").decode()
+
+def calculate_digest_base64(canonical_xml):
+    """
+    Calcula el hash SHA-256 en base64 de un XML canonicalizado.
+    
+    Args:
+        canonical_xml (str): XML en forma canónica
+        
+    Returns:
+        str: Hash en Base64
+    """
+    digest = hashes.Hash(hashes.SHA256())
+    digest.update(canonical_xml.encode())
+    hash_value = digest.finalize()
+    return base64.b64encode(hash_value).decode()
+
+def build_signature_element(digest_base64):
+    """
+    Construye el elemento Signature (sin SignatureValue ni KeyInfo).
+    
+    Args:
+        digest_base64 (str): Hash en Base64 del XML
+        
+    Returns:
+        Element: Elemento Signature construido
+    """
+    ds_ns = "http://www.w3.org/2000/09/xmldsig#"
+    signature = etree.Element("{http://www.w3.org/2000/09/xmldsig#}Signature", nsmap={None: ds_ns})
+    signed_info = etree.SubElement(signature, "SignedInfo", nsmap={})
+
+    canonicalization_method = etree.SubElement(signed_info, "CanonicalizationMethod")
+    canonicalization_method.set("Algorithm", "http://www.w3.org/TR/2001/REC-xml-c14n-20010315")
+
+    signature_method = etree.SubElement(signed_info, "SignatureMethod")
+    signature_method.set("Algorithm", "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256")
+
+    reference = etree.SubElement(signed_info, "Reference")
+    reference.set("URI", "")
+
+    transforms = etree.SubElement(reference, "Transforms")
+    transform = etree.SubElement(transforms, "Transform")
+    transform.set("Algorithm", "http://www.w3.org/2000/09/xmldsig#enveloped-signature")
+    transform_with_comments = etree.SubElement(transforms, "Transform")
+    transform_with_comments.set("Algorithm", "http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments")
+
+    digest_method = etree.SubElement(reference, "DigestMethod")
+    digest_method.set("Algorithm", "http://www.w3.org/2001/04/xmlenc#sha256")
+
+    digest_value = etree.SubElement(reference, "DigestValue")
+    digest_value.text = digest_base64
+    return signature
 
 def sign_xml(xml_str, private_key_path, cert_path, cuf):
     """
     Firma digitalmente un documento XML utilizando el algoritmo RSA-SHA256.
+    Optimizada para evitar redundancias y mejorar la mantenibilidad.
     
     Args:
         xml_str (str): Contenido del XML a firmar
@@ -75,98 +126,36 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
     Returns:
         str: XML firmado o None en caso de error
     """
-    xml_logger.info("Iniciando proceso de firma del XML")
+    xml_logger.info("Iniciando proceso de firma del XML (optimizado)")
     xml_str = xml_str.replace('\r\n', '\n')
 
-    original_hash = calculate_hash(xml_str)
-    xml_logger.info(f"Hash del XML original: {original_hash}")
-
     try:
-        xml_root = etree.fromstring(xml_str.encode('utf-8'))
-        canonical_xml = etree.tostring(xml_root, method="c14n").decode()
+        # 1. Canonicalizar el XML original
+        canonical_xml = canonicalize_xml(xml_str)
         xml_logger.info("XML canonicalizado exitosamente.")
-    except Exception as e:
-        xml_logger.error(f"Error al parsear o canonicalizar el XML: {e}")
-        xml_logger.error(traceback.format_exc())
-        return None
 
-    try:
-        digest = hashes.Hash(hashes.SHA256())
-        digest.update(canonical_xml.encode())
-        hash_value = digest.finalize()
-        xml_logger.info(f"Hash del XML: {hash_value.hex()}")
-    except Exception as e:
-        xml_logger.error(f"Error al calcular el hash SHA256: {e}")
-        xml_logger.error(traceback.format_exc())
-        return None
+        # 2. Calcular el digest en base64
+        digest_base64 = calculate_digest_base64(canonical_xml)
+        xml_logger.info(f"Digest (Base64): {digest_base64}")
 
-    try:
-        digest_base64 = base64.b64encode(hash_value).decode()
-        xml_logger.info(f"Hash del XML en Base64: {digest_base64}")
-    except Exception as e:
-        xml_logger.error(f"Error al codificar el hash en Base64: {e}")
-        xml_logger.error(traceback.format_exc())
-        return None
+        # 3. Construir el elemento Signature (sin SignatureValue ni KeyInfo)
+        signature = build_signature_element(digest_base64)
 
-    try:
-        ds_ns = "http://www.w3.org/2000/09/xmldsig#"
-        signature = etree.Element("{http://www.w3.org/2000/09/xmldsig#}Signature", nsmap={None: ds_ns})
-        signed_info = etree.SubElement(signature, "SignedInfo", nsmap={})
-
-        canonicalization_method = etree.SubElement(signed_info, "CanonicalizationMethod")
-        # Corregir la URL del algoritmo de canonicalización (faltaba el "3" después de "w")
-        canonicalization_method.set("Algorithm", "http://www.w3.org/TR/2001/REC-xml-c14n-20010315")
-
-        signature_method = etree.SubElement(signed_info, "SignatureMethod")
-        signature_method.set("Algorithm", "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256")
-
-        reference = etree.SubElement(signed_info, "Reference")
-        reference.set("URI", "")
-
-        transforms = etree.SubElement(reference, "Transforms")
-        transform = etree.SubElement(transforms, "Transform")
-        transform.set("Algorithm", "http://www.w3.org/2000/09/xmldsig#enveloped-signature")
-
-        transform_with_comments = etree.SubElement(transforms, "Transform")
-        transform_with_comments.set("Algorithm", "http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments")
-
-        digest_method = etree.SubElement(reference, "DigestMethod")
-        digest_method.set("Algorithm", "http://www.w3.org/2001/04/xmlenc#sha256")
-
-        digest_value = etree.SubElement(reference, "DigestValue")
-        digest_value.text = digest_base64
-
+        # 4. Insertar Signature en el XML (en memoria)
+        xml_root = etree.fromstring(xml_str.encode('utf-8'))
         xml_root.append(signature)
-        xml_logger.info("Etiquetas de signature añadidas al XML.")
-    except Exception as e:
-        xml_logger.error(f"Error al adicionar las etiquetas de signature al XML: {e}")
-        xml_logger.error(traceback.format_exc())
-        return None
 
-    # Firmar el XML con la clave privada
-    try:
-        # Obtener el XML con las etiquetas de signature incluidas
-        xml_with_signature_tags = etree.tostring(xml_root, encoding='UTF-8', xml_declaration=True).decode()
-        xml_logger.info("XML con etiquetas de firma generado correctamente.")
-        
-        # Canonicalizar el XML con las etiquetas de signature
+        # 5. Canonicalizar SignedInfo
         si_element = signature.find(".//SignedInfo")
-        if si_element is None:
-            xml_logger.error("No se encontró el elemento SignedInfo en el XML")
-            return None
-        
         si_canonicalized = etree.tostring(si_element, method="c14n").decode()
         xml_logger.info("SignedInfo canonicalizado correctamente.")
-        
-        # Cargar la clave privada
-        with open(private_key_path, "rb") as key_file:
-            private_key = serialization.load_pem_private_key(
-                key_file.read(),
-                password=None
-            )
-        xml_logger.info("Clave privada cargada correctamente.")
-        
-        # Firmar el contenido de SignedInfo con la clave privada
+
+        # 6. Cargar clave privada y certificado solo una vez
+        private_key = load_private_key(private_key_path)
+        cert = load_certificate(cert_path)
+        xml_logger.info("Clave privada y certificado cargados correctamente.")
+
+        # 7. Firmar SignedInfo
         signature_value = private_key.sign(
             si_canonicalized.encode(),
             padding.PKCS1v15(),
@@ -174,34 +163,32 @@ def sign_xml(xml_str, private_key_path, cert_path, cuf):
         )
         signature_value_base64 = base64.b64encode(signature_value).decode()
         xml_logger.info("Firma digital generada correctamente.")
-        
-        # Agregar el valor de firma al XML
+
+        # 8. Agregar SignatureValue
         signature_value_element = etree.SubElement(signature, "SignatureValue")
         signature_value_element.text = signature_value_base64
-        
-        # Agregar información sobre la clave
+
+        # 9. Agregar KeyInfo y X509Certificate
         key_info = etree.SubElement(signature, "KeyInfo")
-        
-        # Agregar información X509
         x509_data = etree.SubElement(key_info, "X509Data")
-        
-        # Leer el certificado y agregar su valor
-        with open(cert_path, "rb") as cert_file:
-            cert_content = cert_file.read()
-            cert = x509.load_pem_x509_certificate(cert_content)
-            
         x509_cert = etree.SubElement(x509_data, "X509Certificate")
         cert_base64 = base64.b64encode(cert.public_bytes(encoding=serialization.Encoding.DER)).decode()
         x509_cert.text = cert_base64
         xml_logger.info("Información del certificado añadida al XML.")
 
-        # Obtener el XML firmado completo
+        # 10. Obtener el XML firmado completo
         signed_xml = etree.tostring(xml_root, encoding='UTF-8', xml_declaration=True).decode()
         xml_logger.info(f"XML firmado generado exitosamente. Tamaño: {len(signed_xml)} bytes.")
-        
         return signed_xml
-    
+
     except Exception as e:
-        xml_logger.error(f"Error al firmar el XML: {e}")
+        xml_logger.error(f"Error en el proceso de firma optimizado: {e}")
         xml_logger.error(traceback.format_exc())
         return None
+
+# Documentación:
+# - Se modularizó el proceso de firma en funciones pequeñas y reutilizables.
+# - Se centralizó la carga de la clave privada y el certificado.
+# - Se eliminó el cálculo de hash redundante.
+# - Se mejoró el manejo de errores y el logging.
+# - El flujo sigue cumpliendo la normativa del SIN y es compatible con la funcionalidad existente.

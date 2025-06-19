@@ -26,9 +26,10 @@ import xml.etree.ElementTree as ET
 # Importaciones de los nuevos módulos modularizados
 from validators import es_email_valido, es_telefono_valido, validar_factura_cabecera, validar_factura_detalle
 from client_manager import save_or_fetch_client_data, verificar_nit_cliente
-from invoice_manager import guardar_factura_en_bd, increment_invoice_number, mostrar_lista_facturas
+from invoice_manager import guardar_factura_en_bd, obtener_y_reservar_numero_factura, mostrar_lista_facturas
 from print_manager import initialize_print_state, reiniciar_estados, imprimir_en_hilo
-from xml_signer import sign_xml, calculate_hash
+from print_manager import mostrar_mensaje_impresion_en_curso  # Importar la función de advertencia
+from xml_signer import sign_xml  # Se elimina calculate_hash, ahora centralizado en xml_signer.py
 
 # Zeep y solicitudes
 from zeep import Client
@@ -137,21 +138,12 @@ def numero_a_palabras_con_decimales_como_fraccion(numero, lang='es'):
 
 
 def get_next_invoice_number():
-    try:
-        with open("invoice_number.txt", "r") as file:
-            numero_factura = int(file.read().strip())
-    except FileNotFoundError:
-        logger.warning("Archivo 'invoice_number.txt' no encontrado. Se creará uno nuevo con el número de factura inicial 0.")
-        numero_factura = 0
-    except ValueError as e:
-        logger.error(f"Error de formato en 'invoice_number.txt': {e}")
-        raise ValueError("El archivo 'invoice_number.txt' contiene un valor no válido.")
-    except Exception as e:
-        logger.error(f"Error inesperado al leer 'invoice_number.txt': {e}")
-        raise e
-    return numero_factura + 1
-
-# Esta función ahora está en invoice_manager.py
+    """
+    [OBSOLETA] Usar obtener_y_reservar_numero_factura() de invoice_manager.
+    """
+    import logging
+    logging.warning("No usar get_next_invoice_number. Usar obtener_y_reservar_numero_factura().")
+    return None
 
 # Esta función ahora está in client_manager.py
 
@@ -547,8 +539,7 @@ def main():
     
     logging.debug(f"Descuento Adicional Final: {descuento_adicional}")
     logging.debug(f"Monto Gift Card Final: {monto_giftcard}")
-    numero_factura = get_next_invoice_number()
-    logging.debug(f"Factura #: {numero_factura - 1}")
+    numero_factura = None  # Se asignará solo si la transacción es exitosa
     if selected_id_comanda:
         comandas_seleccionadas = [comanda for comanda in comandas if comanda["id_comanda"] in selected_id_comanda]
         subtotal, descuento_aplicado, monto_giftcard, total, monto_total_sujeto_iva, monto_total_moneda = calculate_totals(
@@ -574,13 +565,16 @@ def main():
     
     # Para mostrar en la interfaz y factura impresa se usa el formato:
     fecha_emision_display = fecha_emision.strftime("%d/%m/%Y %H:%M:%S")
-    numero_factura = get_next_invoice_number()
+    # Eliminar el segundo get_next_invoice_number aquí para evitar doble incremento
+    # numero_factura = get_next_invoice_number()
 
     ACTIVIDAD_ECONOMICA = os.getenv('ACTIVIDAD_ECONOMICA')
     CODIGO_PRODUCTO_SIN = os.getenv('CODIGO_PRODUCTO_SIN')
 
     
 
+    # Solo mostrar vista previa en la UI, sin reservar número ni generar XML
+    numero_factura = '(se asignará al emitir)'
     with tab1:
         html_invoice = generate_html_invoice(
             subtotal, descuento_adicional, monto_giftcard, lineas_productos,
@@ -609,7 +603,9 @@ def main():
                         codigo_documento_sector = int(os.getenv('CODIGO_DOCUMENTO_SECTOR')) 
                         direccion = os.getenv('DIRECCION')
 
-                        # Generar CUF
+                        # Reservar el número real de factura SOLO aquí
+                        numero_factura = obtener_y_reservar_numero_factura()
+                        # Generar CUF y XML definitivos
                         cuf = generate_cuf(
                             nit_emisor, 
                             fecha_emision, 
@@ -621,8 +617,6 @@ def main():
                             numero_factura,
                             codigo_punto_venta
                         )
-
-                        # Generar XML
                         xml_str, factura_cabecera_data, detalles_data = generate_xml_invoice(
                             nit_emisor, razon_social_emisor, municipio, telefono, numero_factura,
                             cuf, cufd, codigo_sucursal, direccion, codigo_punto_venta,
@@ -633,69 +627,56 @@ def main():
                             "don_bercho", codigo_documento_sector, lineas_productos,
                             os.getenv('ACTIVIDAD_ECONOMICA'), os.getenv('CODIGO_PRODUCTO_SIN')
                         )
-
-                        # Firmar y validar XML
+                        # Firmar el XML
                         private_key_path = "xmls/llaves/private_key_ok.pem"
                         cert_path = "xmls/llaves/certificado_ok.pem"
                         signed_xml_str = sign_xml(xml_str, private_key_path, cert_path, cuf)
-
                         # Guardar XML firmado
                         filename = f"xmls/factura_{numero_factura}_{cuf}_.xml"
                         with open(filename, "w", encoding='utf-8') as signed_xml_file:
                             signed_xml_file.write(signed_xml_str)
-
-                        # Validar y enviar
+                        # Validar XML contra el XSD
                         xsd_main_path = 'xmls/schemas/facturaElectronicaCompraVenta.xsd'
-                        if validar_xml(filename, xsd_main_path):
-                            gzip_path = comprimir_xml(filename)
-                            hash_archivo = obtener_hash(gzip_path)
-                            response = enviar_solicitud(filename, xsd_main_path, fecha_emision_str, cufd)
-
-                            # Envío y procesamiento de la respuesta
-                            if isinstance(response, dict) and response.get("error"):
-                                message_placeholder.error(f"❌Error al enviar la factura: {response['error']}")
-                            else:
-                                try:
-                                    # Usar el nuevo manejador de respuestas
-                                    success, response_data = parse_siat_response(response.content)
-                                    
-                                    if success:
-                                        # Mostrar la respuesta apropiadamente
-                                        transaccion_exitosa = display_siat_response(response_data, message_placeholder)
-                                        
-                                        if transaccion_exitosa:
-                                            # Almacenar datos en session_state
-                                            st.session_state['cuf'] = cuf
-                                            st.session_state['ultima_factura'] = numero_factura
-                                            st.session_state['factura_validada'] = True
-                                            st.session_state['datos_impresion'] = {
-                                                'subtotal': subtotal,
-                                                'descuento_adicional': descuento_adicional,
-                                                'monto_giftcard': monto_giftcard,
-                                                'lineas_productos': lineas_productos,
-                                                'nombre_cliente': nombre_cliente,
-                                                'fecha_emision_str': fecha_emision_display, 
-                                                'seleccion_metodo_pago': seleccion_metodo_pago,
-                                                'codigo_clasificador_metodo_pago': codigo_clasificador_metodo_pago,
-                                                'seleccion_tipo_documento': seleccion_tipo_documento,
-                                                'codigo_clasificador_documento': codigo_clasificador_documento,
-                                                'numero_documento': numero_documento,
-                                                'complemento': complemento,
-                                                'email': email,
-                                                'telefono': telefono,
-                                                'ultimos_digitos_tarjeta': ultimos_digitos_tarjeta
-                                            }                                            # Guardar factura en base de datos
-                                            # Asignar explícitamente tipoEmision=1 para factura online (normal)
-                                            factura_cabecera_data['tipoEmision'] = "1"  # Tipo emisión online/normal
-                                            
-                                            is_valid, error_message = validar_factura_cabecera(factura_cabecera_data)
-                                            if is_valid:
-                                                guardar_factura_cabecera(factura_cabecera_data)
-                                                increment_invoice_number(numero_factura)
-                                            else:
-                                                message_placeholder.error(error_message)
-                                                return
-
+                        if not validar_xml(filename, xsd_main_path):
+                            message_placeholder.error("❌ El XML generado no es válido contra el XSD.")
+                            return
+                        # Comprimir y enviar
+                        gzip_path = comprimir_xml(filename)
+                        hash_archivo = obtener_hash(gzip_path)
+                        response = enviar_solicitud(filename, xsd_main_path, fecha_emision_str, cufd)
+                        # Procesar respuesta y guardar en base de datos si es exitosa
+                        if isinstance(response, dict) and response.get("error"):
+                            message_placeholder.error(f"❌Error al enviar la factura: {response['error']}")
+                        else:
+                            try:
+                                success, response_data = parse_siat_response(response.content)
+                                if success:
+                                    transaccion_exitosa = display_siat_response(response_data, message_placeholder)
+                                    if transaccion_exitosa:
+                                        st.session_state['cuf'] = cuf
+                                        st.session_state['ultima_factura'] = numero_factura
+                                        st.session_state['factura_validada'] = True
+                                        st.session_state['datos_impresion'] = {
+                                            'subtotal': subtotal,
+                                            'descuento_adicional': descuento_adicional,
+                                            'monto_giftcard': monto_giftcard,
+                                            'lineas_productos': lineas_productos,
+                                            'nombre_cliente': nombre_cliente,
+                                            'fecha_emision_str': fecha_emision_display, 
+                                            'seleccion_metodo_pago': seleccion_metodo_pago,
+                                            'codigo_clasificador_metodo_pago': codigo_clasificador_metodo_pago,
+                                            'seleccion_tipo_documento': seleccion_tipo_documento,
+                                            'codigo_clasificador_documento': codigo_clasificador_documento,
+                                            'numero_documento': numero_documento,
+                                            'complemento': complemento,
+                                            'email': email,
+                                            'telefono': telefono,
+                                            'ultimos_digitos_tarjeta': ultimos_digitos_tarjeta
+                                        }
+                                        factura_cabecera_data['tipoEmision'] = "1"
+                                        is_valid, error_message = validar_factura_cabecera(factura_cabecera_data)
+                                        if is_valid:
+                                            guardar_factura_cabecera(factura_cabecera_data)
                                             for detalle in detalles_data:
                                                 is_valid, error_message = validar_factura_detalle(detalle)
                                                 if is_valid:
@@ -703,14 +684,13 @@ def main():
                                                 else:
                                                     message_placeholder.error(error_message)
                                                     return
-                                    else:
-                                        # El parser ya reportó el error
-                                        facturacion_logger.error(f"Error al procesar respuesta: {response_data.get('error')}")
-                                        if 'xml_content' in response_data:
-                                            xml_logger.error(f"Contenido XML problemático: {response_data['xml_content'][:500]}...")
-                                except Exception as e:
-                                    message_placeholder.error(f"❌Error al procesar la respuesta: {str(e)}")
-                                    facturacion_logger.exception("Error inesperado al procesar respuesta")
+                                else:
+                                    facturacion_logger.error(f"Error al procesar respuesta: {response_data.get('error')}")
+                                    if 'xml_content' in response_data:
+                                        xml_logger.error(f"Contenido XML problemático: {response_data['xml_content'][:500]}...")
+                            except Exception as e:
+                                message_placeholder.error(f"❌Error al procesar la respuesta: {str(e)}")
+                                facturacion_logger.exception("Error inesperado al procesar respuesta")
                     except Exception as e:
                         message_placeholder.error(f"❌Error en el proceso de facturación: {str(e)}")
                         logging.exception("Error en facturación")
@@ -720,6 +700,15 @@ def main():
         with col2:
             # Asegurarse de que el estado esté inicializado
             initialize_print_state()
+
+            # Mostrar advertencia si la impresión está en curso
+            mostrar_mensaje_impresion_en_curso()
+
+            # Botón para forzar liberación de impresión si está colgada
+            if st.session_state.get('impresion_en_progreso', False):
+                if st.button("Forzar liberación de impresión", key="forzar_liberacion_impresion"):
+                    st.session_state['impresion_en_progreso'] = False
+                    st.session_state['print_status'] = "⚠️ Impresión liberada manualmente. Puedes volver a intentar imprimir."
 
             if st.session_state.get('factura_validada'):
                 # Determinar si el botón de imprimir debe estar desactivado

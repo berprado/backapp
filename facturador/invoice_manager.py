@@ -16,9 +16,13 @@ from data_access import (
     obtener_facturas_por_estado, obtener_factura_completa, obtener_cuf_por_numero_factura
 )
 from logger_config import get_facturacion_logger
+import threading
 
 # Configuración de logger
 facturacion_logger = get_facturacion_logger()
+
+# Lock global para evitar condiciones de carrera en entornos multiusuario
+numero_factura_lock = threading.Lock()
 
 def guardar_factura_en_bd(factura_cabecera_data, detalles_factura):
     """
@@ -68,20 +72,33 @@ def guardar_factura_en_bd(factura_cabecera_data, detalles_factura):
         facturacion_logger.error(f"Error general al guardar la factura: {e}")
         return False, f"Error al guardar la factura: {str(e)}"
 
+def obtener_y_reservar_numero_factura():
+    """
+    Lee y reserva el próximo número de factura de forma atómica y persistente.
+    Devuelve el número reservado para la nueva factura.
+    """
+    with numero_factura_lock:
+        try:
+            if not os.path.exists("invoice_number.txt"):
+                numero_factura = 1
+            else:
+                with open("invoice_number.txt", "r") as f:
+                    contenido = f.read().strip()
+                    numero_factura = int(contenido) if contenido else 1
+            # Guardar el siguiente número disponible
+            with open("invoice_number.txt", "w") as f:
+                f.write(str(numero_factura + 1))
+            return numero_factura
+        except Exception as e:
+            facturacion_logger.error(f"Error al reservar número de factura: {e}")
+            raise RuntimeError(f"Error al reservar número de factura: {e}")
+
 def increment_invoice_number(numero_factura):
     """
-    Incrementa el número de factura en uno y lo guarda en el archivo.
-    
-    Args:
-        numero_factura (int): Número de factura actual
-    
-    Returns:
-        int: Nuevo número de factura
+    [OBSOLETA] Usar obtener_y_reservar_numero_factura().
     """
-    new_invoice_number = numero_factura + 1
-    with open('invoice_number.txt', 'w') as f:
-        f.write(str(new_invoice_number))
-    return new_invoice_number
+    facturacion_logger.warning("No usar increment_invoice_number. Usar obtener_y_reservar_numero_factura().")
+    return None
 
 def mostrar_lista_facturas(estado):
     """
@@ -178,7 +195,8 @@ def mostrar_lista_facturas(estado):
         factura_seleccionada = st.selectbox(
             "Seleccione una factura para realizar acciones:", 
             numeros_factura,
-            format_func=lambda x: f"Factura #{x}"
+            format_func=lambda x: f"Factura #{x}",
+            key=f"selectbox_accion_factura_{estado}"
         )
         
         # Obtener la factura seleccionada

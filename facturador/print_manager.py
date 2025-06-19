@@ -145,3 +145,10 @@ def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
 
     printer_logger.info(f"Hilo de impresión iniciado para la factura {numero_factura}")
     return True
+
+def mostrar_mensaje_impresion_en_curso():
+    """
+    Muestra un mensaje de advertencia en la UI si la impresión está en curso.
+    """
+    if st.session_state.get('impresion_en_progreso', False):
+        st.warning("⚠️ La impresión está en curso. Por favor, espera a que finalice antes de iniciar una nueva impresión.")
