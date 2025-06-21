@@ -57,13 +57,7 @@ from estado_factura import verificar_estado_factura
 from anulacion import anular_factura
 from reversion import enviar_solicitud_reversion, procesar_respuesta_reversion
 from facturador.response_handler import parse_siat_response, display_siat_response
-
-# Impresión y exportación
-#from facturador.export import imprimir_recibo
-from invoice_templates import generate_compact_html_invoice, generate_html_invoice
-from thermal_printer import ThermalPrinter
-from siat_pdf import html_to_pdf
-import threading
+from invoice_templates import generate_html_invoice, generate_compact_html_invoice
 
 # Configuración de logger
 # Agregar la ruta del directorio padre al path de Python si no está ya
@@ -72,6 +66,9 @@ if (parent_dir not in sys.path):
     sys.path.append(parent_dir)
 
 from logger_config import get_logger, get_printer_logger, get_facturacion_logger, get_xml_logger
+
+# Obtener logger específico para la interfaz de usuario
+ui_logger = get_logger(name="ui_logger")
 
 # Obtener loggers específicos para diferentes componentes
 logger = get_logger()
@@ -205,82 +202,62 @@ def render_sidebar():
 
 # Estas funciones ahora están en print_manager.py def monitorear_hilo_impresion(hilo):
     try:
-        # Crear un placeholder para actualizar el mensaje de estado
+        ui_logger.info(f"Iniciando monitoreo del hilo de impresión: {hilo.name}")
         status_placeholder = st.empty()
-        
-        # Obtener el número de factura del nombre del hilo
         numero_factura = hilo.name.split('_')[-1]
         complete_signal = f"debug/print_complete_{numero_factura}.signal"
         error_signal = f"debug/print_error_{numero_factura}.signal"
-        
-        timeout = 30  # Tiempo máximo de espera en segundos
+        timeout = 30
         start_time = time.time()
-        
-        # Mostrar mensaje inicial
         status_placeholder.info("⏳ Procesando...")
-        
-        # Mientras el hilo está activo y no hay señal de finalización
+
         while (hilo.is_alive() or st.session_state.get('impresion_en_progreso', False)):
-            # Verificar si hay archivos de señal que indiquen finalización
             if os.path.exists(complete_signal):
                 st.session_state['print_status'] = "✅ Impresión completada exitosamente"
                 st.session_state['impresion_en_progreso'] = False
-                try:
-                    os.remove(complete_signal)  # Limpiar la señal
-                except:
-                    pass
+                ui_logger.info(f"Impresión completada para la factura {numero_factura}")
+                os.remove(complete_signal)
                 break
-                
+
             if os.path.exists(error_signal):
-                try:
-                    with open(error_signal, 'r') as f:
-                        error_info = f.read().strip()
-                except:
-                    error_info = "Error desconocido durante la impresión"
-                
+                with open(error_signal, 'r') as f:
+                    error_info = f.read().strip()
                 st.session_state['print_status'] = f"❌ {error_info}"
                 st.session_state['impresion_en_progreso'] = False
-                try:
-                    os.remove(error_signal)  # Limpiar la señal
-                except:
-                    pass
+                ui_logger.error(f"Error en la impresión de la factura {numero_factura}: {error_info}")
+                os.remove(error_signal)
                 break
-            # Verificar timeout
+
             elapsed_time = time.time() - start_time
             if elapsed_time > timeout:
                 st.session_state['print_status'] = "⚠️ Tiempo de espera excedido, pero el proceso continúa en segundo plano."
                 st.session_state['impresion_en_progreso'] = False
-                printer_logger.warning(f"Tiempo de espera excedido al monitorear hilo de impresión {hilo.name}")
+                ui_logger.warning(f"Tiempo de espera excedido para la impresión de la factura {numero_factura}")
                 break
-                
-            # Obtener el estado actual y actualizar el placeholder (sin duplicar mensajes)
+
             print_status = st.session_state.get('print_status', "⏳ Procesando...")
             status_placeholder.info(print_status)
-            
-            # Breve pausa para no sobrecargar la UI
             time.sleep(0.5)
-        
-        # Verificar estado final una vez que el hilo ha terminado
+
         final_status = st.session_state.get('print_status', "❓ Estado desconocido.")
-        
-        # Actualizar el placeholder una última vez con el estado final
         if "✅" in final_status:
             status_placeholder.success(final_status)
         elif "❌" in final_status:
             status_placeholder.error(final_status)
         else:
             status_placeholder.warning(final_status)
-            
+
+        ui_logger.info(f"Estado final del monitoreo de impresión: {final_status}")
+
     except Exception as e:
         st.error(f"❌ Error durante el monitoreo del proceso: {str(e)}")
-        printer_logger.exception("Error en monitorear_hilo_impresion")
+        ui_logger.exception("Error en monitorear_hilo_impresion")
         st.session_state['impresion_en_progreso'] = False
 
-# Esta función ahora está en invoice_manager.py
-
+# Gestión de pestañas con logs
 def main():
+    ui_logger.info("Iniciando la interfaz principal")
     message_placeholder = st.empty()
-    # Definición de las pestañas
     tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
         "🧾Facturar", "🔍Ver Facturas", "✅Validar NIT", "😏Clientes", 
         "🔍Verificar Factura", "🔍Gestionar CUIS", "❌Anular/Revertir", "❌Revertir Anulacion"
@@ -289,20 +266,23 @@ def main():
     # Pestaña 2: Ver Facturas Generadas
     with tab2:
         st.header("Facturas Generadas")
-        
-        # Crear pestañas para diferentes estados de facturas
+        ui_logger.info("Usuario accedió a la pestaña 'Ver Facturas'")
         facturas_tabs = st.tabs(["Todas", "Pendientes", "Validadas", "Anuladas"])
         
         with facturas_tabs[0]:
+            ui_logger.info("Mostrando todas las facturas")
             mostrar_lista_facturas("TODAS")
         
         with facturas_tabs[1]:
+            ui_logger.info("Mostrando facturas pendientes")
             mostrar_lista_facturas("PENDIENTE")
             
         with facturas_tabs[2]:
+            ui_logger.info("Mostrando facturas validadas")
             mostrar_lista_facturas("VALIDADA")
             
         with facturas_tabs[3]:
+            ui_logger.info("Mostrando facturas anuladas")
             mostrar_lista_facturas("ANULADA")
     
     # Pestaña 3: Validar NIT
@@ -764,13 +744,8 @@ def main():
                         st.session_state['print_status'] = f"❌ Error: {str(e)}"
                         st.session_state['impresion_en_progreso'] = False
                         printer_logger.exception("Error en el proceso de impresión")
-                
-                # Mostrar un botón para generar nueva factura si la impresión está completa o ha fallado
-                if st.session_state.get('print_status') and not st.session_state.get('impresion_en_progreso', False):
-                    if st.button("Generar Nueva Factura"):
-                        reiniciar_estados()
-                        # Usar st.rerun() en lugar de st.experimental_rerun()
-                        st.rerun()
+            else:
+                st.info("El botón de impresión solo estará disponible cuando la factura haya sido validada exitosamente por el SIN.")
         
         with col3:
             if st.session_state.get('factura_validada'):

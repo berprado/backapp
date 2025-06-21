@@ -94,11 +94,11 @@ def solicitar_cufd():
     try:
         # Llamar al método cufd para obtener un nuevo CUFD
         response = client.service.cufd(solicitud)
-        print("Respuesta completa del servicio SOAP:", response)
+        print("Respuesta completa del servicio SOAP CUFD:", response)
 
         # Verificar si la transacción fue exitosa
         if not response.transaccion:
-            print("Error en la transacción SOAP:", response.mensajesList)
+            print("Error en la transacción SOAP CUFD:", response.mensajesList)
             return None  # Salir si hay error
 
         # Extraer datos de la respuesta

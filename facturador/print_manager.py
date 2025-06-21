@@ -15,7 +15,6 @@ from thermal_printer import ThermalPrinter
 from siat_pdf import html_to_pdf
 from logger_config import get_printer_logger
 
-# Configuración de logger
 printer_logger = get_printer_logger()
 
 def initialize_print_state():
@@ -73,8 +72,12 @@ def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
 
             # Guardar HTML para debug y referencia
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            debug_path = f"debug/factura_{numero_factura}_{timestamp}.html"
-            os.makedirs("debug", exist_ok=True)
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            debug_dir = os.path.join(base_dir, "debug")
+            pdfs_dir = os.path.join(base_dir, "pdfs")
+            os.makedirs(debug_dir, exist_ok=True)
+            os.makedirs(pdfs_dir, exist_ok=True)
+            debug_path = os.path.join(debug_dir, f"factura_{numero_factura}_{timestamp}.html")
             
             with open(debug_path, "w", encoding="utf-8") as f:
                 f.write(html_content)
@@ -84,7 +87,7 @@ def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
 
             # Intentar generar el PDF
             try:
-                output_pdf_path = f"pdfs/factura_{numero_factura}_{nit}_{cuf[-8:]}.pdf"
+                output_pdf_path = os.path.join(pdfs_dir, f"factura_{numero_factura}_{nit}_{cuf[-8:]}.pdf")
                 html_to_pdf(html_content, output_pdf_path)
                 printer_logger.info(f"PDF generado exitosamente: {output_pdf_path}")
             except Exception as e:
