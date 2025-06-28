@@ -1,80 +1,104 @@
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import time
+import re
+import logging
+import traceback
+import base64
+import hashlib
+import xml.etree.ElementTree as ET
+from datetime import datetime
+from decimal import Decimal
+
+# Agregar la ruta del directorio padre al path de Python
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
+
+# Streamlit y componentes
 import streamlit as st
 import streamlit.components.v1 as components
-import re  # Necesario para algunas validaciones que quedan en el archivo
-from data_access import (
-    fetch_comandas, fetch_metodos_pago, fetch_tipos_documento, fetch_cliente,
-    fetch_random_leyenda, obtener_nombre_unidad_medida, obtener_motivos_anulacion,
-    obtener_cuf_por_numero_factura, obtener_factura_completa, 
-    guardar_factura_cabecera, guardar_factura_detalle, obtener_facturas_por_estado
-)
-from business_logic import calculate_totals, collect_product_lines, generate_invoice_link, generate_qr
-from invoice_xml_generator import generate_xml_invoice
-from num2words import num2words
+
+# Base de datos y modelos
 from database import SessionLocal
 from facturador.models import Cufd, Cliente
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from datetime import datetime
-from decimal import Decimal
-import logging
-import traceback
-import xml.etree.ElementTree as ET
 
-# Importaciones de los nuevos módulos modularizados
-from validators import es_email_valido, es_telefono_valido, validar_factura_cabecera, validar_factura_detalle
-from client_manager import save_or_fetch_client_data, verificar_nit_cliente
-from invoice_manager import guardar_factura_en_bd, obtener_y_reservar_numero_factura, mostrar_lista_facturas
-from print_manager import initialize_print_state, reiniciar_estados, imprimir_en_hilo
-from print_manager import mostrar_mensaje_impresion_en_curso  # Importar la función de advertencia
-from xml_signer import sign_xml  # Se elimina calculate_hash, ahora centralizado en xml_signer.py
-
-# Zeep y solicitudes
+# Librerías externas
+from dotenv import load_dotenv
 from zeep import Client
 from zeep.transports import Transport
 from requests import Session
-from dotenv import load_dotenv
-
-# Módulos relacionados con CUF/CUFD
-from generate_cuf import generate_cuf
-from cufd import solicitar_cufd
-import cuis
-
-# XML y criptografía
 from lxml import etree
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography import x509
-import base64
-import hashlib
+from num2words import num2words
 
-# Utilidades para facturación
+# Módulos de acceso a datos
+from data_access import (
+    fetch_comandas, fetch_metodos_pago, fetch_tipos_documento, fetch_cliente,
+    fetch_random_leyenda, obtener_nombre_unidad_medida, obtener_motivos_anulacion,
+    obtener_cuf_por_numero_factura, obtener_factura_completa, 
+    guardar_factura_cabecera, guardar_factura_detalle, obtener_facturas_por_estado,
+    fetch_all_clientes, contar_total_clientes
+)
+
+# Módulos de lógica de negocio
+from business_logic import calculate_totals, collect_product_lines, generate_invoice_link, generate_qr
+from invoice_xml_generator import generate_xml_invoice
+from invoice_templates import generate_html_invoice, generate_compact_html_invoice
+
+# Módulos modularizados
+from validators import es_email_valido, es_telefono_valido, validar_factura_cabecera, validar_factura_detalle
+from client_manager import save_or_fetch_client_data, verificar_nit_cliente
+from invoice_manager import guardar_factura_en_bd, obtener_y_reservar_numero_factura, mostrar_lista_facturas
+from print_manager import initialize_print_state, reiniciar_estados, imprimir_en_hilo, mostrar_mensaje_impresion_en_curso
+from xml_signer import sign_xml
+
+# Módulos de servicios SIN
+from generate_cuf import generate_cuf
+from cufd import solicitar_cufd
+import cuis
 from zeeper import validar_xml, comprimir_xml, obtener_hash, enviar_solicitud
 import verifica_stream
 from estado_factura import verificar_estado_factura
 from anulacion import anular_factura
 from reversion import enviar_solicitud_reversion, procesar_respuesta_reversion
 from facturador.response_handler import parse_siat_response, display_siat_response
-from invoice_templates import generate_html_invoice, generate_compact_html_invoice
 
-# Configuración de logger
-# Agregar la ruta del directorio padre al path de Python si no está ya
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-if (parent_dir not in sys.path):
-    sys.path.append(parent_dir)
-
+# Configuración de loggers
 from logger_config import get_logger, get_printer_logger, get_facturacion_logger, get_xml_logger
 
-# Obtener logger específico para la interfaz de usuario
-ui_logger = get_logger(name="ui_logger")
-
-# Obtener loggers específicos para diferentes componentes
+# Configurar loggers
 logger = get_logger()
 printer_logger = get_printer_logger()
 facturacion_logger = get_facturacion_logger()
 xml_logger = get_xml_logger()
+ui_logger = get_logger()  # Logger para la interfaz de usuario
+
+# Funciones utilitarias para la UI
+def init_session_state(key, default_value):
+    """
+    Inicializa una clave en el session_state si no existe.
+    
+    Args:
+        key (str): Clave del session_state
+        default_value: Valor por defecto
+    """
+    if key not in st.session_state:
+        st.session_state[key] = default_value
+
+def reset_session_keys(keys):
+    """
+    Reinicia múltiples claves del session_state.
+    
+    Args:
+        keys (list): Lista de claves a reiniciar
+    """
+    for key in keys:
+        if key in st.session_state:
+            del st.session_state[key]
 
 # Lista de códigos permitidos para gift cards
 gift_card_codes = [
@@ -201,6 +225,7 @@ def render_sidebar():
     return numero_documento, nit_valido, nombre_cliente, complemento, email, telefono, seleccion_tipo_documento, codigo_clasificador_documento, codigo_clasificador_metodo_pago, ultimos_digitos_tarjeta, codigo_cliente
 
 # Estas funciones ahora están en print_manager.py def monitorear_hilo_impresion(hilo):
+def monitorear_hilo_impresion(hilo):
     try:
         ui_logger.info(f"Iniciando monitoreo del hilo de impresión: {hilo.name}")
         status_placeholder = st.empty()
@@ -292,8 +317,115 @@ def main():
         
     # Pestaña 4: Lista de Clientes
     with tab4:
-        st.header("Lista de Clientes")
-        st.write("Aquí se mostrarán los clientes.")
+        st.header("📋 Lista de Clientes")
+        
+        # Inicializar variables de estado para paginación
+        init_session_state('clientes_page', 0)
+        init_session_state('clientes_search', "")
+        
+        # Configuración de paginación
+        REGISTROS_POR_PAGINA = 20
+        
+        # Barra de búsqueda
+        col1, col2, col3 = st.columns([3, 1, 1])
+        with col1:
+            busqueda = st.text_input(
+                "🔍 Buscar cliente", 
+                value=st.session_state.clientes_search,
+                placeholder="Buscar por nombre, documento o código..."
+            )
+        with col2:
+            if st.button("🔄 Buscar"):
+                st.session_state.clientes_search = busqueda
+                st.session_state.clientes_page = 0  # Reset a primera página
+                st.rerun()
+        with col3:
+            if st.button("🧹 Limpiar"):
+                st.session_state.clientes_search = ""
+                st.session_state.clientes_page = 0
+                st.rerun()
+        
+        # Obtener datos de clientes
+        offset = st.session_state.clientes_page * REGISTROS_POR_PAGINA
+        clientes, total_registros, error = fetch_all_clientes(
+            limite=REGISTROS_POR_PAGINA,
+            offset=offset,
+            busqueda=st.session_state.clientes_search if st.session_state.clientes_search else None
+        )
+        
+        if error:
+            st.error(f"Error al obtener clientes: {error}")
+        elif not clientes:
+            if st.session_state.clientes_search:
+                st.warning("No se encontraron clientes que coincidan con la búsqueda.")
+            else:
+                st.info("No hay clientes registrados en el sistema.")
+        else:
+            # Mostrar estadísticas
+            total_paginas = (total_registros - 1) // REGISTROS_POR_PAGINA + 1 if total_registros > 0 else 0
+            pagina_actual = st.session_state.clientes_page + 1
+            
+            st.info(f"📊 **Total de clientes**: {total_registros} | **Página**: {pagina_actual}/{total_paginas}")
+            
+            # Crear DataFrame para mostrar en tabla
+            if clientes:
+                # Preparar datos para la tabla
+                datos_tabla = []
+                for cliente in clientes:
+                    datos_tabla.append({
+                        "ID": cliente.get("id", ""),
+                        "Código": cliente.get("codigo_cliente", ""),
+                        "Nombre/Razón Social": cliente.get("nombre_razon_social", ""),
+                        "Documento": cliente.get("numero_documento", ""),
+                        "Tipo Doc": cliente.get("codigo_tipo_documento_identidad", ""),
+                        "Email": cliente.get("email", ""),
+                        "Teléfono": cliente.get("telefono", ""),
+                        "Complemento": cliente.get("complemento", "")
+                    })
+                
+                # Mostrar tabla
+                st.dataframe(
+                    datos_tabla,
+                    use_container_width=True,
+                    hide_index=True
+                )
+                
+                # Controles de paginación
+                if total_paginas > 1:
+                    col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
+                    
+                    with col1:
+                        if st.button("⬅️ Primera", disabled=(st.session_state.clientes_page == 0)):
+                            st.session_state.clientes_page = 0
+                            st.rerun()
+                    
+                    with col2:
+                        if st.button("◀️ Anterior", disabled=(st.session_state.clientes_page == 0)):
+                            st.session_state.clientes_page -= 1
+                            st.rerun()
+                    
+                    with col3:
+                        st.write(f"Página {pagina_actual} de {total_paginas}")
+                    
+                    with col4:
+                        if st.button("▶️ Siguiente", disabled=(st.session_state.clientes_page >= total_paginas - 1)):
+                            st.session_state.clientes_page += 1
+                            st.rerun()
+                    
+                    with col5:
+                        if st.button("➡️ Última", disabled=(st.session_state.clientes_page >= total_paginas - 1)):
+                            st.session_state.clientes_page = total_paginas - 1
+                            st.rerun()
+            
+            # Mostrar detalles de cliente seleccionado (opcional)
+            with st.expander("ℹ️ Ver detalles de cliente específico"):
+                documento_detalle = st.text_input("Ingrese número de documento para ver detalles:")
+                if st.button("Ver Detalles") and documento_detalle:
+                    cliente_detalle, error_detalle = fetch_cliente(documento_detalle)
+                    if error_detalle:
+                        st.error(error_detalle)
+                    else:
+                        st.json(cliente_detalle)
 
     # Pestaña 5: Verificar Factura
     with tab5:
@@ -315,9 +447,16 @@ def main():
 
     # Pestaña 6: Gestionar CUIS
     with tab6:
-        st.header("Gestionar CUIS")
-        #st.write("Aquí puedes gestionar los códigos CUIS.")
-        # Aquí podrías agregar la funcionalidad para gestionar CUIS
+        st.header("🔑 Gestionar CUIS")
+        st.markdown("""
+        **CUIS (Código Único de Inicio de Sistemas)** es un código único que autoriza al sistema 
+        de facturación para operar con el SIN. Es necesario tenerlo vigente para emitir facturas.
+        """)
+        
+        # Información sobre el CUIS actual
+        st.subheader("📊 Estado actual del CUIS")
+        
+        # Llamar a la funcionalidad principal de CUIS
         cuis.main()
 
     # Pestaña 7: Anular Factura

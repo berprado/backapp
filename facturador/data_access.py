@@ -87,6 +87,70 @@ def fetch_cliente(numero_documento):
     finally:
         session.close()
 
+def fetch_all_clientes(limite=50, offset=0, busqueda=None):
+    """
+    Obtiene una lista paginada de todos los clientes con búsqueda opcional.
+    
+    Args:
+        limite (int): Número máximo de registros a retornar
+        offset (int): Número de registros a omitir (para paginación)
+        busqueda (str): Término de búsqueda para filtrar por nombre o documento
+    
+    Returns:
+        tuple: (lista_clientes, total_registros, mensaje_error)
+    """
+    session = SessionLocal()
+    try:
+        logger.info(f"Obteniendo clientes - Límite: {limite}, Offset: {offset}, Búsqueda: {busqueda}")
+        
+        # Query base
+        query = session.query(Cliente)
+        
+        # Aplicar filtro de búsqueda si se proporciona
+        if busqueda and busqueda.strip():
+            busqueda = busqueda.strip()
+            query = query.filter(
+                (Cliente.nombre_razon_social.ilike(f"%{busqueda}%")) |
+                (Cliente.numero_documento.ilike(f"%{busqueda}%")) |
+                (Cliente.codigo_cliente.ilike(f"%{busqueda}%"))
+            )
+        
+        # Obtener total de registros para paginación
+        total_registros = query.count()
+        
+        # Aplicar paginación y ordenamiento
+        clientes = query.order_by(Cliente.fecha_creacion.desc()).offset(offset).limit(limite).all()
+        
+        # Convertir a diccionarios
+        clientes_dict = [cliente.to_dict() for cliente in clientes]
+        
+        logger.info(f"Se obtuvieron {len(clientes_dict)} clientes de un total de {total_registros}")
+        return clientes_dict, total_registros, None
+        
+    except Exception as e:
+        logger.error(f"Error al obtener lista de clientes: {e}")
+        logger.error(traceback.format_exc())
+        return [], 0, f"Error al obtener la lista de clientes: {e}"
+    finally:
+        session.close()
+
+def contar_total_clientes():
+    """
+    Obtiene el número total de clientes registrados.
+    
+    Returns:
+        tuple: (total_clientes, mensaje_error)
+    """
+    session = SessionLocal()
+    try:
+        total = session.query(Cliente).count()
+        return total, None
+    except Exception as e:
+        logger.error(f"Error al contar clientes: {e}")
+        return 0, f"Error al contar clientes: {e}"
+    finally:
+        session.close()
+
 # Código de actividad económica desde el archivo .env
 ACTIVIDAD_ECONOMICA = os.getenv('ACTIVIDAD_ECONOMICA')
 

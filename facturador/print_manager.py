@@ -11,8 +11,9 @@ from datetime import datetime
 import logging
 import traceback
 import streamlit as st
-from thermal_printer import ThermalPrinter
+from invoice_templates import generate_html_invoice
 from siat_pdf import html_to_pdf
+from thermal_printer import ThermalPrinter
 from logger_config import get_printer_logger
 
 printer_logger = get_printer_logger()
@@ -155,3 +156,55 @@ def mostrar_mensaje_impresion_en_curso():
     """
     if st.session_state.get('impresion_en_progreso', False):
         st.warning("⚠️ La impresión está en curso. Por favor, espera a que finalice antes de iniciar una nueva impresión.")
+
+def process_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_productos, nombre_cliente, fecha_emision, numero_factura, nit, cuf):
+    """
+    Centraliza la generación de HTML, PDF e impresión de la factura.
+
+    Args:
+        subtotal (float): Subtotal de la factura.
+        descuento_adicional (float): Descuento adicional aplicado.
+        monto_giftcard (float): Monto de giftcard aplicado.
+        lineas_productos (list): Lista de productos en la factura.
+        nombre_cliente (str): Nombre del cliente.
+        fecha_emision (str): Fecha de emisión de la factura.
+        numero_factura (str): Número de la factura.
+        nit (str): NIT del emisor.
+        cuf (str): Código Único de Facturación.
+
+    Returns:
+        bool: True si el proceso fue exitoso, False en caso de error.
+    """
+    try:
+        # Generar HTML
+        html_content = generate_html_invoice(
+            subtotal=subtotal,
+            descuento_adicional=descuento_adicional,
+            monto_giftcard=monto_giftcard,
+            lineas_productos=lineas_productos,
+            nombre_cliente=nombre_cliente,
+            fecha_emision=fecha_emision,
+            numero_factura=numero_factura
+        )
+
+        # Guardar HTML para depuración
+        debug_dir = os.path.join(os.getcwd(), "debug")
+        os.makedirs(debug_dir, exist_ok=True)
+        debug_path = os.path.join(debug_dir, f"factura_{numero_factura}.html")
+        with open(debug_path, "w", encoding="utf-8") as f:
+            f.write(html_content)
+
+        # Generar PDF
+        pdf_dir = os.path.join(os.getcwd(), "pdfs")
+        os.makedirs(pdf_dir, exist_ok=True)
+        pdf_path = os.path.join(pdf_dir, f"factura_{numero_factura}_{nit}_{cuf[-8:]}.pdf")
+        html_to_pdf(html_content, pdf_path)
+
+        # Imprimir factura
+        printer = ThermalPrinter()
+        printer.process_and_print_invoice(html_content, nit, cuf, numero_factura)
+
+        return True
+    except Exception as e:
+        printer_logger.error(f"Error en el proceso de factura: {str(e)}")
+        return False

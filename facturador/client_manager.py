@@ -103,15 +103,13 @@ def verificar_nit_cliente(nit, message_placeholder):
         message_placeholder: Objeto para mostrar mensajes
         
     Returns:
-        bool: True si el NIT es válido, False en caso contrario
+        tuple: (bool, str) donde bool indica si es válido y str el mensaje
     """
     client = crear_cliente_soap()
     
     success, message = verificar_nit(nit, client)
     
     if success:
-        message_placeholder.success(f"✅ NIT válido: {message}")
-        return True
+        return True, message
     else:
-        message_placeholder.error(f"❌ {message}")
-        return False
+        return False, message

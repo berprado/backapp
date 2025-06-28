@@ -3,6 +3,7 @@ from data_access import fetch_random_leyenda
 from num2words import num2words
 from business_logic import generate_qr
 from datetime import datetime
+from decimal import Decimal  # Asegúrate de importar Decimal al inicio del archivo
 
 
 def numero_a_palabras_con_decimales_como_fraccion(numero, lang='es'):
@@ -28,15 +29,25 @@ gift_card_codes = [
 ]
 
 def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_productos, nombre_cliente, fecha_emision, numero_factura, metodo_de_pago=None, codigo_clasificador_metodo_pago=None, tipo_documento=None, codigo_clasificador_documento=None, numero_documento=None, complemento=None, email=None, telefono=None, ultimos_digitos_tarjeta=None):
-    total = subtotal - descuento_adicional
-    total_final = total - monto_giftcard
-    
-    if codigo_clasificador_metodo_pago in gift_card_codes:
-        monto_total_sujeto_iva = total - monto_giftcard
-    else:
-        monto_total_sujeto_iva = total
+    """
+    Genera el contenido HTML de una factura.
 
-    total_en_palabras = numero_a_palabras_con_decimales_como_fraccion(total, lang='es') if total else ""
+    Args:
+        subtotal (float): Subtotal de la factura.
+        descuento_adicional (float): Descuento adicional aplicado.
+        monto_giftcard (float): Monto de giftcard aplicado.
+        lineas_productos (list): Lista de productos en la factura.
+        nombre_cliente (str): Nombre del cliente.
+        fecha_emision (str): Fecha de emisión de la factura.
+        numero_factura (str): Número de la factura.
+
+    Returns:
+        str: Contenido HTML de la factura.
+    """
+    total_final = subtotal - descuento_adicional - monto_giftcard
+    monto_total_sujeto_iva = total_final * Decimal("0.87")  # Convertir 0.87 a Decimal para evitar errores de tipo
+
+    total_en_palabras = numero_a_palabras_con_decimales_como_fraccion(total_final, lang='es') if total_final else ""
 
     leyenda = fetch_random_leyenda()
     
@@ -152,7 +163,7 @@ def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_
     <tr>
         <td class="tg-n17z" colspan="5"><span style="font-weight:bold">Son: {total_en_palabras}</span></td>
         <td class="tg-e8cb"><span style="font-weight:bold">Total:</span></td>
-        <td class="tg-tm6e"><span style="font-weight:bold">{total:.2f}</span></td>
+        <td class="tg-tm6e"><span style="font-weight:bold">{total_final:.2f}</span></td>
     </tr>
     <tr>
         <td class="tg-q5sf" colspan="5"></td>

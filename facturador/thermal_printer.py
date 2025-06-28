@@ -7,6 +7,7 @@ if parent_dir not in sys.path:
 
 from logger_config import get_logger, get_printer_logger
 import traceback  # Añadir la importación de traceback
+from datetime import datetime  # Importar datetime para la marca de tiempo
 
 # Obtener loggers para este módulo
 logger = get_logger()
@@ -269,4 +270,35 @@ class ThermalPrinter:
             printer_logger.error(f"Error en impresión térmica: {e}")
             printer_logger.error(traceback.format_exc())
             self.logger.error(f"Error durante la impresión: {str(e)}")
+            return False
+
+    def process_and_print_invoice(self, html_content, nit, cuf, numero_factura):
+        """
+        Procesa el contenido HTML, genera el PDF y realiza la impresión térmica.
+
+        Args:
+            html_content (str): Contenido HTML de la factura.
+            nit (str): NIT del emisor.
+            cuf (str): Código Único de Facturación.
+            numero_factura (str): Número de la factura.
+
+        Returns:
+            bool: True si la impresión fue exitosa, False en caso de error.
+        """
+        try:
+            # Imprimir factura
+            success = self.print_invoice(html_content, nit, cuf, numero_factura)
+            if not success:
+                raise Exception("Error durante la impresión térmica")
+
+            # Crear archivo de señalización
+            signal_dir = os.path.join(os.getcwd(), "debug")
+            os.makedirs(signal_dir, exist_ok=True)
+            signal_file = os.path.join(signal_dir, f"print_complete_{numero_factura}.signal")
+            with open(signal_file, "w") as f:
+                f.write(f"Impresión completada: {datetime.now().isoformat()}")
+
+            return True
+        except Exception as e:
+            self.logger.error(f"Error en el proceso de impresión: {str(e)}")
             return False
