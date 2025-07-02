@@ -4,6 +4,18 @@ primaryColor="#ff0000"
 backgroundColor="#000000"
 secondaryBackgroundColor="#222222"
 font="monospace"
+
+[client]
+toolbarMode = "minimal"
+
+[ui]
+hideTopBar = truet]
+toolbarMode = minimal
+base="dark"
+primaryColor="#ff0000"
+backgroundColor="#000000"
+secondaryBackgroundColor="#222222"
+font="monospace"
 [client]
 toolbarMode = “minimal”
 

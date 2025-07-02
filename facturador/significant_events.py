@@ -98,87 +98,83 @@ def consulta_evento_significativo(codigo_ambiente, codigo_sistema, nit, cuis, cu
     except Exception as e:
         return {"error": str(e)}
 
-def register_significant_event(event_code, description, start_time, end_time, cufd=None):
+def register_significant_event(event_code, description, start_time, end_time, cufd):
     """
-    Registers a significant event in the SIAT system.
-
-    Args:
-        event_code (int): Code of the significant event.
-        description (str): Description of the event.
-        start_time (str): Start date and time (format: YYYY-MM-DDTHH:MM:SS.SSS).
-        end_time (str): End date and time (format: YYYY-MM-DDTHH:MM:SS.SSS).
-        cufd (str, optional): CUFD used during the event. If None, the current CUFD is used.
-
-    Returns:
-        tuple: (success, message) where success is a boolean and message is a descriptive message.
+    Registra un evento significativo en la base de datos y, si es posible, en el SIN.
+    Devuelve (exito: bool, mensaje: str)
     """
-    if not client:
-        logger.warning("SOAP client is not initialized. Operating in offline mode.")
-        return False, "Cannot register event in offline mode."
-
-    session = SessionLocal()
+    logger.info(f"Intentando registrar evento: event_code={event_code}, description={description}, start_time={start_time}, end_time={end_time}, cufd={cufd}")
     try:
-        # Validate inputs
-        if not event_code or not description or not start_time or not end_time:
-            logger.error("All parameters (event_code, description, start_time, end_time) are required.")
-            return False, "Missing required parameters."
+        # Validar parámetros
+        if not event_code or not description or not start_time or not cufd:
+            logger.error(f"Faltan parámetros requeridos: event_code={event_code}, description={description}, start_time={start_time}, cufd={cufd}")
+            return False, "Faltan parámetros requeridos para el registro del evento."
 
-        # Ensure end_time is after start_time
-        if datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%f") <= datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%f"):
-            logger.error("End time must be after start time.")
-            return False, "End time must be after start time."
+        # Si no se provee end_time, usar start_time (evento abierto)
+        if not end_time:
+            end_time = start_time
 
-        # Obtain CUFD if not provided
-        if not cufd:
-            from facturador.models import Cufd
-            cufd_record = session.query(Cufd).filter(Cufd.vigente == 1).first()
-            if not cufd_record:
-                return False, "No valid CUFD found."
-            cufd = cufd_record.codigo
+        # Validar que no exista ya un evento abierto igual
+        session = SessionLocal()
+        existe = session.query(EventoSignificativoRegistrado).filter(
+            EventoSignificativoRegistrado.codigo_evento == event_code,
+            EventoSignificativoRegistrado.estado == 'ABIERTO',
+            EventoSignificativoRegistrado.cufd == cufd
+        ).first()
+        if existe:
+            logger.warning(f"Ya existe un evento abierto para el código {event_code} y CUFD {cufd}")
+            session.close()
+            return True, "Ya existe un evento abierto para este tipo y CUFD."
 
-        # Send the request to SIAT
-        response = registro_evento_significativo(
-            int(os.getenv('CODIGO_AMBIENTE')),
-            os.getenv('CODIGO_SISTEMA'),
-            int(os.getenv('NIT')),
-            os.getenv('CUIS'),
-            cufd,
-            int(os.getenv('CODIGO_SUCURSAL')),
-            int(os.getenv('CODIGO_PUNTO_VENTA')),
-            event_code,
-            description,
-            start_time,
-            end_time,
-            cufd
+        # Registrar en la base de datos local
+        nuevo_evento = EventoSignificativoRegistrado(
+            codigo_evento=event_code,
+            descripcion=description,
+            fecha_inicio=start_time,
+            fecha_fin=end_time,
+            cufd=cufd,
+            estado='ABIERTO'
         )
-
-        if response and hasattr(response, 'transaccion') and response.transaccion:
-            # Save the event in the database
-            nuevo_evento = EventoSignificativoRegistrado(
-                codigo_evento=event_code,
-                descripcion=description,
-                fecha_inicio=datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%f"),
-                fecha_fin=datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%f"),
-                cufd=cufd,
-                fecha_registro=datetime.now()
-            )
-            session.add(nuevo_evento)
-            session.commit()
-
-            return True, f"Event registered successfully. Code: {event_code}"
-        else:
-            error_msg = "Unknown error while registering event."
-            if hasattr(response, 'mensajesList') and response.mensajesList:
-                error_msg = response.mensajesList[0].descripcion
-
-            return False, f"Error registering event: {error_msg}"
-
-    except Exception as e:
-        logger.error(f"Exception while registering significant event: {str(e)}")
-        return False, f"Error: {str(e)}"
-    finally:
+        session.add(nuevo_evento)
+        session.commit()
+        session.refresh(nuevo_evento)
+        logger.info(f"Evento significativo registrado localmente: {nuevo_evento}")
         session.close()
 
+        # Intentar registrar en el SIN si el cliente SOAP está disponible
+        if WSDL_URL and API_KEY:
+            try:
+                client = Client(WSDL_URL, transport=transport)
+                SolicitudEvento = client.get_type('ns0:solicitudEventoSignificativo')
+                solicitud = SolicitudEvento(
+                    codigoAmbiente=int(os.getenv('CODIGO_AMBIENTE')),
+                    codigoPuntoVenta=int(os.getenv('CODIGO_PUNTO_VENTA')),
+                    codigoSistema=os.getenv('CODIGO_SISTEMA'),
+                    codigoSucursal=int(os.getenv('CODIGO_SUCURSAL')),
+                    cuis=os.getenv('CUIS'),
+                    nit=int(os.getenv('NIT')),
+                    codigoEvento=int(event_code),
+                    descripcion=description,
+                    fechaHoraInicioEvento=start_time,
+                    fechaHoraFinEvento=end_time,
+                    cufd=cufd
+                )
+                response = client.service.registroEventoSignificativo(solicitud)
+                logger.info(f"Respuesta del SIN al registrar evento: {response}")
+                if hasattr(response, 'transaccion') and response.transaccion:
+                    return True, "Evento registrado correctamente en el SIN."
+                else:
+                    logger.error(f"Error al registrar evento en el SIN: {getattr(response, 'mensajesList', 'Sin detalle')}")
+                    return False, f"Error al registrar evento en el SIN: {getattr(response, 'mensajesList', 'Sin detalle')}"
+            except Exception as e:
+                logger.error(f"Error al registrar evento en el SIN: {e}")
+                return True, "Evento registrado localmente. No se pudo registrar en el SIN por contingencia."
+        else:
+            logger.warning("No se pudo registrar en el SIN por falta de configuración de WSDL o API_KEY.")
+            return True, "Evento registrado localmente. No se pudo registrar en el SIN por falta de configuración."
+    except Exception as e:
+        logger.error(f"Error general al registrar evento: {e}")
+        return False, f"Error general al registrar evento: {e}"
 
 def get_significant_events(limit=50):
     """

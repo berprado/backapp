@@ -283,9 +283,9 @@ def monitorear_hilo_impresion(hilo):
 def main():
     ui_logger.info("Iniciando la interfaz principal")
     message_placeholder = st.empty()
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
         "🧾Facturar", "🔍Ver Facturas", "✅Validar NIT", "😏Clientes", 
-        "🔍Verificar Factura", "🔍Gestionar CUIS", "❌Anular/Revertir", "❌Revertir Anulacion"
+        "🔍Verificar Factura", "🔍Gestionar CUIS", "❌Anular/Revertir", "❌Revertir Anulacion", "🔧Diagnóstico"
     ])
 
     # Pestaña 2: Ver Facturas Generadas
@@ -891,6 +891,82 @@ def main():
                 nit_emisor = int(os.getenv('NIT'))
                 enlace = generate_invoice_link(nit_emisor, st.session_state['cuf'], st.session_state['ultima_factura'])
                 st.link_button("Consultar factura", enlace)
+
+    # Pestaña 9: Diagnóstico Avanzado (NUEVA funcionalidad)
+    with tab9:
+        st.header("🔧 Diagnóstico Avanzado de Comunicación")
+        st.markdown("""
+        Esta pestaña utiliza un **servicio mejorado** que combina todas las verificaciones existentes
+        del sistema para proporcionar un diagnóstico completo del estado de comunicación con el SIN.
+        
+        **Nota**: Este diagnóstico **NO reemplaza** las funcionalidades existentes, sino que las **mejora**.
+        """)
+        
+        # Importar el nuevo servicio de manera segura
+        try:
+            from communication_manager import communication_manager
+            
+            col1, col2 = st.columns([2, 1])
+            
+            with col1:
+                if st.button("🔍 Ejecutar Diagnóstico Completo", type="primary"):
+                    communication_manager.mostrar_diagnostico_completo()
+            
+            with col2:
+                st.info("**Fuentes de Verificación:**\n"
+                       "• soap_services.py\n"
+                       "• business_logic.py\n"
+                       "• Análisis combinado")
+            
+            # Mostrar último resultado si existe
+            estado_persistente = communication_manager.obtener_estado_persistente()
+            ultimo_resultado = estado_persistente.get('ultimo_resultado_completo')
+            
+            if ultimo_resultado:
+                st.subheader("📊 Último Diagnóstico")
+                with st.expander("Ver detalles del último diagnóstico"):
+                    st.json(ultimo_resultado)
+                    
+                    # Mostrar tiempo transcurrido
+                    try:
+                        timestamp = datetime.fromisoformat(ultimo_resultado['timestamp'])
+                        tiempo_transcurrido = datetime.now() - timestamp
+                        st.caption(f"Ejecutado hace: {tiempo_transcurrido}")
+                    except:
+                        st.caption("Tiempo de ejecución: No disponible")
+            
+            # Información sobre compatibilidad
+            with st.expander("ℹ️ Información sobre Compatibilidad"):
+                st.markdown("""
+                ### 🛡️ Garantías de Compatibilidad
+                
+                Este diagnóstico avanzado:
+                
+                ✅ **NO modifica** las funciones existentes en `soap_services.py`  
+                ✅ **NO modifica** las funciones existentes en `business_logic.py`  
+                ✅ **NO cambia** imports existentes en otros módulos  
+                ✅ **NO interfiere** con el funcionamiento normal del sistema  
+                ✅ **SOLO agrega** funcionalidades adicionales opcionales  
+                
+                ### 🔧 Cómo Funciona
+                
+                1. **Usa las funciones ORIGINALES** como base
+                2. **Combina** los resultados de múltiples fuentes
+                3. **Analiza** patrones y proporciona recomendaciones
+                4. **Registra** histórico para análisis de tendencias
+                
+                ### 📈 Beneficios Adicionales
+                
+                - **Diagnóstico más completo** que las verificaciones individuales
+                - **Recomendaciones inteligentes** basadas en múltiples fuentes
+                - **Histórico de verificaciones** para análisis de patrones
+                - **Interfaz mejorada** con detalles visuales
+                """)
+                
+        except ImportError as e:
+            st.error("❌ Error al cargar el servicio de diagnóstico avanzado")
+            st.code(f"Error: {e}")
+            st.info("💡 El sistema continúa funcionando normalmente con las verificaciones existentes.")
 
 # Esta función ahora está en invoice_manager.py
     
