@@ -5,6 +5,7 @@ import re
 import logging
 import traceback
 import base64
+import queue
 import hashlib
 import xml.etree.ElementTree as ET
 from datetime import datetime
@@ -224,8 +225,10 @@ def render_sidebar():
 
     return numero_documento, nit_valido, nombre_cliente, complemento, email, telefono, seleccion_tipo_documento, codigo_clasificador_documento, codigo_clasificador_metodo_pago, ultimos_digitos_tarjeta, codigo_cliente
 
-# Estas funciones ahora están en print_manager.py def monitorear_hilo_impresion(hilo):
-def monitorear_hilo_impresion(hilo):
+# Monitoreo del hilo de impresión. Actualiza ``st.session_state`` en el hilo principal.
+def monitorear_hilo_impresion(hilo, result_queue=None):
+    """Lee resultados de ``result_queue`` y actualiza ``st.session_state`` mientras
+    el hilo de impresión está en ejecución."""
     try:
         ui_logger.info(f"Iniciando monitoreo del hilo de impresión: {hilo.name}")
         status_placeholder = st.empty()
@@ -237,6 +240,16 @@ def monitorear_hilo_impresion(hilo):
         status_placeholder.info("⏳ Procesando...")
 
         while (hilo.is_alive() or st.session_state.get('impresion_en_progreso', False)):
+            if result_queue is not None:
+                try:
+                    msg_type, msg = result_queue.get_nowait()
+                    if msg_type == "success" or msg_type == "error":
+                        st.session_state['print_status'] = msg
+                    if msg_type == "done":
+                        st.session_state['impresion_en_progreso'] = False
+                        st.session_state['impresion_finalizada'] = True
+                except queue.Empty:
+                    pass
             if os.path.exists(complete_signal):
                 st.session_state['print_status'] = "✅ Impresión completada exitosamente"
                 st.session_state['impresion_en_progreso'] = False
@@ -870,15 +883,14 @@ def main():
                             )
                             
                             # Iniciar el hilo de impresión
-                            hilo_impresion = imprimir_en_hilo(
+                            hilo_impresion, result_queue = imprimir_en_hilo(
                                 html_content,
                                 st.session_state['cuf'],
                                 os.getenv('NIT'),
                                 st.session_state['ultima_factura']
                             )
-                            
-                            # Monitorear el estado del hilo
-                            # La función de monitoreo ahora está incorporada en imprimir_en_hilo
+
+                            monitorear_hilo_impresion(hilo_impresion, result_queue)
                     except Exception as e:
                         st.session_state['print_status'] = f"❌ Error: {str(e)}"
                         st.session_state['impresion_en_progreso'] = False

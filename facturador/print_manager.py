@@ -7,6 +7,7 @@ y generación de documentos PDF.
 
 import os
 import threading
+import queue
 from datetime import datetime
 import logging
 import traceback
@@ -56,7 +57,8 @@ def reiniciar_estados():
 def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
     """
     Crea un hilo para manejar la impresión de la factura y generación del PDF.
-    Esta función incorpora toda la lógica de monitoreo del hilo.
+    El hilo escribe los resultados en una cola para que la interfaz
+    principal actualice ``st.session_state`` de forma segura.
 
     Args:
         html_content_orig (str): Contenido HTML original de la factura.
@@ -64,6 +66,8 @@ def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
         nit (str): NIT del emisor.
         numero_factura (str): Número de factura.
     """
+    result_queue = queue.Queue()
+
     def imprimir():
         try:
             printer_logger.info(f"Iniciando proceso de impresión para factura {numero_factura}")
@@ -99,7 +103,7 @@ def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
                 printer = ThermalPrinter()
                 success = printer.print_invoice(html_content, nit, cuf, numero_factura)
                 if success:
-                    st.session_state['print_status'] = "✅ Impresión completada exitosamente"
+                    result_queue.put(("success", "✅ Impresión completada exitosamente"))
                 else:
                     raise Exception("Error durante la impresión térmica")
             except Exception as e:
@@ -117,10 +121,9 @@ def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
             error_msg = f"❌ Error de impresión: {str(e)}"
             printer_logger.error(error_msg)
             printer_logger.error(traceback.format_exc())
-            st.session_state['print_status'] = error_msg
+            result_queue.put(("error", error_msg))
         finally:
-            st.session_state['impresion_en_progreso'] = False
-            st.session_state['impresion_finalizada'] = True
+            result_queue.put(("done", None))
     
     # Evitar múltiples procesos de impresión simultáneos
     if st.session_state.get('impresion_en_progreso', False):
@@ -143,12 +146,12 @@ def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
     st.session_state['print_status'] = "⏱️ Impresión en progreso..."
     
     # Iniciar hilo de impresión
-    thread = threading.Thread(target=imprimir)
+    thread = threading.Thread(target=imprimir, name=f"print_{numero_factura}")
     thread.daemon = True
     thread.start()
 
     printer_logger.info(f"Hilo de impresión iniciado para la factura {numero_factura}")
-    return True
+    return thread, result_queue
 
 def mostrar_mensaje_impresion_en_curso():
     """
