@@ -272,6 +272,12 @@ class ThermalPrinter:
             self.logger.error(f"Error durante la impresión: {str(e)}")
             return False
 
+    def print_invoice_from_file(self, html_file_path, nit, cuf, numero_factura):
+        """Lee un archivo HTML y lo envía a impresión."""
+        with open(html_file_path, "r", encoding="utf-8") as file:
+            html_content = file.read()
+        return self.print_invoice(html_content, nit, cuf, numero_factura)
+
     def process_and_print_invoice(self, html_content, nit, cuf, numero_factura):
         """
         Procesa el contenido HTML, genera el PDF y realiza la impresión térmica.
