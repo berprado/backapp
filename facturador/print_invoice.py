@@ -44,10 +44,6 @@ def imprimir_factura_html(html_file_path):
     except Exception as e:
         logging.error(f"❌ Error durante la impresión: {str(e)}")
         return f"❌ Error durante la impresión: {str(e)}"
-from escpos.printer import Usb
-from bs4 import BeautifulSoup
-import logging
-
 class ThermalPrinter:
     def __init__(self, vendor_id=0x04B8, product_id=0x0E15):
         self.printer = None
@@ -159,10 +155,11 @@ class ThermalPrinter:
             self.logger.error(f"Error durante la impresión: {str(e)}")
             raise
 
-# Leer el archivo HTML cargado
-with open("factura_actual.html", "r", encoding="utf-8") as file:
-    html_content = file.read()
+if __name__ == "__main__":
+    # Leer el archivo HTML cargado
+    with open("factura_actual.html", "r", encoding="utf-8") as file:
+        html_content = file.read()
 
-# Crear instancia e imprimir la factura
-printer = ThermalPrinter()
-printer.print_invoice(html_content)
+    # Crear instancia e imprimir la factura
+    printer = ThermalPrinter()
+    printer.print_invoice(html_content)
