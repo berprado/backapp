@@ -42,33 +42,29 @@ def verificar_impresora():
         return False
 
 def guardar_factura_actual(html_content, cuf, nit, numero_factura):
-    """
-    Guarda los datos de la factura actual en el session_state
-    """
-    st.session_state['factura_actual'] = {
+    """Guarda la información de la factura en ``st.session_state['print_job']``."""
+    if 'print_job' not in st.session_state:
+        st.session_state['print_job'] = {}
+    st.session_state['print_job'].update({
         'html_content': html_content,
         'cuf': cuf,
         'nit': nit,
         'numero_factura': numero_factura,
-        'impresa': False
-    }
+        'impresa': False,
+    })
     printer_logger.info(f"Factura {numero_factura} guardada en session_state")
 
 def obtener_factura_actual():
-    """
-    Obtiene los datos de la factura actual del session_state
-    Returns:
-        dict: Datos de la factura o None si no hay factura
-    """
-    return st.session_state.get('factura_actual')
+    """Retorna los datos de ``print_job`` o ``None`` si no existen."""
+    return st.session_state.get('print_job')
 
 def marcar_factura_impresa():
-    """
-    Marca la factura actual como impresa en el session_state
-    """
-    if 'factura_actual' in st.session_state:
-        st.session_state['factura_actual']['impresa'] = True
-        printer_logger.info(f"Factura {st.session_state['factura_actual']['numero_factura']} marcada como impresa")
+    """Marca la factura actual como impresa en ``print_job``."""
+    if 'print_job' in st.session_state:
+        st.session_state['print_job']['impresa'] = True
+        printer_logger.info(
+            f"Factura {st.session_state['print_job'].get('numero_factura')} marcada como impresa"
+        )
 
 def html_to_escpos_text(html_content):
     """

@@ -236,10 +236,10 @@ def monitorear_hilo_impresion(hilo):
         start_time = time.time()
         status_placeholder.info("⏳ Procesando...")
 
-        while (hilo.is_alive() or st.session_state.get('impresion_en_progreso', False)):
+        while (hilo.is_alive() or st.session_state.get('print_job', {}).get('in_progress', False)):
             if os.path.exists(complete_signal):
-                st.session_state['print_status'] = "✅ Impresión completada exitosamente"
-                st.session_state['impresion_en_progreso'] = False
+                st.session_state['print_job']['print_status'] = "✅ Impresión completada exitosamente"
+                st.session_state['print_job']['in_progress'] = False
                 ui_logger.info(f"Impresión completada para la factura {numero_factura}")
                 os.remove(complete_signal)
                 break
@@ -247,24 +247,24 @@ def monitorear_hilo_impresion(hilo):
             if os.path.exists(error_signal):
                 with open(error_signal, 'r') as f:
                     error_info = f.read().strip()
-                st.session_state['print_status'] = f"❌ {error_info}"
-                st.session_state['impresion_en_progreso'] = False
+                st.session_state['print_job']['print_status'] = f"❌ {error_info}"
+                st.session_state['print_job']['in_progress'] = False
                 ui_logger.error(f"Error en la impresión de la factura {numero_factura}: {error_info}")
                 os.remove(error_signal)
                 break
 
             elapsed_time = time.time() - start_time
             if elapsed_time > timeout:
-                st.session_state['print_status'] = "⚠️ Tiempo de espera excedido, pero el proceso continúa en segundo plano."
-                st.session_state['impresion_en_progreso'] = False
+                st.session_state['print_job']['print_status'] = "⚠️ Tiempo de espera excedido, pero el proceso continúa en segundo plano."
+                st.session_state['print_job']['in_progress'] = False
                 ui_logger.warning(f"Tiempo de espera excedido para la impresión de la factura {numero_factura}")
                 break
 
-            print_status = st.session_state.get('print_status', "⏳ Procesando...")
+            print_status = st.session_state.get('print_job', {}).get('print_status', "⏳ Procesando...")
             status_placeholder.info(print_status)
             time.sleep(0.5)
 
-        final_status = st.session_state.get('print_status', "❓ Estado desconocido.")
+        final_status = st.session_state.get('print_job', {}).get('print_status', "❓ Estado desconocido.")
         if "✅" in final_status:
             status_placeholder.success(final_status)
         elif "❌" in final_status:
@@ -277,7 +277,8 @@ def monitorear_hilo_impresion(hilo):
     except Exception as e:
         st.error(f"❌ Error durante el monitoreo del proceso: {str(e)}")
         ui_logger.exception("Error en monitorear_hilo_impresion")
-        st.session_state['impresion_en_progreso'] = False
+        if 'print_job' in st.session_state:
+            st.session_state['print_job']['in_progress'] = False
 
 # Gestión de pestañas con logs
 def main():
@@ -772,10 +773,10 @@ def main():
                                 if success:
                                     transaccion_exitosa = display_siat_response(response_data, message_placeholder)
                                     if transaccion_exitosa:
-                                        st.session_state['cuf'] = cuf
-                                        st.session_state['ultima_factura'] = numero_factura
+                                        st.session_state['print_job']['cuf'] = cuf
+                                        st.session_state['print_job']['numero_factura'] = numero_factura
                                         st.session_state['factura_validada'] = True
-                                        st.session_state['datos_impresion'] = {
+                                        st.session_state['print_job']['datos_impresion'] = {
                                             'subtotal': subtotal,
                                             'descuento_adicional': descuento_adicional,
                                             'monto_giftcard': monto_giftcard,
@@ -824,31 +825,31 @@ def main():
             mostrar_mensaje_impresion_en_curso()
 
             # Botón para forzar liberación de impresión si está colgada
-            if st.session_state.get('impresion_en_progreso', False):
+            if st.session_state.get('print_job', {}).get('in_progress', False):
                 if st.button("Forzar liberación de impresión", key="forzar_liberacion_impresion"):
-                    st.session_state['impresion_en_progreso'] = False
-                    st.session_state['print_status'] = "⚠️ Impresión liberada manualmente. Puedes volver a intentar imprimir."
+                    st.session_state['print_job']['in_progress'] = False
+                    st.session_state['print_job']['print_status'] = "⚠️ Impresión liberada manualmente. Puedes volver a intentar imprimir."
 
             if st.session_state.get('factura_validada'):
                 # Determinar si el botón de imprimir debe estar desactivado
-                impresion_en_progreso = st.session_state.get('impresion_en_progreso', False)
+                impresion_en_progreso = st.session_state.get('print_job', {}).get('in_progress', False)
                 
                 if st.button("Imprimir Factura", disabled=impresion_en_progreso):
                     try:
                         # Marcar que la impresión está en progreso
-                        st.session_state['impresion_en_progreso'] = True
-                        st.session_state['print_status'] = "⏳ Procesando..."
+                        st.session_state['print_job']['in_progress'] = True
+                        st.session_state['print_job']['print_status'] = "⏳ Procesando..."
                         
                         # Validar que las claves necesarias estén presentes
-                        required_keys = ['datos_impresion', 'cuf', 'ultima_factura']
-                        missing_keys = [key for key in required_keys if key not in st.session_state]
-                        if missing_keys:
-                            st.session_state['print_status'] = f"❌ Faltan datos necesarios: {', '.join(missing_keys)}"
-                            st.session_state['impresion_en_progreso'] = False
-                            printer_logger.error(f"Faltan claves requeridas en session_state: {missing_keys}")
+                        required_keys = ['datos_impresion', 'cuf', 'numero_factura']
+                        missing = [k for k in required_keys if k not in st.session_state.get('print_job', {})]
+                        if missing:
+                            st.session_state['print_job']['print_status'] = f"❌ Faltan datos necesarios: {', '.join(missing)}"
+                            st.session_state['print_job']['in_progress'] = False
+                            printer_logger.error(f"Faltan claves requeridas en session_state: {missing}")
                         else:
                             # Generar contenido HTML para la factura
-                            datos = st.session_state['datos_impresion']
+                            datos = st.session_state['print_job']['datos_impresion']
                             html_content = generate_compact_html_invoice(
                                 subtotal=datos['subtotal'],
                                 descuento_adicional=datos['descuento_adicional'],
@@ -856,7 +857,7 @@ def main():
                                 lineas_productos=datos['lineas_productos'],
                                 nombre_cliente=datos['nombre_cliente'],
                                 fecha_emision=datos['fecha_emision_str'],
-                                numero_factura=st.session_state['ultima_factura'],
+                                numero_factura=st.session_state['print_job']['numero_factura'],
                                 metodo_de_pago=datos.get('seleccion_metodo_pago'),
                                 codigo_clasificador_metodo_pago=datos.get('codigo_clasificador_metodo_pago'),
                                 tipo_documento=datos.get('seleccion_tipo_documento'),
@@ -866,22 +867,22 @@ def main():
                                 email=datos.get('email'),
                                 telefono=datos.get('telefono'),
                                 ultimos_digitos_tarjeta=datos.get('ultimos_digitos_tarjeta'),
-                                cuf=st.session_state['cuf']
+                                cuf=st.session_state['print_job']['cuf']
                             )
                             
                             # Iniciar el hilo de impresión
                             hilo_impresion = imprimir_en_hilo(
                                 html_content,
-                                st.session_state['cuf'],
+                                st.session_state['print_job']['cuf'],
                                 os.getenv('NIT'),
-                                st.session_state['ultima_factura']
+                                st.session_state['print_job']['numero_factura']
                             )
                             
                             # Monitorear el estado del hilo
                             # La función de monitoreo ahora está incorporada en imprimir_en_hilo
                     except Exception as e:
-                        st.session_state['print_status'] = f"❌ Error: {str(e)}"
-                        st.session_state['impresion_en_progreso'] = False
+                        st.session_state['print_job']['print_status'] = f"❌ Error: {str(e)}"
+                        st.session_state['print_job']['in_progress'] = False
                         printer_logger.exception("Error en el proceso de impresión")
             else:
                 st.info("El botón de impresión solo estará disponible cuando la factura haya sido validada exitosamente por el SIN.")
@@ -889,7 +890,11 @@ def main():
         with col3:
             if st.session_state.get('factura_validada'):
                 nit_emisor = int(os.getenv('NIT'))
-                enlace = generate_invoice_link(nit_emisor, st.session_state['cuf'], st.session_state['ultima_factura'])
+                enlace = generate_invoice_link(
+                    nit_emisor,
+                    st.session_state['print_job']['cuf'],
+                    st.session_state['print_job']['numero_factura']
+                )
                 st.link_button("Consultar factura", enlace)
 
     # Pestaña 9: Diagnóstico Avanzado (NUEVA funcionalidad)

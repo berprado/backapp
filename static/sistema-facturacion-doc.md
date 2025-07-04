@@ -189,7 +189,7 @@ Nuestro sistema utiliza las sesiones de manera estratégica para diferentes prop
 
 2. **Almacenamiento de Datos de Factura**
    ```python
-   st.session_state['datos_impresion'] = {
+   st.session_state['print_job']['datos_impresion'] = {
        'subtotal': subtotal,
        'descuento_adicional': descuento_adicional,
        'monto_giftcard': monto_giftcard,
@@ -197,15 +197,15 @@ Nuestro sistema utiliza las sesiones de manera estratégica para diferentes prop
        # ... más datos ...
    }
    ```
-   Aquí guardamos todos los detalles necesarios para imprimir la factura, como si fuera una receta completa con todos sus ingredientes y cantidades.
+   Aquí guardamos todos los detalles necesarios para imprimir la factura.
 
 3. **Control de Estado de Facturación**
    ```python
-   st.session_state['cuf'] = cuf
-   st.session_state['ultima_factura'] = numero_factura
+   st.session_state['print_job']['cuf'] = cuf
+   st.session_state['print_job']['numero_factura'] = numero_factura
    st.session_state['factura_validada'] = True
    ```
-   Estos son como puntos de control que nos dicen en qué parte del proceso estamos y qué se ha completado exitosamente.
+   Estos puntos indican en qué parte del proceso estamos y qué se ha completado.
 
 ### 5.3 Manejo del Estado de Impresión
 

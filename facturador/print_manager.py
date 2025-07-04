@@ -18,40 +18,36 @@ from logger_config import get_printer_logger
 
 printer_logger = get_printer_logger()
 
+# Estructura de ``st.session_state['print_job']`` utilizada para controlar el
+# proceso de impresión.  Cada clave se actualiza en diferentes etapas del flujo:
+#
+# ``cuf`` y ``numero_factura`` se establecen cuando una factura es validada.
+# ``datos_impresion`` guarda la información necesaria para generar el HTML de la
+# factura.
+# ``html_content`` se asigna justo antes de iniciar la impresión.
+# ``print_status`` proporciona retroalimentación a la UI durante todo el
+# proceso.
+# ``in_progress`` y ``finalizado`` indican el estado del hilo de impresión.
+PRINT_JOB_DEFAULTS = {
+    'cuf': None,
+    'numero_factura': None,
+    'html_content': None,
+    'print_status': None,
+    'datos_impresion': {},
+    'in_progress': False,
+    'finalizado': False,
+}
+
 def initialize_print_state():
-    """
-    Inicializa el estado de impresión en la sesión de Streamlit.
-    
-    Esta función establece los valores predeterminados para el estado
-    de impresión en la sesión de Streamlit.
-    """
-    keys_defaults = {
-        'print_status': None,
-        'datos_impresion': {},
-        'cuf': None,
-        'ultima_factura': None,
-        'impresion_en_progreso': False,
-        'impresion_finalizada': False
-    }
-    for key, default in keys_defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = default
+    """Prepara ``st.session_state['print_job']`` con valores por defecto."""
+    if 'print_job' not in st.session_state:
+        st.session_state['print_job'] = PRINT_JOB_DEFAULTS.copy()
 
 def reiniciar_estados():
-    """
-    Reinicia los estados de impresión en la sesión de Streamlit.
-    
-    Esta función elimina las claves relacionadas con la impresión
-    de la sesión de Streamlit.
-    """
-    keys_to_reset = [
-        'factura_validada', 'print_status', 'datos_impresion', 
-        'cuf', 'ultima_factura', 'impresion_en_progreso', 
-        'impresion_finalizada'
-    ]
-    for key in keys_to_reset:
-        if key in st.session_state:
-            del st.session_state[key]
+    """Restablece los valores del trabajo de impresión."""
+    st.session_state['print_job'] = PRINT_JOB_DEFAULTS.copy()
+    if 'factura_validada' in st.session_state:
+        del st.session_state['factura_validada']
 
 def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
     """
@@ -99,7 +95,7 @@ def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
                 printer = ThermalPrinter()
                 success = printer.print_invoice(html_content, nit, cuf, numero_factura)
                 if success:
-                    st.session_state['print_status'] = "✅ Impresión completada exitosamente"
+                    st.session_state['print_job']['print_status'] = "✅ Impresión completada exitosamente"
                 else:
                     raise Exception("Error durante la impresión térmica")
             except Exception as e:
@@ -117,13 +113,13 @@ def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
             error_msg = f"❌ Error de impresión: {str(e)}"
             printer_logger.error(error_msg)
             printer_logger.error(traceback.format_exc())
-            st.session_state['print_status'] = error_msg
+            st.session_state['print_job']['print_status'] = error_msg
         finally:
-            st.session_state['impresion_en_progreso'] = False
-            st.session_state['impresion_finalizada'] = True
+            st.session_state['print_job']['in_progress'] = False
+            st.session_state['print_job']['finalizado'] = True
     
     # Evitar múltiples procesos de impresión simultáneos
-    if st.session_state.get('impresion_en_progreso', False):
+    if st.session_state.get('print_job', {}).get('in_progress', False):
         printer_logger.warning("Se intentó iniciar una nueva impresión mientras otra está en progreso.")
         return
     
@@ -134,13 +130,18 @@ def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
     # Verificar permisos de escritura
     if not os.access('pdfs', os.W_OK):
         printer_logger.error("No hay permisos de escritura en la carpeta pdfs")
-        st.session_state['print_status'] = "❌ No hay permisos de escritura en la carpeta de PDFs"
+        st.session_state['print_job']['print_status'] = "❌ No hay permisos de escritura en la carpeta de PDFs"
         return
     
     # Actualizar el estado e iniciar el hilo de impresión
-    st.session_state['impresion_en_progreso'] = True
-    st.session_state['impresion_finalizada'] = False
-    st.session_state['print_status'] = "⏱️ Impresión en progreso..."
+    st.session_state['print_job'].update({
+        'html_content': html_content_orig,
+        'cuf': cuf,
+        'numero_factura': numero_factura,
+        'in_progress': True,
+        'finalizado': False,
+        'print_status': "⏱️ Impresión en progreso..."
+    })
     
     # Iniciar hilo de impresión
     thread = threading.Thread(target=imprimir)
@@ -154,7 +155,7 @@ def mostrar_mensaje_impresion_en_curso():
     """
     Muestra un mensaje de advertencia en la UI si la impresión está en curso.
     """
-    if st.session_state.get('impresion_en_progreso', False):
+    if st.session_state.get('print_job', {}).get('in_progress', False):
         st.warning("⚠️ La impresión está en curso. Por favor, espera a que finalice antes de iniciar una nueva impresión.")
 
 def process_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_productos, nombre_cliente, fecha_emision, numero_factura, nit, cuf):
