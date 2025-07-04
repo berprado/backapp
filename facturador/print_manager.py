@@ -16,6 +16,22 @@ from siat_pdf import html_to_pdf
 from thermal_printer import ThermalPrinter
 from logger_config import get_printer_logger
 
+def get_output_dirs():
+    """Obtiene las rutas absolutas de los directorios ``debug/`` y ``pdfs/``.
+
+    Las rutas se calculan de forma relativa a este módulo y se garantiza
+    que ambos directorios existan.
+
+    Returns:
+        tuple[str, str]: Rutas a ``debug/`` y ``pdfs/`` respectivamente.
+    """
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    debug_dir = os.path.join(base_dir, "debug")
+    pdfs_dir = os.path.join(base_dir, "pdfs")
+    os.makedirs(debug_dir, exist_ok=True)
+    os.makedirs(pdfs_dir, exist_ok=True)
+    return debug_dir, pdfs_dir
+
 printer_logger = get_printer_logger()
 
 def initialize_print_state():
@@ -73,11 +89,7 @@ def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
 
             # Guardar HTML para debug y referencia
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-            debug_dir = os.path.join(base_dir, "debug")
-            pdfs_dir = os.path.join(base_dir, "pdfs")
-            os.makedirs(debug_dir, exist_ok=True)
-            os.makedirs(pdfs_dir, exist_ok=True)
+            debug_dir, pdfs_dir = get_output_dirs()
             debug_path = os.path.join(debug_dir, f"factura_{numero_factura}_{timestamp}.html")
             
             with open(debug_path, "w", encoding="utf-8") as f:
@@ -106,7 +118,7 @@ def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
                 raise Exception(f"Error en impresión térmica: {str(e)}")
 
             # Crear un archivo de señalización para indicar que la impresión ha terminado
-            signal_file = f"debug/print_complete_{numero_factura}.signal"
+            signal_file = os.path.join(debug_dir, f"print_complete_{numero_factura}.signal")
             with open(signal_file, "w") as f:
                 f.write(f"Impresión completada: {datetime.now().isoformat()}")
                 f.flush()
@@ -127,12 +139,10 @@ def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
         printer_logger.warning("Se intentó iniciar una nueva impresión mientras otra está en progreso.")
         return
     
-    # Verificar carpeta de destino PDF
-    if not os.path.exists('pdfs'):
-        os.makedirs('pdfs')
-    
-    # Verificar permisos de escritura
-    if not os.access('pdfs', os.W_OK):
+    # Obtener rutas de trabajo y verificar permisos de escritura
+    debug_dir, pdfs_dir = get_output_dirs()
+
+    if not os.access(pdfs_dir, os.W_OK):
         printer_logger.error("No hay permisos de escritura en la carpeta pdfs")
         st.session_state['print_status'] = "❌ No hay permisos de escritura en la carpeta de PDFs"
         return
@@ -187,16 +197,12 @@ def process_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_produc
             numero_factura=numero_factura
         )
 
-        # Guardar HTML para depuración
-        debug_dir = os.path.join(os.getcwd(), "debug")
-        os.makedirs(debug_dir, exist_ok=True)
+        # Guardar HTML y generar PDF en rutas consistentes
+        debug_dir, pdf_dir = get_output_dirs()
         debug_path = os.path.join(debug_dir, f"factura_{numero_factura}.html")
         with open(debug_path, "w", encoding="utf-8") as f:
             f.write(html_content)
 
-        # Generar PDF
-        pdf_dir = os.path.join(os.getcwd(), "pdfs")
-        os.makedirs(pdf_dir, exist_ok=True)
         pdf_path = os.path.join(pdf_dir, f"factura_{numero_factura}_{nit}_{cuf[-8:]}.pdf")
         html_to_pdf(html_content, pdf_path)
 

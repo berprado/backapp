@@ -53,7 +53,13 @@ from invoice_templates import generate_html_invoice, generate_compact_html_invoi
 from validators import es_email_valido, es_telefono_valido, validar_factura_cabecera, validar_factura_detalle
 from client_manager import save_or_fetch_client_data, verificar_nit_cliente
 from invoice_manager import guardar_factura_en_bd, obtener_y_reservar_numero_factura, mostrar_lista_facturas
-from print_manager import initialize_print_state, reiniciar_estados, imprimir_en_hilo, mostrar_mensaje_impresion_en_curso
+from print_manager import (
+    initialize_print_state,
+    reiniciar_estados,
+    imprimir_en_hilo,
+    mostrar_mensaje_impresion_en_curso,
+    get_output_dirs,
+)
 from xml_signer import sign_xml
 
 # Módulos de servicios SIN
@@ -110,12 +116,10 @@ gift_card_codes = [
 ]
 
 # Agregar al inicio del script o en la configuración inicial
-if not os.path.exists('pdfs'):
-    os.makedirs('pdfs')
-    
-# Agregar al inicio del script
+debug_dir, pdf_dir = get_output_dirs()
+
 try:
-    if not os.access('pdfs', os.W_OK):
+    if not os.access(pdf_dir, os.W_OK):
         logger.error("No hay permisos de escritura en la carpeta pdfs")
         raise PermissionError("No hay permisos de escritura en la carpeta pdfs")
 except Exception as e:
@@ -230,8 +234,9 @@ def monitorear_hilo_impresion(hilo):
         ui_logger.info(f"Iniciando monitoreo del hilo de impresión: {hilo.name}")
         status_placeholder = st.empty()
         numero_factura = hilo.name.split('_')[-1]
-        complete_signal = f"debug/print_complete_{numero_factura}.signal"
-        error_signal = f"debug/print_error_{numero_factura}.signal"
+        debug_dir, _ = get_output_dirs()
+        complete_signal = os.path.join(debug_dir, f"print_complete_{numero_factura}.signal")
+        error_signal = os.path.join(debug_dir, f"print_error_{numero_factura}.signal")
         timeout = 30
         start_time = time.time()
         status_placeholder.info("⏳ Procesando...")
