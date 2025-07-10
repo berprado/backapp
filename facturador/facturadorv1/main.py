@@ -1,6 +1,7 @@
 """
 Punto de entrada principal del sistema de facturación refactorizado.
 Detecta automáticamente el modo (online/offline) y carga la UI correspondiente.
+Actualizado para Streamlit 1.46.0 con nuevas funcionalidades.
 """
 import sys
 import os
@@ -15,8 +16,9 @@ from config.rf_settings import settings, validate_settings_on_startup
 def main():
     """
     Función principal que orquesta todo el sistema.
+    Actualizada para Streamlit 1.46.0 con nuevas funcionalidades.
     """
-    # Configuración de la página
+    # Configuración de la página con múltiples llamadas permitidas en v1.46.0
     st.set_page_config(
         page_title="Sistema de Facturación Digital Refactorizado v1.0",
         page_icon="🧾",
@@ -31,11 +33,27 @@ def main():
             st.info("💡 Revisa el archivo .env y los recursos necesarios")
             st.stop()
         
-        # 1. Mostrar información del sistema
+        # 1. Mostrar información del sistema con detección de tema
         st.title("🧾 Sistema de Facturación Digital Refactorizado")
-        st.subheader("v1.0 - En Desarrollo")
         
-        # 2. Mostrar estado de configuración
+        # Nuevo: Detectar tema actual (funcionalidad de v1.46.0)
+        try:
+            current_theme = st.context.theme if hasattr(st.context, 'theme') else "unknown"
+            tema_info = f"🎨 Tema: {current_theme.title()}" if current_theme != "unknown" else ""
+        except:
+            tema_info = ""
+        
+        st.subheader(f"v1.0 - Streamlit 1.46.0 {tema_info}")
+        
+        # Nuevo: Badge para mostrar el estado (funcionalidad nueva)
+        col_status, col_version = st.columns([3, 1])
+        with col_status:
+            st.markdown("### Estado del Sistema")
+        with col_version:
+            # Usando st.html con mejor soporte para estilos inline
+            st.html('<span style="background: #28a745; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px;">✅ OPERATIVO</span>')
+        
+        # 2. Mostrar estado de configuración mejorado
         with st.expander("📋 Estado del Sistema", expanded=True):
             col1, col2, col3 = st.columns(3)
             
@@ -49,6 +67,13 @@ def main():
             
             with col3:
                 st.metric("CUIS", settings.siat['cuis'][:8] + "..." if settings.siat['cuis'] else "No configurado")
+                
+                # Nuevo: Información de contexto avanzado (v1.45.0+)
+                try:
+                    if hasattr(st.context, 'timezone'):
+                        st.metric("Zona Horaria", st.context.timezone or "No detectada")
+                except:
+                    pass
                 
         # 3. Información sobre módulos disponibles
         st.subheader("🏗️ Estado de Desarrollo")
@@ -98,8 +123,18 @@ def main():
         with st.sidebar:
             st.header("📋 Info de Desarrollo")
             st.write("**Versión:** 1.0.0")
+            st.write("**Streamlit:** 1.46.0")
             st.write("**Estado:** En Desarrollo")
             st.write("**Fecha:** Enero 2025")
+            
+            # Nuevo: Información de contexto avanzado si está disponible
+            try:
+                if hasattr(st.context, 'ip_address') and st.context.ip_address:
+                    st.write(f"**IP:** {st.context.ip_address}")
+                if hasattr(st.context, 'locale') and st.context.locale:
+                    st.write(f"**Locale:** {st.context.locale}")
+            except:
+                pass
             
             st.subheader("📁 Estructura Creada")
             estructura = [
