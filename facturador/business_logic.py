@@ -47,7 +47,7 @@ def collect_product_lines(comandas, selected_id_comanda, db):
             unidad_medida = obtener_nombre_unidad_medida(codigo_producto, db)
             linea_producto = {
                 "nombre": comanda["nombre"],
-                "precio_venta": "{:.2f}".format(float(comanda["precio_venta"])),
+                "precio": "{:.2f}".format(float(comanda["precio_venta"])),
                 "cantidad": int(comanda["cantidad"]),
                 "sub_total": (float(comanda["precio_venta"]) * int(comanda["cantidad"])),
                 "codigo": codigo_producto,
@@ -57,7 +57,7 @@ def collect_product_lines(comandas, selected_id_comanda, db):
 
     # Agrupar productos repetidos
     df = pd.DataFrame(lineas_productos)
-    df_grouped = df.groupby(['nombre', 'precio_venta', 'codigo', 'unidad']).agg({
+    df_grouped = df.groupby(['nombre', 'precio', 'codigo', 'unidad']).agg({
         'cantidad': 'sum',
         'sub_total': 'sum'
     }).reset_index()

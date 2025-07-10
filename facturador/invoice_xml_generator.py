@@ -185,7 +185,7 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
         ET.SubElement(detalle, "cantidad").text = "{:.2f}".format(float(linea["cantidad"]))
         unidad_medida_codigo = UNIDAD_MEDIDA_MAP.get(linea["unidad"], 57)  # Usa 1 (Unid) como valor predeterminado
         ET.SubElement(detalle, "unidadMedida").text = str(unidad_medida_codigo)
-        ET.SubElement(detalle, "precioUnitario").text = "{:.2f}".format(float(linea["precio_venta"]))
+        ET.SubElement(detalle, "precioUnitario").text = "{:.2f}".format(float(linea["precio"]))
         
         # Manejo de nillable para montoDescuento
         if linea.get("montoDescuento") is not None:
@@ -215,7 +215,7 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
             'descripcion': linea["nombre"],
             'cantidad': float(linea["cantidad"]),
             'unidadMedida': unidad_medida_codigo,
-            'precioUnitario': float(linea["precio_venta"]),
+            'precioUnitario': float(linea["precio"]),
             'montoDescuento': float(linea.get("montoDescuento", 0.00)),
             'subTotal': float(linea["sub_total"]),
             'numeroSerie': linea.get("numeroSerie"),

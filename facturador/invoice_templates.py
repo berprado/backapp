@@ -45,7 +45,7 @@ def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_
         str: Contenido HTML de la factura.
     """
     total_final = subtotal - descuento_adicional - monto_giftcard
-    monto_total_sujeto_iva = total_final * Decimal("0.87")  # Convertir 0.87 a Decimal para evitar errores de tipo
+    monto_total_sujeto_iva = Decimal(str(total_final)) * Decimal("0.87")  # Convertir ambos a Decimal para evitar errores de tipo
 
     total_en_palabras = numero_a_palabras_con_decimales_como_fraccion(total_final, lang='es') if total_final else ""
 
@@ -143,7 +143,7 @@ def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_
             <td class="tg-1kjo">{linea["cantidad"]}</td>
             <td class="tg-1kjo">{linea["unidad"]}</td>
             <td class="tg-1kjo">{linea["nombre"]}</td>
-            <td class="tg-1kjo">{linea["precio_venta"]}</td>
+            <td class="tg-1kjo">{linea["precio"]}</td>
             <td class="tg-1kjo">{linea.get("montoDescuento", 0)}</td>
             <td class="tg-1kjo">{linea["sub_total"]}</td>
         </tr>
@@ -374,7 +374,7 @@ def generate_compact_html_invoice_xx(subtotal, descuento_adicional, monto_giftca
                   <td>
                    <table style="width: 100%;">
                      <tr>
-                      <td class="tg-7rv2" style="width: 85%;"><span style="font-weight:bold">{linea["codigo"]} - {linea["nombre"]}</span><br>     Unidad de Medida: {linea["unidad"]}<br>{linea["cantidad"]}x{linea["precio_venta"]} - {linea.get("montoDescuento", 0)}</td>
+                      <td class="tg-7rv2" style="width: 85%;"><span style="font-weight:bold">{linea["codigo"]} - {linea["nombre"]}</span><br>     Unidad de Medida: {linea["unidad"]}<br>{linea["cantidad"]}x{linea["precio"]} - {linea.get("montoDescuento", 0)}</td>
                       <td class="tg-lboi">{linea["sub_total"]:.2f}</td>
                      </tr>
                    </table>
@@ -594,7 +594,7 @@ def generate_compact_html_invoice(
     # Agregar detalles de productos
     for linea in lineas_productos:
         try:
-            precio_unitario = float(linea["precio_venta"])
+            precio_unitario = float(linea["precio"])
             cantidad = float(linea["cantidad"])
             subtotal_linea = float(linea["sub_total"])
             descuento = float(linea.get("montoDescuento", 0))
@@ -721,7 +721,7 @@ def generate_compact_invoice_text(subtotal, descuento_adicional, monto_giftcard,
     # Agregar cada producto con formato específico
     for linea in lineas_productos:
         factura_texto += f"{linea['codigo']} - {linea['nombre']}\n"
-        factura_texto += f"{linea['cantidad']}x{linea['precio_venta']:.2f} Bs   SubTotal: {linea['sub_total']:.2f} Bs\n"
+        factura_texto += f"{linea['cantidad']}x{linea['precio']:.2f} Bs   SubTotal: {linea['sub_total']:.2f} Bs\n"
 
     # Totales
     factura_texto += f"""

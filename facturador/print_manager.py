@@ -89,21 +89,40 @@ def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
             # Intentar generar el PDF
             try:
                 output_pdf_path = os.path.join(pdfs_dir, f"factura_{numero_factura}_{nit}_{cuf[-8:]}.pdf")
-                html_to_pdf(html_content, output_pdf_path)
-                printer_logger.info(f"PDF generado exitosamente: {output_pdf_path}")
+                printer_logger.info(f"Iniciando generación de PDF en: {output_pdf_path}")
+                
+                pdf_result = html_to_pdf(html_content, output_pdf_path)
+                if pdf_result:
+                    printer_logger.info(f"PDF generado exitosamente: {output_pdf_path}")
+                    
+                    # Verificar que el archivo realmente existe
+                    if os.path.exists(output_pdf_path):
+                        file_size = os.path.getsize(output_pdf_path)
+                        printer_logger.info(f"PDF verificado: {file_size} bytes")
+                    else:
+                        raise Exception("PDF reportado como exitoso pero archivo no existe")
+                else:
+                    raise Exception("html_to_pdf retornó False")
+                    
             except Exception as e:
+                printer_logger.error(f"Error detallado en generación PDF: {str(e)}")
                 raise Exception(f"Error al generar PDF: {str(e)}")
 
             # Proceder con la impresión térmica
             try:
+                printer_logger.info("Iniciando impresión térmica...")
                 printer = ThermalPrinter()
                 success = printer.print_invoice(html_content, nit, cuf, numero_factura)
                 if success:
+                    printer_logger.info("Impresión térmica completada exitosamente")
                     st.session_state['print_status'] = "✅ Impresión completada exitosamente"
                 else:
-                    raise Exception("Error durante la impresión térmica")
+                    printer_logger.warning("Impresión térmica falló, pero PDF fue generado")
+                    st.session_state['print_status'] = "⚠️ PDF generado, pero impresión térmica falló"
             except Exception as e:
-                raise Exception(f"Error en impresión térmica: {str(e)}")
+                printer_logger.error(f"Error en impresión térmica: {str(e)}")
+                # No lanzar excepción aquí para que se complete el proceso
+                st.session_state['print_status'] = f"⚠️ PDF generado, error en impresión térmica: {str(e)}"
 
             # Crear un archivo de señalización para indicar que la impresión ha terminado
             signal_file = f"debug/print_complete_{numero_factura}.signal"
