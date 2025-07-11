@@ -4,6 +4,26 @@
 
 Sistema de facturación digital refactorizado que cumple con las normativas del SIN (Servicio de Impuestos Nacionales) de Bolivia. Soporte completo para facturación **online** y **offline** con arquitectura modular y mantenible.
 
+**Versión:** 1.0.0  
+**Streamlit:** 1.46.0  
+**Estado:** En Desarrollo Activo  
+**Última actualización:** Enero 2025
+
+## 🚀 **Novedades y Actualizaciones**
+
+### ✅ **Completado Recientemente**
+- **Actualización a Streamlit 1.46.0** con nuevas funcionalidades
+- **Sistema de Logging Centralizado** (`utils/rf_logger.py`)
+- **Modelos de Datos Validados** (`data/rf_models.py`)
+- **Detector de Conexión Automático** (`core/rf_connection_detector.py`)
+- **Integración de Módulos** en el main.py con pruebas funcionales
+
+### 🔄 **En Desarrollo**
+- Lógica de negocio principal
+- Interfaz de usuario unificada
+- Servicios SIAT integrados
+- Gestión de facturación offline
+
 ## 🏗️ Arquitectura
 
 ### Estructura de Directorios
