@@ -8,11 +8,9 @@ teléfonos, NIT, así como los datos de factura cabecera y detalle.
 import re
 import os
 from dotenv import load_dotenv
-from zeep import Client
-from zeep.transports import Transport
-from requests import Session
 import logging
 from logger_config import get_logger
+from api_clients import get_soap_client
 
 # Cargar variables de entorno
 load_dotenv()
@@ -97,14 +95,18 @@ def verificar_nit(nit, client=None):
     
     Args:
         nit (str): El NIT a verificar
-        client: Cliente SOAP (opcional)
+        client: Cliente SOAP (opcional, si no se proporciona se obtiene automáticamente)
         
     Returns:
         tuple: (éxito, mensaje) donde éxito es un booleano y mensaje es una cadena
     """
+    # Si no se proporciona cliente, obtenerlo del servicio centralizado
+    if client is None:
+        client = get_soap_client()
+    
     # Verificar si estamos en modo offline (sin cliente SOAP)
     if not client:
-        return False, "No se puede verificar el NIT en modo offline"
+        return False, "No se puede verificar el NIT - sin conexión con el SIN"
     
     # Preparar la solicitud para el servicio web
     solicitud_verificar_nit = {
@@ -128,25 +130,4 @@ def verificar_nit(nit, client=None):
         logger.error(f"Error al verificar NIT: {str(e)}")
         return False, f"Ocurrió un error: {str(e)}"
 
-def crear_cliente_soap():
-    """
-    Crea un cliente SOAP para conectarse al servicio SIAT.
-    
-    Returns:
-        Client: Cliente SOAP configurado o None si no hay conexión
-    """
-    from contingency_manager import check_connectivity
-    
-    # Verificar conectividad antes de inicializar el cliente SOAP
-    is_connected, server_accessible = check_connectivity()
-    
-    if is_connected and server_accessible:
-        session = Session()
-        session.headers.update({'apikey': os.getenv('API_KEY', '')})
-        
-        wsdl_url = os.getenv('WSDL_URL_CODIGOS')
-        client = Client(wsdl_url, transport=Transport(session=session))
-        return client
-    else:
-        # No inicializar el cliente SOAP en modo offline
-        return None
+

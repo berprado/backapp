@@ -8,7 +8,8 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 import logging
 from database import SessionLocal
 from facturador.models import Cliente
-from validators import es_email_valido, es_telefono_valido, verificar_nit, crear_cliente_soap
+from validators import es_email_valido, es_telefono_valido, verificar_nit
+from api_clients import get_soap_client
 from logger_config import get_logger
 
 # Configuración de logger
@@ -105,7 +106,7 @@ def verificar_nit_cliente(nit, message_placeholder):
     Returns:
         tuple: (bool, str) donde bool indica si es válido y str el mensaje
     """
-    client = crear_cliente_soap()
+    client = get_soap_client()
     
     success, message = verificar_nit(nit, client)
     

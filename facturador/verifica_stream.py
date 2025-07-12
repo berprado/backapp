@@ -1,9 +1,7 @@
 import os
-from zeep import Client, Settings
-from zeep.transports import Transport
-from requests import Session
 from dotenv import load_dotenv
 import streamlit as st
+from api_clients import get_soap_client
 
 def get_env_variable(var_name):
     """Get the environment variable or raise an error."""
@@ -48,8 +46,13 @@ def main():
     # Cargar variables de entorno desde el archivo .env
     load_dotenv()
 
+    # Obtener cliente SOAP centralizado
+    client = get_soap_client()
+    if client is None:
+        st.error("No se puede conectar con el servicio del SIN. Verificar conectividad.")
+        st.stop()
+
     API_KEY = get_env_variable('API_KEY')
-    WSDL_URL_CODIGOS = get_env_variable('WSDL_URL_CODIGOS')
     CODIGO_SISTEMA = get_env_variable('CODIGO_SISTEMA')
     NIT = int(get_env_variable('NIT'))
     CODIGO_AMBIENTE = int(get_env_variable('CODIGO_AMBIENTE'))
@@ -57,18 +60,8 @@ def main():
     CODIGO_SUCURSAL = int(get_env_variable('CODIGO_SUCURSAL'))
     CUIS = get_env_variable('CUIS')
 
-    # Configuración de la sesión
-    session = Session()
-    session.headers.update({
-        'apikey': f'TokenApi {API_KEY}',
-        'Content-Type': 'text/xml;charset=UTF-8'
-    })
-    transport = Transport(session=session)
-    settings = Settings(strict=False, xml_huge_tree=True)
-    client = Client(wsdl=WSDL_URL_CODIGOS, transport=transport, settings=settings)
-
     # Interfaz de usuario en Streamlit
-    #st.title("Verificación del NIT")
+    # st.title("Verificación del NIT")
 
     # Input para NIT a verificar
     nit_para_verificacion = st.number_input("Ingrese el NIT para su verificación", min_value=0, value=0)

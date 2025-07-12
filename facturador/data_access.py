@@ -22,6 +22,7 @@ from sqlalchemy import inspect
 from datetime import datetime
 from zeep import Client
 from logger_config import get_logger
+from api_clients import get_soap_client
 import traceback
 
 # Obtener logger para este módulo
@@ -338,13 +339,10 @@ nit = int(os.getenv("NIT"))
 
 def solicitar_cuis(db: Session):
     """Solicita un nuevo CUIS y lo guarda en la base de datos si es necesario."""
-    # Crear el cliente SOAP para códigos
-    client = Client(wsdl_url_codigos)
-
-    # Configurar la sesión con la API Key
-    session = requests.Session()
-    session.headers.update({"apikey": api_key})
-    client.transport.session = session
+    # Obtener el cliente SOAP centralizado
+    client = get_soap_client()
+    if client is None:
+        return {"success": False, "message": "No se puede conectar con el servicio del SIN"}
 
     # Definir la estructura SolicitudCuis
     SolicitudCuis = client.get_type('ns0:solicitudCuis')
