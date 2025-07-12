@@ -120,7 +120,7 @@ def main():
             "📁 Estructura de Archivos": "✅ Completado",
             "📊 Modelos de Datos": "✅ Completado",
             "🌐 Detector de Conexión": "✅ Completado",
-            "� Sistema de Logging": "✅ Completado",
+            "📝 Sistema de Logging": "✅ Completado",
             "💼 Lógica de Negocio": "🔄 En Desarrollo",
             "🖥️ Interfaz de Usuario": "🔄 En Desarrollo",
             "📡 Servicios SIAT": "🔄 Próximo",

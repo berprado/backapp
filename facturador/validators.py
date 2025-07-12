@@ -106,7 +106,7 @@ def verificar_nit(nit, client=None):
     
     # Verificar si estamos en modo offline (sin cliente SOAP)
     if not client:
-        return False, "No se puede verificar el NIT - sin conexión con el SIN"
+        return False, "No se puede verificar el NIT - sin conexión con los servicios del SIN"
     
     # Preparar la solicitud para el servicio web
     solicitud_verificar_nit = {
