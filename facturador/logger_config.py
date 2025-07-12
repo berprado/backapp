@@ -29,11 +29,14 @@ def setup_logger(name='root', log_file=None, level=logging.DEBUG, max_size=10*10
         logger = logging.getLogger(name)
     
     logger.setLevel(level)
-    
+
     # Evitar duplicación de handlers
     if logger.handlers:
         logger.handlers = []
-        
+
+    # Desactivar propagación al logger raíz
+    logger.propagate = False
+    
     # Formato común para todos los logs
     log_format = '%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'
     formatter = logging.Formatter(log_format)
@@ -114,12 +117,17 @@ def setup_application_loggers(log_dir='logs'):
             name='zeeper',
             log_file=f"{log_dir}/zeeper_{date_str}.log",
             level=logging.DEBUG
+        ),
+        'ui': setup_logger(
+            name='ui',
+            log_file=f"{log_dir}/ui_{date_str}.log",
+            level=logging.INFO
         )
     }
-    
+
     # Configurar el logger raíz para que no propague mensajes a los handlers por defecto
     logging.getLogger().handlers = []
-    
+
     return loggers
 
 # Configuración que se ejecuta al importar este módulo

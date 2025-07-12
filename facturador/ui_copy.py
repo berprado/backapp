@@ -36,8 +36,7 @@ from tabs import (
 from api_clients import is_soap_client_available, get_connectivity_info, reset_soap_client
 
 # Configurar loggers
-logger = get_logger()
-ui_logger = get_logger()  # Logger para la interfaz de usuario
+ui_logger = get_logger('ui')  # Logger específico para la interfaz de usuario
 
 load_dotenv()
 
@@ -48,10 +47,10 @@ if not os.path.exists('pdfs'):
 # Verificar permisos de escritura
 try:
     if not os.access('pdfs', os.W_OK):
-        logger.error("No hay permisos de escritura en la carpeta pdfs")
+        ui_logger.error("No hay permisos de escritura en la carpeta pdfs")
         raise PermissionError("No hay permisos de escritura en la carpeta pdfs")
 except Exception as e:
-    logger.error(f"Error al verificar permisos: {str(e)}")
+    ui_logger.error(f"Error al verificar permisos: {str(e)}", exc_info=True)
 
 # La inicialización del cliente SOAP se ha movido a api_clients.py
 # para mantener la separación de responsabilidades
