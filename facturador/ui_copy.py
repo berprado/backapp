@@ -85,7 +85,7 @@ def main():
                         st.rerun()  # Refrescar la página para mostrar el nuevo estado
                     else:
                         st.error("❌ No se pudo reconectar")
-                        st.rerun() # Add rerun to update UI on failure
+                        st.rerun() # Actualizar la UI para mostrar el estado de error
     
     # Información adicional en un expander colapsable
     with st.expander(f"ℹ️ Detalles de conectividad (último chequeo: {connectivity_info['last_check']})", expanded=False):

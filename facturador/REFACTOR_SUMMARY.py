@@ -98,4 +98,5 @@ organizado de manera modular y mantenible.
 # Para evitar que Python trate de ejecutar el contenido como código,
 # todo está dentro de un docstring.
 
-print("Refactorización completada. Ver docstring para detalles completos.")
+if __name__ == "__main__":
+    print("Refactorización completada. Ver docstring para detalles completos.")
