@@ -1,5 +1,7 @@
-Estas son las instrucciones para mejorar el archivo `main.py` de la aplicación, basándote en las innovaciones y mejoras presentadas en `main_enhanced_demo.py`. **Es crucial que entiendas que **no debes reemplazar `main.py` por `main_enhanced_demo.py` directamente**. En su lugar, debes integrar selectivamente las mejoras conceptuales y lógicas del demo en el motor de producción. depuración y demostración en un archivo separado, como `debug_tools.py`, para mantener la claridad y la estabilidad del código de producción.
-
+---
+applyTo: '**'
+---
+Las mejoras conceptuales de `main_enhanced_demo.py` son excepcionales y deben aplicarse a `main.py`**. Sin embargo, es crucial entender que no se trata de un simple reemplazo de archivo, sino de una **integración selectiva y cuidadosa** de la lógica mejorada, descartando las herramientas de depuración.
 
 A continuación, una comparación detallada y el plan de acción que debes seguir.
 

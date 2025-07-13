@@ -134,5 +134,9 @@ def main():
         diagnostico_tab.render()
 
 if __name__ == "__main__":
-    initialize_print_state()
-    main()
+    try:
+        initialize_print_state()
+        main()
+    except Exception as e:
+        ui_logger.error(f"Error en la ejecución principal: {str(e)}", exc_info=True)
+        st.error(f"Ha ocurrido un error: {str(e)}")
