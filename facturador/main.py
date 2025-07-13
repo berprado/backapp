@@ -116,7 +116,9 @@ def main():
             if servicios_ok < total_servicios:
                 st.warning(f"⚠️ Algunos servicios presentan problemas. El sistema funcionará con limitaciones.")
         
-        online_main()
+        # Pasar el estado de conectividad y la información completa a la interfaz online
+        # para evitar verificaciones redundantes
+        online_main(is_online=conectado, connectivity_info=resultado_completo)
     else:
         st.error("❌ No se pudo conectar al SIN. Se activará la contingencia.")
 
