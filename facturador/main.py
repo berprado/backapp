@@ -8,7 +8,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # Importar explícitamente desde el archivo database.py local del directorio facturador
 from database import get_eventos_parametricos, get_cufd_vigente, obtener_evento_abierto, insertar_evento_local
-from ui_copy import main as online_main
+from ui_copy import render_full_ui
 from contingencia_auto import finalizar_evento_si_conectado
 from significant_events import register_significant_event, get_significant_events, close_significant_event
 # NUEVO: Importar el communication_manager para diagnóstico avanzado
@@ -118,7 +118,7 @@ def main():
         
         # Pasar el estado de conectividad y la información completa a la interfaz online
         # para evitar verificaciones redundantes
-        online_main(is_online=conectado, connectivity_info=resultado_completo)
+        render_full_ui(is_online=conectado, connectivity_info=resultado_completo)
     else:
         st.error("❌ No se pudo conectar al SIN. Se activará la contingencia.")
 
@@ -166,46 +166,11 @@ def main():
         # Paso 4: Cargar la interfaz offline
         st.warning("🛠️ Activando modo offline de facturación...")
 
-        # Mostrar información de eventos activos (centralizado)
+        # Si tenemos un evento, llamamos a la UI completa en modo offline
         if evento:
-            with st.form("form_factura_offline"):
-                st.subheader("📋 Ingresar factura offline")
-                numero_factura = st.text_input("Número de Factura")
-                nombre = st.text_input("Nombre o Razón Social")
-                documento = st.text_input("Número de Documento")
-                monto = st.number_input("Monto Total", min_value=0.0, format="%.2f")
-                submit = st.form_submit_button("💾 Guardar como XML")
-
-                if submit:
-                    # Estructura del XML
-                    now = datetime.now()
-                    timestamp = now.strftime("%Y%m%d_%H%M%S")
-                    nombre_archivo = f"offline_{evento['id']}_{timestamp}.xml"
-                    ruta_archivo = os.path.join("offline", nombre_archivo)
-
-                    # Asegurar existencia de carpeta
-                    os.makedirs("offline", exist_ok=True)
-
-                    contenido_xml = f"""<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<facturaOffline>\n<idEvento>{evento['id']}</idEvento>\n<fecha>{now.strftime('%Y-%m-%d %H:%M:%S')}</fecha>\n<numeroFactura>{numero_factura}</numeroFactura>\n<nombre>{nombre}</nombre>\n<documento>{documento}</documento>\n<monto>{monto:.2f}</monto>\n</facturaOffline>\n"""
-
-                    with open(ruta_archivo, "w", encoding="utf-8") as f:
-                        f.write(contenido_xml)
-
-                    st.success(f"✅ Factura guardada como {nombre_archivo}")
-
-            # Botón para finalizar contingencia y volver a modo online
-            st.markdown("---")
-            if st.button("🟢 Finalizar contingencia y volver a modo online"):
-                now = datetime.now()
-                fecha_fin = now.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
-                exito, mensaje = close_significant_event(event_id=evento['id'], end_time=fecha_fin)
-                if exito:
-                    st.success("✅ Contingencia finalizada correctamente. Puedes volver a facturar en línea.")
-                    st.experimental_rerun()
-                else:
-                    st.error(f"❌ Error al finalizar contingencia: {mensaje}")
+            render_full_ui(is_online=False, connectivity_info=resultado_completo, evento_activo=evento)
         else:
-            st.error("❌ No se encontró evento significativo activo para asociar la factura.")
+            st.error("❌ Error crítico: No se pudo obtener o registrar un evento de contingencia. La facturación está deshabilitada.")
 
 if __name__ == "__main__":
     main()

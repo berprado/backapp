@@ -57,13 +57,14 @@ except Exception as e:
 # para mantener la separación de responsabilidades
 
 # Gestión de pestañas con logs
-def main(is_online=None, connectivity_info=None):
+def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict = None):
     """
     Renderiza la interfaz principal de la aplicación.
     
     Args:
-        is_online: Booleano que indica si el sistema está online. Si es None, se verifica internamente.
-        connectivity_info: Diccionario con información detallada de conectividad. Si es None, se obtiene internamente.
+        is_online: Booleano que indica si el sistema está online.
+        connectivity_info: Diccionario con información detallada de conectividad.
+        evento_activo: Diccionario con la información del evento de contingencia activo, si existe.
     """
     ui_logger.info("Renderizando la interfaz principal en modo online")
     
@@ -176,7 +177,10 @@ def main(is_online=None, connectivity_info=None):
 if __name__ == "__main__":
     try:
         initialize_print_state()
-        main()
+        # Obtener información de conectividad y pasar como parámetro
+        connectivity_info = get_connectivity_info()
+        is_online = connectivity_info["client_available"]
+        render_full_ui(is_online=is_online, connectivity_info=connectivity_info)
     except Exception as e:
         ui_logger.error(f"Error en la ejecución principal: {str(e)}", exc_info=True)
         st.error(f"Ha ocurrido un error: {str(e)}")
