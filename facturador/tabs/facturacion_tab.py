@@ -73,9 +73,31 @@ def verificar_y_obtener_cufd(message_placeholder):
     finally:
         session.close()
 
-def render():
-    """Renderiza la pestaña principal de facturación."""
-    logger.info("Usuario accedió a la pestaña principal de facturación")
+def render(is_online: bool, evento_activo: dict = None):
+    """
+    Renderiza la pestaña principal de facturación.
+    
+    Args:
+        is_online: Booleano que indica si el sistema está online.
+        evento_activo: Diccionario con la información del evento de contingencia activo, si existe.
+    """
+    logger.info(f"Renderizando pestaña de facturación en modo {'ONLINE' if is_online else 'OFFLINE'}")
+
+    if not is_online:
+        if evento_activo:
+            st.warning(
+                f"""
+                ⚠️ **MODO DE CONTINGENCIA ACTIVADO** ⚠️\n
+                **Evento:** {evento_activo.get('descripcion', 'N/A')} (ID: {evento_activo.get('id')})\n
+                **CUFD del Evento:** `{evento_activo.get('cufd')}`\n
+                *Las facturas se generarán y guardarán localmente para su envío posterior.*
+                """,
+                icon="📡"
+            )
+        else:
+            # Este caso no debería ocurrir si main.py funciona bien, pero es una buena salvaguarda
+            st.error("Error crítico: Modo offline pero no se encontró un evento de contingencia activo.")
+            return # Detener la renderización de la pestaña si no hay evento
     
     # Placeholder para mensajes
     message_placeholder = st.empty()
@@ -148,7 +170,7 @@ def render():
 
     with col1:
         _render_facturar_button(
-            invoice_config, client_data, tipos_documento, comandas_seleccionadas,
+            is_online, invoice_config, client_data, tipos_documento, comandas_seleccionadas,
             lineas_productos, subtotal, total, fecha_emision, fecha_emision_str,
             fecha_emision_display, message_placeholder
         )
@@ -159,11 +181,14 @@ def render():
     with col3:
         _render_consultar_button()
 
-def _render_facturar_button(invoice_config, client_data, tipos_documento, comandas_seleccionadas,
+def _render_facturar_button(is_online, invoice_config, client_data, tipos_documento, comandas_seleccionadas,
                            lineas_productos, subtotal, total, fecha_emision, fecha_emision_str,
                            fecha_emision_display, message_placeholder):
     """Renderiza el botón de facturar y maneja la lógica de facturación."""
-    if st.button("Facturar", key="generar_xml", help="Generar la factura", 
+    button_label = "Facturar y Enviar al SIN" if is_online else "Generar y Guardar Factura Offline"
+    button_help = "Se conectará con el SIN para validar la factura." if is_online else "Guardará la factura localmente. NO se enviará al SIN."
+    
+    if st.button(button_label, key="generar_xml", help=button_help, 
                 disabled=not invoice_config['selected_id_comanda']):
         
         if (invoice_config['metodo_pago_seleccionado'] and 
@@ -174,6 +199,14 @@ def _render_facturar_button(invoice_config, client_data, tipos_documento, comand
             try:
                 logger.info("Iniciando proceso de facturación")
                 
+                # Por ahora, solo vamos a verificar que la bifurcación funciona
+                if is_online:
+                    st.info("DEBUG: Se ejecutaría la lógica ONLINE.")
+                    # Aquí iría la llamada a _handle_online_submission(...)
+                else:
+                    st.info("DEBUG: Se ejecutaría la lógica OFFLINE.")
+                    # Aquí iría la llamada a _handle_offline_submission(...)
+                    
                 # Configuración inicial
                 tipo_documento_seleccionado = next(
                     (doc for doc in tipos_documento 

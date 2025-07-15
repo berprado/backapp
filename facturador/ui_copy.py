@@ -168,7 +168,13 @@ def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict
             try:
                 # Obtener la función de renderizado del diccionario y llamarla
                 render_function = tabs_config[tab_name]
-                render_function()
+                
+                if tab_name == "🧾Facturar":
+                    # Caso especial: pasar el contexto a la pestaña de facturación
+                    render_function(is_online=is_online, evento_activo=evento_activo)
+                else:
+                    # Las otras pestañas no necesitan el contexto (por ahora)
+                    render_function()
             except Exception as e:
                 ui_logger.error(f"Error al renderizar pestaña {tab_name}: {str(e)}", exc_info=True)
                 st.error(f"Error al cargar esta pestaña: {str(e)}")
