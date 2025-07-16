@@ -24,6 +24,8 @@ from zeep import Client
 from logger_config import get_logger
 from api_clients import get_soap_client
 import traceback
+from typing import Optional
+from facturador.models import EventoSignificativoRegistrado 
 
 # Obtener logger para este módulo
 logger = get_logger()
@@ -578,5 +580,43 @@ def obtener_factura_completa(numero_factura):
         logger.error(f"Error al obtener factura completa #{numero_factura}: {str(e)}")
         logger.error(traceback.format_exc())
         return None, None, f"Error: {str(e)}"
+    finally:
+        session.close()
+        
+def obtener_cufd_de_evento_activo() -> Optional[str]:
+    """
+    Busca el último evento significativo abierto en la base de datos y devuelve 
+    el CUFD que se registró con él.
+
+    Esta función es crucial para la facturación en modo de contingencia, ya que
+    las facturas offline deben usar el CUFD del evento al que pertenecen.
+
+    Un evento se considera "abierto" si todavía no tiene un código de recepción del SIN.
+    
+    Returns:
+        Optional[str]: El código CUFD del evento activo como una cadena, 
+                       o None si no se encuentra ningún evento activo o si ocurre un error.
+    """
+    logger.info("Buscando CUFD de un evento de contingencia activo...")
+    session = SessionLocal()
+    try:
+        # La lógica para encontrar un evento abierto es que su 'codigo_recepcion' aún es NULL.
+        # Se ordena por fecha de inicio descendente para obtener el más reciente en caso de
+        # que haya más de uno por error.
+        evento_activo = session.query(EventoSignificativoRegistrado)\
+            .filter(EventoSignificativoRegistrado.codigo_recepcion.is_(None))\
+            .order_by(EventoSignificativoRegistrado.fecha_inicio.desc())\
+            .first()
+            
+        if evento_activo:
+            logger.info(f"Evento activo encontrado (ID: {evento_activo.id}). CUFD asociado: {evento_activo.cufd}")
+            return evento_activo.cufd
+        else:
+            logger.warning("No se encontró ningún evento de contingencia activo en la base de datos.")
+            return None
+            
+    except Exception as e:
+        logger.error(f"Error al obtener el CUFD del evento de contingencia activo: {e}", exc_info=True)
+        return None
     finally:
         session.close()
