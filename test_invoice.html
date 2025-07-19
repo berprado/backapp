@@ -1,0 +1,169 @@
+
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <title>Factura # 12345</title>
+        <style>
+            @page {
+                size: 88mm 297mm;
+                margin: 0;
+                    }
+            body {
+                font-family: monospace;
+                font-size: 10px;
+                width: 88mm;
+                margin: 0;
+                padding: 4px;
+            }
+            table {
+                width: 98%;
+                border-collapse: collapse;
+            }
+            th, td {
+                padding: 2px 3px;
+            }
+            .header {
+                text-align: center;
+                font-weight: bold;
+            }
+            .header1 {
+                font-size: 9px;
+                text-align: center;
+                font-weight: bold;
+            }
+            .detail {
+                text-align: left;
+                border-bottom: 1px dotted #ccc;
+            }
+            .amount {
+                text-align: right;
+                font-weight: bold;
+            }
+            .separator {
+                border-top: 1px dashed black;
+                margin: 3px 0;
+            }
+            .product-line {
+                border-bottom: 1px dotted #eee;
+            }
+            .totals {
+                margin-top: 5px;
+                border-top: 1px solid black;
+            }
+        </style>
+    </head>
+    <body>
+        <table>
+            <!-- Encabezado -->
+            <tr>
+                <th class="header" colspan="2" id="seccion_tipo_factura">
+                    <span id="tipo_factura_text">FACTURA</span><br>
+                    <span id="subtitulo_text">Test Subtitle</span>
+                </th>
+            </tr>
+            <tr>
+                <td class="header" colspan="2" id="seccion_empresa_info">
+                    <span id="razon_social">Test Company</span><br>
+                    <span id="nombre_sucursal">Sucursal Test</span><br>
+                    <span id="codigo_punto_venta">Punto de Venta: 0</span>
+                </td>
+            </tr>
+            <tr>
+                <td class="header" colspan="2" id="seccion_direccion_info">
+                    <span id="direccion">Test Address</span><br>
+                    <span id="municipio">Test Municipality</span><br>
+                    <span id="telefono_empresa">Tel: 123456789</span>
+                </td>
+            </tr>
+            <tr><td class="separator" colspan="2"></td></tr>
+            
+            <!-- Información de la factura -->
+            <tr>
+                <td class="header" colspan="2">
+                    <strong id="texto_nit">NIT:</strong> <span id="nit">123456789</span><br>
+                    <strong id="texto_numero_factura">Factura N°:</strong> <span id="numero_factura">12345</span>
+                </td>
+            </tr>
+            <tr>
+                <th class="header" colspan="2" id="texto_cuf">
+                    Código de Autorización:<br><span class="header1" id="cuf">TEST_CUF_20250701</span>
+                </th>
+            </tr>
+            <tr><td class="separator" colspan="2"></td></tr>
+            
+            <!-- Información del cliente -->
+            <tr>
+                <td class="header" colspan="2" id="seccion_cliente_info">
+                    <strong id="texto_nombre_mayusculas">Nombre/Razón Social:</strong> <span id="nombre_mayusculas">CLIENTE TEST</span><br>
+                    <strong id="texto_numero_documento">NIT/CI/CEX:</strong> <span id="numero_documento">123456789</span><br>
+                    <strong id="texto_cod_cliente">Cod. Cliente:</strong> <span id="cod_cliente">123456789</span><br>
+                    <strong id="texto_fecha_emision">Fecha de Emisión:</strong> <span id="fecha_emision">2025-07-01 23:30:00</span>
+                </td>
+            </tr>
+            <tr><td class="separator" colspan="2"></td></tr>
+            
+            <!-- Encabezado de productos -->
+            <tr>
+                <th class="header" colspan="2">DETALLE</th>
+            </tr>
+    
+            <tr class="seccion_product-line">
+                <td class="detail" id="detalle_001_info">
+                    <strong id="detalle_001_nombre">001 - Producto Test</strong><br>
+                    <span id="detalle_001_unidad">UNIDAD</span><br>
+                    <span id="detalle_001_cantidad">2.00 x 100.00 - 0</span>
+                </td>
+                <td class="amount" id="detalle_001_monto">
+                    200.00
+                </td>
+            </tr>
+        
+            <tr><td class="separator" colspan="2"></td></tr>
+            <tr class="totals">
+                <td class="detail">Sub Total:</td>
+                <td class="amount" id="subtotal">200.00</td>
+            </tr>
+            <tr>
+                <td class="detail">Descuento:</td>
+                <td class="amount" id="descuento_adicional">0.00</td>
+            </tr>
+            <tr>
+                <td class="detail">Total:</td>
+                <td class="amount" id="total">200.00</td>
+            </tr>
+            <tr>
+                <td class="detail">Gift Card:</td>
+                <td class="amount" id="giftcard">0.00</td>
+            </tr>
+            <tr>
+                <td class="detail">Monto a Pagar:</td>
+                <td class="amount" id="total_final">200.00</td>
+            </tr>
+            <tr>
+                <td class="detail">Imp. Base Cred. Fiscal:</td>
+                <td class="amount" id="iva_base">200.00</td>
+            </tr>
+            <tr>
+                <td colspan="2" class="header" id="total_en_palabras">
+                    Son: <span id="total_en_palabras_text"> Doscientos 00/100 bolivianos.</span>
+                </td>
+            </tr>
+            <tr><td class="separator" colspan="2"></td></tr>
+            <tr>
+                <th colspan="2" id="leyenda" class="header">
+                    <span style="font-weight:bold" id="leyenda_text">Ley N° 453: El proveedor debe exhibir certificaciones de habilitación o documentos que acrediten las capacidades u ofertas de servicios especializados.</span>
+                </th>
+            </tr>
+                <tr>
+        <td class="tg-n17z" colspan="2">
+        <span class="tg-q5sf" id="legal">ESTA FACTURA CONTRIBUYE AL DESARROLLO DEL PAÍS, EL USO ILÍCITO SERÁ SANCIONADO PENALMENTE DE ACUERDO A LEY</span>
+        <br><br>
+        <span style="text-align:center; display:block;"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAcIAAAHCAQAAAABUY/ToAAADdUlEQVR4nO2cX2rjMBDGv1kZ8uhAD5CjyDdb9ki9gX2U3kB+LMjMPoxGkk12F7oJrcv3QU3l+EciGEbzR5YoPqblxwdBgCRJkiRJkiRJ8uuRUjTALtMqIhM2AVbpLqbpk38tyS9JRlVVTeWm/rqpYpEBAIICoyqAoKqquic/49eS/JLk6v4lpk0Q30R0RlCR6yYAAJkA81IP+06S35RcbhlYrmWkmoJiEZFnfifJU5PDYazlD5Com+gyQe6XkM41T5LPI92GRgWwAhLnbQDGZLclppdsF8Ct63+/k+S3JBcREbkCwHpRxLcBMq2XvQfaLC171HeS/Cak+aFmK7rccv+fDccM3Xuhs82T5PNIlHS9y94zuss8ZiC2IVAKAfO55knyeST6ks+oipiCAqN7H02wC6JmIKZC0IZIurq8TJdpyABKQQjx9aICACWcXl8Uyy07ca55knweWfyQ1alN2T1NLVHHFFRnAHaPaxnJnZq9qCbvZjSTmm1BC90jtCGSe/Ux9Zih81g6Z8VeElAuHjcxHiK5V3M8qP1VW7fU+7CWjaHdow2R7OVrGYqnidX7FPWLXGdctCGSLl/LvLJoBSELezLMLdXSEOMhknfUh84uLyqqejjd15Hoh0jeJdd+C2M/xCYyjRnAKtIM6azzJPl4slvLzBnNXp1GCbFzt4KxTk3yjvqYOqHm9iUeKsO6jNlztCGSvTwecmek2lplNSVLQKlYtyr2ueZJ8nlkjZWDHvqr5owOCVvdmE8bIrknVfVdsNxqwLxeFMvtXXReL97LNzPbuAeN5EElmU8Auv1DXX3I9w/N7qoYD5Hcq6sx2g6hGg/VzlmxsJF5Gcm78rqiBzsz+mK1R0Goe9AYD5E8qpWjW1+jOCMALVcrHyT6IZJ3SZHbe6lOTwhqkXRRUJkQ1F9xDaxTkzxI9/JCY8Zh2LaH0A+R3Ml2R3u+HrICeffu65gHAEEF60vuPzjXPEk+j9ztp7atQ0G7rscM1K0gzMtI/o2s536UdxSDyrQOKNsax4x2cIM9d9J5knw82dcY6+sbno3t4iEAXmikHyLZ6Xjuhym+DhCMCRYexTd/LLb3pc81T5LPJz32kZ+pDO3+cgVkakegrTyzgeRR3rcHUIo//hqZla13/TJ7iv0ykr3+cEDVv8UzzkmSJEmSJEmS34T8DXPDbVOgsRZtAAAAAElFTkSuQmCC" alt="Codigo QR" style="width:100px;height:100px;"></span>
+        <span class="tg-q5sf">"Este documento es la Representación Gráfica de un Documento Fiscal Digital emitido en una modalidad de facturación en línea"</span>
+        </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    

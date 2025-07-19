@@ -4,6 +4,7 @@ from num2words import num2words
 from business_logic import generate_qr
 from datetime import datetime
 from decimal import Decimal  # Asegúrate de importar Decimal al inicio del archivo
+from facturador.data_models import FacturaProcesada
 
 
 def numero_a_palabras_con_decimales_como_fraccion(numero, lang='es'):
@@ -28,7 +29,48 @@ gift_card_codes = [
     304, 35, 40, 49, 53, 60, 64, 68, 72, 76, 77, 78, 86, 94, 27
 ]
 
-def generate_html_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_productos, nombre_cliente, fecha_emision, numero_factura, metodo_de_pago=None, codigo_clasificador_metodo_pago=None, tipo_documento=None, codigo_clasificador_documento=None, numero_documento=None, complemento=None, email=None, telefono=None, ultimos_digitos_tarjeta=None):
+def generate_html_invoice(factura_obj):
+    """
+    Genera el contenido HTML de una factura a partir de un objeto FacturaProcesada.
+    
+    Args:
+        factura_obj (FacturaProcesada): Objeto con todos los datos de la factura.
+        
+    Returns:
+        str: El HTML de la factura.
+    """
+    if isinstance(factura_obj, FacturaProcesada):
+        # Convertir el objeto a los parámetros individuales
+        lineas_productos = [
+            {
+                "codigo": item.codigo,
+                "nombre": item.nombre,
+                "unidad": item.unidad,
+                "cantidad": item.cantidad,
+                "precio": item.precio,
+                "montoDescuento": item.montoDescuento,
+                "sub_total": item.sub_total
+            }
+            for item in factura_obj.lineas_productos
+        ]
+        
+        return generate_html_invoice_legacy(
+            subtotal=factura_obj.subtotal_factura,
+            descuento_adicional=factura_obj.descuento_adicional,
+            monto_giftcard=factura_obj.monto_giftcard,
+            lineas_productos=lineas_productos,
+            nombre_cliente=factura_obj.nombre_cliente,
+            fecha_emision=factura_obj.fecha_emision,
+            numero_factura=factura_obj.numero_factura,
+            metodo_de_pago=factura_obj.metodo_pago,
+            ultimos_digitos_tarjeta=factura_obj.ultimos_digitos_tarjeta,
+            numero_documento=factura_obj.numero_documento,
+            complemento=factura_obj.complemento
+        )
+    else:
+        raise ValueError("Se esperaba un objeto FacturaProcesada")
+
+def generate_html_invoice_legacy(subtotal, descuento_adicional, monto_giftcard, lineas_productos, nombre_cliente, fecha_emision, numero_factura, metodo_de_pago=None, codigo_clasificador_metodo_pago=None, tipo_documento=None, codigo_clasificador_documento=None, numero_documento=None, complemento=None, email=None, telefono=None, ultimos_digitos_tarjeta=None, cuf=None, nit=None):
     """
     Genera el contenido HTML de una factura.
 

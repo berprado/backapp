@@ -24,6 +24,8 @@ sql/adminerp_copy_*.sql
 
 # Directorios de facturas generadas
 /xmls
+facturador/facturadorv1
+
 
 # Archivos de respaldo y copias
 *-Copy.py

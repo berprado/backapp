@@ -11,10 +11,11 @@ from datetime import datetime
 import logging
 import traceback
 import streamlit as st
-from invoice_templates import generate_html_invoice
+from invoice_templates import generate_html_invoice, generate_html_invoice_legacy
 from siat_pdf import html_to_pdf
 from thermal_printer import ThermalPrinter
 from logger_config import get_printer_logger
+from facturador.data_models import FacturaProcesada
 
 printer_logger = get_printer_logger()
 
@@ -53,23 +54,25 @@ def reiniciar_estados():
         if key in st.session_state:
             del st.session_state[key]
 
-def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
+def imprimir_en_hilo(factura_obj):
     """
     Crea un hilo para manejar la impresión de la factura y generación del PDF.
     Esta función incorpora toda la lógica de monitoreo del hilo.
 
     Args:
-        html_content_orig (str): Contenido HTML original de la factura.
-        cuf (str): Código Único de Facturación.
-        nit (str): NIT del emisor.
-        numero_factura (str): Número de factura.
+        factura_obj (FacturaProcesada): Objeto con todos los datos de la factura.
     """
     def imprimir():
         try:
-            printer_logger.info(f"Iniciando proceso de impresión para factura {numero_factura}")
+            printer_logger.info(f"Iniciando proceso de impresión para factura {factura_obj.numero_factura}")
 
-            # Actualizar HTML con CUF
-            html_content = html_content_orig.replace("{cuf}", cuf)
+            # Generar HTML a partir del objeto factura_obj
+            html_content = generate_html_invoice(factura_obj)
+            
+            # Extraer datos del objeto factura para consistencia con el resto del código
+            numero_factura = factura_obj.numero_factura
+            cuf = factura_obj.cuf
+            nit = factura_obj.nit_emisor
 
             # Guardar HTML para debug y referencia
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -166,7 +169,7 @@ def imprimir_en_hilo(html_content_orig, cuf, nit, numero_factura):
     thread.daemon = True
     thread.start()
 
-    printer_logger.info(f"Hilo de impresión iniciado para la factura {numero_factura}")
+    printer_logger.info(f"Hilo de impresión iniciado para la factura {factura_obj.numero_factura}")
     return True
 
 def mostrar_mensaje_impresion_en_curso():
@@ -176,35 +179,49 @@ def mostrar_mensaje_impresion_en_curso():
     if st.session_state.get('impresion_en_progreso', False):
         st.warning("⚠️ La impresión está en curso. Por favor, espera a que finalice antes de iniciar una nueva impresión.")
 
-def process_invoice(subtotal, descuento_adicional, monto_giftcard, lineas_productos, nombre_cliente, fecha_emision, numero_factura, nit, cuf):
+def process_invoice(factura_obj=None, subtotal=None, descuento_adicional=None, monto_giftcard=None, lineas_productos=None, nombre_cliente=None, fecha_emision=None, numero_factura=None, nit=None, cuf=None):
     """
     Centraliza la generación de HTML, PDF e impresión de la factura.
+    
+    Se puede llamar de dos formas:
+    1. Con un objeto FacturaProcesada (método preferido)
+    2. Con los parámetros individuales (método legacy)
 
     Args:
-        subtotal (float): Subtotal de la factura.
-        descuento_adicional (float): Descuento adicional aplicado.
-        monto_giftcard (float): Monto de giftcard aplicado.
-        lineas_productos (list): Lista de productos en la factura.
-        nombre_cliente (str): Nombre del cliente.
-        fecha_emision (str): Fecha de emisión de la factura.
-        numero_factura (str): Número de la factura.
-        nit (str): NIT del emisor.
-        cuf (str): Código Único de Facturación.
+        factura_obj (FacturaProcesada, optional): Objeto con todos los datos de la factura.
+        subtotal (float, optional): Subtotal de la factura (legacy).
+        descuento_adicional (float, optional): Descuento adicional aplicado (legacy).
+        monto_giftcard (float, optional): Monto de giftcard aplicado (legacy).
+        lineas_productos (list, optional): Lista de productos en la factura (legacy).
+        nombre_cliente (str, optional): Nombre del cliente (legacy).
+        fecha_emision (str, optional): Fecha de emisión de la factura (legacy).
+        numero_factura (str, optional): Número de la factura (legacy).
+        nit (str, optional): NIT del emisor (legacy).
+        cuf (str, optional): Código Único de Facturación (legacy).
 
     Returns:
         bool: True si el proceso fue exitoso, False en caso de error.
     """
     try:
-        # Generar HTML
-        html_content = generate_html_invoice(
-            subtotal=subtotal,
-            descuento_adicional=descuento_adicional,
-            monto_giftcard=monto_giftcard,
-            lineas_productos=lineas_productos,
-            nombre_cliente=nombre_cliente,
-            fecha_emision=fecha_emision,
-            numero_factura=numero_factura
-        )
+        # Generar HTML según el tipo de entrada
+        if factura_obj and isinstance(factura_obj, FacturaProcesada):
+            html_content = generate_html_invoice(factura_obj)
+            numero_factura = factura_obj.numero_factura
+            nit = factura_obj.nit_emisor
+            cuf = factura_obj.cuf
+        else:
+            # Para compatibilidad con código legacy
+            html_content = generate_html_invoice_legacy(
+                subtotal=subtotal,
+                descuento_adicional=descuento_adicional,
+                monto_giftcard=monto_giftcard,
+                lineas_productos=lineas_productos,
+                nombre_cliente=nombre_cliente,
+                fecha_emision=fecha_emision,
+                numero_factura=numero_factura,
+                nit=nit,
+                cuf=cuf
+            )
 
         # Guardar HTML para depuración
         debug_dir = os.path.join(os.getcwd(), "debug")

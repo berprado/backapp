@@ -60,7 +60,7 @@ def verificar_dependencias_sistema():
     # Módulos específicos del proyecto
     modulos_proyecto = [
         ("database", "get_eventos_parametricos"),
-        ("ui_copy", "main"),
+        ("ui_copy", "main(online=True)"),
         ("contingencia_auto", "finalizar_evento_si_conectado"),
         ("soap_services", "verificar_comunicacion"),
         ("logger_config", "get_logger")

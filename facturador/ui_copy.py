@@ -33,6 +33,73 @@ from tabs import (
     diagnostico_tab
 )
 
+# Importar verificador de session_state para diagnóstico de impresión
+from verificador_session_state import ejecutar_diagnostico_completo
+
+def mostrar_boton_diagnostico_rapido():
+    """
+    Muestra un botón de acceso rápido al diagnóstico de impresión.
+    Esta función puede ser llamada desde cualquier pestaña cuando hay problemas de impresión.
+    """
+    impresion_en_progreso = st.session_state.get('impresion_en_progreso', False)
+    print_status = st.session_state.get('print_status', '')
+    
+    # Solo mostrar si hay indicios de problemas
+    if impresion_en_progreso or (print_status and 'error' in print_status.lower()):
+        st.warning("⚠️ Se detectaron posibles problemas de impresión")
+        if st.button("🔧 Diagnóstico Rápido de Impresión", help="Abre el panel de diagnóstico completo", key="diagnostico_rapido_impresion"):
+            # Abrir en un expander
+            with st.expander("🔍 Diagnóstico de Sistema de Impresión", expanded=True):
+                ejecutar_diagnostico_completo("automatico")
+
+def verificar_estado_sistema():
+    """
+    Verifica el estado general del sistema y devuelve un resumen.
+    
+    Returns:
+        dict: Estado del sistema con indicadores de problemas
+    """
+    estado = {
+        'problemas_detectados': [],
+        'nivel_alerta': 'normal',  # normal, warning, error
+        'mensaje_estado': 'Sistema funcionando correctamente'
+    }
+    
+    # Verificar estados de impresión
+    impresion_en_progreso = st.session_state.get('impresion_en_progreso', False)
+    impresion_finalizada = st.session_state.get('impresion_finalizada', False)
+    
+    if impresion_en_progreso and not impresion_finalizada:
+        estado['problemas_detectados'].append('Proceso de impresión fantasma')
+        estado['nivel_alerta'] = 'error'
+        estado['mensaje_estado'] = 'Proceso de impresión bloqueado'
+    
+    # Verificar archivos de señal acumulados
+    try:
+        import glob
+        signal_files = glob.glob("debug/*.signal")
+        if len(signal_files) > 5:
+            estado['problemas_detectados'].append(f'{len(signal_files)} archivos de señal acumulados')
+            if estado['nivel_alerta'] == 'normal':
+                estado['nivel_alerta'] = 'warning'
+                estado['mensaje_estado'] = 'Mantenimiento recomendado'
+    except:
+        pass  # Ignorar errores de acceso a archivos
+    
+    # Verificar hilos de impresión activos
+    try:
+        import threading
+        hilos_impresion = [h for h in threading.enumerate() if 'print' in h.name.lower()]
+        if len(hilos_impresion) > 0:
+            estado['problemas_detectados'].append(f'{len(hilos_impresion)} hilo(s) de impresión activo(s)')
+            if estado['nivel_alerta'] == 'normal':
+                estado['nivel_alerta'] = 'warning'
+                estado['mensaje_estado'] = 'Hilos de impresión activos detectados'
+    except:
+        pass  # Ignorar errores de threading
+    
+    return estado
+
 # Importar cliente para verificar conectividad
 from api_clients import is_soap_client_available, get_connectivity_info, reset_soap_client
 
@@ -83,7 +150,7 @@ def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict
         status_message = recomendacion
     
     # Mostrar estado de conectividad en la parte superior
-    col1, col2 = st.columns([4, 1])
+    col1, col2, col3 = st.columns([3, 1, 1])
     
     with col1:
         if is_online:
@@ -94,6 +161,16 @@ def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict
             ui_logger.warning("Sistema funcionando en modo offline")
     
     with col2:
+        # Indicador de estado del sistema de impresión
+        estado_sistema = verificar_estado_sistema()
+        if estado_sistema['nivel_alerta'] == 'error':
+            st.error(f"🖨️ {estado_sistema['mensaje_estado']}", icon="🚨")
+        elif estado_sistema['nivel_alerta'] == 'warning':
+            st.warning(f"🖨️ {estado_sistema['mensaje_estado']}", icon="⚠️")
+        else:
+            st.success("🖨️ Sistema OK", icon="✅")
+    
+    with col3:
         # Botón para intentar reconectar
         if not is_online:
             if st.button("🔄 Reconectar", help="Intentar reconectarse a los servicios del SIN"):
@@ -124,6 +201,9 @@ def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict
     with st.expander(f"ℹ️ Detalles de conectividad (último chequeo: {last_check})", expanded=False):
         st.json(connectivity_info)
     
+    # Mostrar diagnóstico rápido si hay problemas de impresión
+    mostrar_boton_diagnostico_rapido()
+    
     # Separador visual
     st.divider()
     
@@ -137,7 +217,8 @@ def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict
         "🔍Gestionar CUIS": cuis_tab.render,
         "❌Anular/Revertir": anular_factura_tab.render,
         "❌Revertir Anulacion": revertir_anulacion_tab.render,
-        "🔧Diagnóstico": diagnostico_tab.render
+        "🔧Diagnóstico": diagnostico_tab.render,
+        "🔧Pruebas": lambda: ejecutar_diagnostico_completo("tab_pruebas")  # Herramienta de diagnóstico de impresión
     }
 
     online_only_tabs = [
@@ -155,8 +236,8 @@ def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict
         # Si estamos online, añadimos las pestañas que dependen de la conexión
         tabs_to_render.extend(online_only_tabs)
     
-    # Siempre añadimos la pestaña de diagnóstico al final
-    tabs_to_render.append("🔧Diagnóstico")
+    # Siempre añadimos las pestañas de diagnóstico al final
+    tabs_to_render.extend(["🔧Diagnóstico", "🔧Pruebas"])
 
     # Renderizar las pestañas
     rendered_tabs = st.tabs(tabs_to_render)
@@ -172,6 +253,9 @@ def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict
                 if tab_name == "🧾Facturar":
                     # Caso especial: pasar el contexto a la pestaña de facturación
                     render_function(is_online=is_online, evento_activo=evento_activo)
+                elif tab_name == "🔧Pruebas":
+                    # Caso especial: ejecutar diagnóstico completo de impresión
+                    render_function()
                 else:
                     # Las otras pestañas no necesitan el contexto (por ahora)
                     render_function()

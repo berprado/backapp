@@ -5,6 +5,8 @@ Verificador de integridad del session_state
 import streamlit as st
 import os
 import sys
+import threading
+import glob
 from typing import Dict, Any, List
 from datetime import datetime
 
@@ -152,7 +154,7 @@ def verificar_estructura_session_state() -> Dict[str, Any]:
     # Resumen final
     print("\n" + "=" * 50)
     if reporte['estructura_valida']:
-        print("🎉 ESTRUCTURA VÁLIDAMENTE - Session state correctamente configurado")
+        print("🎉 ESTRUCTURA VÁLIDA - Session state correctamente configurado")
     else:
         print("⚠️ PROBLEMAS DETECTADOS - Revisar recomendaciones")
         for rec in reporte['recomendaciones']:
@@ -160,7 +162,7 @@ def verificar_estructura_session_state() -> Dict[str, Any]:
     
     return reporte
 
-def mostrar_debug_session_state():
+def mostrar_debug_session_state(prefix_key="debug"):
     """
     Muestra información de debug del session_state en la interfaz
     """
@@ -221,13 +223,13 @@ def mostrar_debug_session_state():
         st.success("✅ Session state en estado óptimo")
     
     # Opción para limpiar estados
-    if st.button("🧹 Limpiar Session State"):
+    if st.button("🧹 Limpiar Session State", key=f"{prefix_key}_limpiar_session_state_debug"):
         from print_manager import reiniciar_estados
         reiniciar_estados()
         st.success("✅ Session state limpiado")
         st.rerun()
 
-def diagnosticar_estado_fantasma():
+def diagnosticar_estado_fantasma(prefix_key="tab"):
     """
     Diagnostica si hay un proceso fantasma bloqueando la impresión
     """
@@ -257,7 +259,6 @@ def diagnosticar_estado_fantasma():
             # Mostrar tiempo transcurrido si hay timestamp
             timestamp_inicio = st.session_state.get('timestamp_impresion_inicio')
             if timestamp_inicio:
-                from datetime import datetime
                 tiempo_transcurrido = datetime.now() - datetime.fromisoformat(timestamp_inicio)
                 st.write(f"⏱️ Tiempo transcurrido: {tiempo_transcurrido}")
             
@@ -273,9 +274,6 @@ def diagnosticar_estado_fantasma():
     # Verificar archivos relacionados con la última factura
     if ultima_factura and ultima_factura != 'No definida':
         st.write("**Verificación de Archivos:**")
-        
-        import os
-        import glob
         
         # Buscar archivos HTML
         html_pattern = f"debug/*{ultima_factura}*.html"
@@ -320,7 +318,7 @@ def diagnosticar_estado_fantasma():
     col6, col7, col8 = st.columns(3)
     
     with col6:
-        if st.button("🔧 Forzar Limpieza de Estado"):
+        if st.button("🔧 Forzar Limpieza de Estado", key=f"{prefix_key}_forzar_limpieza_estado_fantasma"):
             # Limpiar con timestamp
             st.session_state['impresion_en_progreso'] = False
             st.session_state['impresion_finalizada'] = False
@@ -334,9 +332,8 @@ def diagnosticar_estado_fantasma():
             st.rerun()
     
     with col7:
-        if st.button("📊 Verificar Hilos"):
+        if st.button("📊 Verificar Hilos", key=f"{prefix_key}_verificar_hilos_fantasma"):
             # Mostrar información de hilos
-            import threading
             hilos_activos = threading.active_count()
             hilos = threading.enumerate()
             
@@ -346,7 +343,7 @@ def diagnosticar_estado_fantasma():
                 st.text(f"{estado} {hilo.name} (daemon: {hilo.daemon})")
     
     with col8:
-        if st.button("🗂️ Ver Logs Recientes"):
+        if st.button("🗂️ Ver Logs Recientes", key=f"{prefix_key}_ver_logs_fantasma"):
             # Mostrar logs recientes
             try:
                 log_file = "logs/printer_20250703.log"
@@ -355,19 +352,18 @@ def diagnosticar_estado_fantasma():
                         lines = f.readlines()
                         st.text_area("Últimos logs:", 
                                    "".join(lines[-10:]), 
-                                   height=200)
+                                   height=200,
+                                   key=f"{prefix_key}_logs_recientes_fantasma")
                 else:
                     st.warning("❌ No se encontró el archivo de logs")
             except Exception as e:
                 st.error(f"Error leyendo logs: {e}")
 
-def verificar_hilos_activos():
+def verificar_hilos_activos(prefix_key="verificar_hilos"):
     """
     Verifica hilos de Python activos y detecta hilos de impresión colgados
     """
     st.subheader("🧵 Verificación de Hilos Activos")
-    
-    import threading
     
     hilos = threading.enumerate()
     total_hilos = len(hilos)
@@ -397,14 +393,11 @@ def verificar_hilos_activos():
         else:
             st.success("✅ Estado normal de hilos")
 
-def verificar_archivos_senal():
+def verificar_archivos_senal(prefix_key="verificar_archivos"):
     """
     Verifica archivos de señalización que podrían estar causando problemas
     """
     st.subheader("📁 Verificación de Archivos de Señal")
-    
-    import glob
-    import os
     
     # Buscar archivos de señal
     signal_files = glob.glob("debug/*.signal")
@@ -416,7 +409,7 @@ def verificar_archivos_senal():
             nombre = os.path.basename(archivo)
             st.write(f"- {nombre}")
         
-        if st.button("🗑️ Limpiar Archivos de Señal"):
+        if st.button("🗑️ Limpiar Archivos de Señal", key=f"{prefix_key}_limpiar_archivos_senal"):
             eliminados = 0
             for archivo in signal_files:
                 try:
@@ -431,13 +424,11 @@ def verificar_archivos_senal():
     else:
         st.success("✅ No hay archivos de señal pendientes")
 
-def verificar_recargas_streamlit():
+def verificar_recargas_streamlit(prefix_key="verificar_recargas"):
     """
     Verifica si hay problemas con recargas de Streamlit
     """
     st.subheader("🔄 Verificación de Recargas de Streamlit")
-    
-    from datetime import datetime
     
     # Contador de sesión para detectar recargas
     if 'session_counter' not in st.session_state:
@@ -479,7 +470,7 @@ def verificar_recargas_streamlit():
             st.info("ℹ️ Primera carga de la sesión")
     
     # Botón para simular recarga
-    if st.button("🔄 Simular Recarga"):
+    if st.button("🔄 Simular Recarga", key=f"{prefix_key}_simular_recarga_streamlit"):
         st.rerun()
     
     # Información adicional
@@ -487,9 +478,12 @@ def verificar_recargas_streamlit():
     st.write(f"- ID de sesión: `{id(st.session_state)}`")
     st.write(f"- Claves en session_state: {len(st.session_state.keys())}")
 
-def ejecutar_diagnostico_completo():
+def ejecutar_diagnostico_completo(prefix_key="tab"):
     """
     Ejecuta todos los verificadores en una interfaz organizada
+    
+    Args:
+        prefix_key: Prefijo para las claves de los elementos UI para evitar duplicados
     """
     st.title("🔍 Diagnóstico Completo del Sistema de Impresión")
     st.write("Este panel ejecuta todos los verificadores para encontrar la causa del bloqueo de impresión.")
@@ -504,29 +498,25 @@ def ejecutar_diagnostico_completo():
     ])
     
     with tab1:
-        diagnosticar_estado_fantasma()
+        diagnosticar_estado_fantasma(prefix_key)
     
     with tab2:
-        verificar_hilos_activos()
+        verificar_hilos_activos(prefix_key)
     
     with tab3:
-        verificar_archivos_senal()
+        verificar_archivos_senal(prefix_key)
     
     with tab4:
-        verificar_recargas_streamlit()
+        verificar_recargas_streamlit(prefix_key)
     
     with tab5:
-        mostrar_resumen_diagnostico()
+        mostrar_resumen_diagnostico(prefix_key)
 
-def mostrar_resumen_diagnostico():
+def mostrar_resumen_diagnostico(prefix_key="resumen"):
     """
     Muestra un resumen de todos los diagnósticos
     """
     st.subheader("📊 Resumen del Diagnóstico")
-    
-    # Recopilar información de todos los verificadores
-    import threading
-    import glob
     
     # Estado actual
     impresion_en_progreso = st.session_state.get('impresion_en_progreso', False)
