@@ -1,58 +1,54 @@
-"""
-Módulo para la gestión de impresión de facturas.
+---
+applyTo: '**'
+---
+Ahora vamos a modificar la capa de orquestación de la impresión, `print_manager.py`. Nuestro objetivo es que la función `imprimir_en_hilo` acepte nuestro nuevo objeto `FacturaProcesada` y organice las tareas de generar el PDF y enviar los datos a la impresora térmica.
 
-Este módulo contiene funciones para la impresión de facturas en impresoras térmicas 
-y generación de documentos PDF.
-"""
+En este paso, haremos que el `print_manager` sea el "director de orquesta" que le dice a cada módulo qué hacer con los datos limpios que recibe.
 
+---
+
+### **Paso 3: Refactorizar `print_manager.py` para Usar `FacturaProcesada`**
+
+**Objetivo:**
+
+1.  Modificar la firma de `imprimir_en_hilo` para que acepte un único argumento: nuestro objeto `FacturaProcesada`.
+2.  Dentro del hilo, organizar la lógica:
+    *   Primero, llamar a una función para generar el HTML necesario para el PDF.
+    *   Luego, llamar a `html_to_pdf` para crear el archivo PDF.
+    *   Después, llamar al método de impresión térmica, pasándole **los datos del objeto**, no el HTML.
+
+**Acción:**
+
+Abre tu archivo `print_manager.py` y aplica las siguientes modificaciones.
+
+**1. Añadir las importaciones necesarias al principio del archivo:**
+
+```python
+# Al principio de print_manager.py
 import os
 import threading
 from datetime import datetime
 import logging
 import traceback
 import streamlit as st
-from invoice_templates import generate_html_invoice as generate_html_for_pdf
+
+# Importamos nuestro DTO y las plantillas HTML
+# Asumo que la ruta es 'data_models', ajústala si es necesario
+from data_models.invoice_data import FacturaProcesada 
+from invoice_templates import generate_html_for_pdf # Renombraremos o crearemos esta función después
 from siat_pdf import html_to_pdf
 from thermal_printer import ThermalPrinter
 from logger_config import get_printer_logger
-from facturador.data_models import FacturaProcesada
 
 printer_logger = get_printer_logger()
+```*Nota: `generate_html_for_pdf` aún no existe, pero la prepararemos en el siguiente paso. Por ahora, asumimos que existirá.*
 
-def initialize_print_state():
-    """
-    Inicializa el estado de impresión en la sesión de Streamlit.
-    
-    Esta función establece los valores predeterminados para el estado
-    de impresión en la sesión de Streamlit.
-    """
-    keys_defaults = {
-        'print_status': None,
-        'datos_impresion': {},
-        'cuf': None,
-        'ultima_factura': None,
-        'impresion_en_progreso': False,
-        'impresion_finalizada': False
-    }
-    for key, default in keys_defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = default
+**2. Reemplazar la función `imprimir_en_hilo` por completo:**
 
-def reiniciar_estados():
-    """
-    Reinicia los estados de impresión en la sesión de Streamlit.
-    
-    Esta función elimina las claves relacionadas con la impresión
-    de la sesión de Streamlit.
-    """
-    keys_to_reset = [
-        'factura_validada', 'print_status', 'datos_impresion', 
-        'cuf', 'ultima_factura', 'impresion_en_progreso', 
-        'impresion_finalizada'
-    ]
-    for key in keys_to_reset:
-        if key in st.session_state:
-            del st.session_state[key]
+La antigua función aceptaba muchos argumentos (`html_content_orig`, `cuf`, etc.). La nueva será mucho más limpia. Reemplaza la función entera con esta versión refactorizada.
+
+```python
+# En print_manager.py
 
 def imprimir_en_hilo(factura_obj: FacturaProcesada):
     """
@@ -145,10 +141,18 @@ def imprimir_en_hilo(factura_obj: FacturaProcesada):
 
     printer_logger.info(f"Hilo de impresión iniciado para la factura {factura_obj.numero_factura}")
     return True
+```
 
-def mostrar_mensaje_impresion_en_curso():
-    """
-    Muestra un mensaje de advertencia en la UI si la impresión está en curso.
-    """
-    if st.session_state.get('impresion_en_progreso', False):
-        st.warning("⚠️ La impresión está en curso. Por favor, espera a que finalice antes de iniciar una nueva impresión.")
+**Análisis de los Cambios Clave:**
+
+*   **Firma Limpia:** `imprimir_en_hilo` ahora solo necesita el objeto `factura_obj`. Mucho más limpio y fácil de usar.
+*   **Separación de Tareas:** La lógica dentro del hilo ahora está claramente dividida: primero se encarga del PDF, luego de la impresión térmica.
+*   **Desacoplamiento del HTML:** Ya no generamos el HTML aquí para pasarlo a la impresora. La impresora recibirá el objeto de datos directamente.
+*   **Manejo de Errores por Etapas:** La estructura `try...except` ahora puede diferenciar entre un fallo en la generación del PDF y un fallo en la impresión térmica, lo que permite dar mensajes de estado mucho más precisos al usuario.
+*   **Nombre del Hilo:** He añadido un nombre descriptivo al hilo (`name=...`). Esto es increíblemente útil para el debugging, ya que ahora en tu pestaña de "Diagnóstico" verás un hilo llamado `PrintThread_Factura_123` en lugar de un nombre genérico.
+
+**Tu Tarea para este Paso:**
+
+1.  Reemplaza la función `imprimir_en_hilo` en `print_manager.py` con la nueva versión que te he proporcionado.
+2.  Asegúrate de que la importación de `FacturaProcesada` y `generate_html_for_pdf` esté correcta al principio del archivo (la ajustaremos en el siguiente paso).
+3.  **No te preocupes** si tu IDE marca errores porque `generate_html_for_pdf` no existe o porque `printer.print_invoice(factura_obj)` no coincide con la firma actual. Eso es exactamente lo que solucionaremos en los siguientes pasos.
