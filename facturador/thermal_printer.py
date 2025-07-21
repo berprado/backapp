@@ -14,7 +14,7 @@ logger = get_logger()
 printer_logger = get_printer_logger()
 
 from escpos.printer import Usb
-from bs4 import BeautifulSoup
+from facturador.data_models import FacturaProcesada  # IMPORTANTE
 import logging
 from contextlib import contextmanager
 
@@ -67,214 +67,97 @@ class ThermalPrinter:
         """Imprime una línea separadora"""
         self._print_line(printer, char * self.line_width, font='b')
 
-    def _print_qr(self, printer, nit, cuf, numero_factura, size=4):
-        """Imprime el código QR de la factura"""
+    def _print_qr(self, printer, url_qr: str, size=4):
+        """Imprime el código QR de la factura usando la URL del objeto FacturaProcesada"""
         try:
-            # Usar BeautifulSoup para limpiar los valores de etiquetas HTML
-            soup_nit = BeautifulSoup(str(nit), 'html.parser')
-            soup_cuf = BeautifulSoup(str(cuf), 'html.parser')
-            soup_numero = BeautifulSoup(str(numero_factura), 'html.parser')
-            
-            # Extraer solo el texto
-            nit_clean = soup_nit.get_text().strip()
-            cuf_clean = soup_cuf.get_text().strip()
-            numero_factura_clean = soup_numero.get_text().strip()
-            
-            self.logger.debug(f"Valores limpios - NIT: {nit_clean}, CUF: {cuf_clean}, Número: {numero_factura_clean}")
-            
-            # Construir la URL del QR
-            url = f'https://pilotosiat.impuestos.gob.bo/consulta/QR?nit={nit_clean}&cuf={cuf_clean}&numero={numero_factura_clean}'
-            self.logger.info(f"Generando QR con URL: {url}")
-            
-            # Imprimir el QR
+            self.logger.info(f"Generando QR nativo con URL: {url_qr}")
             printer.set(align='center')
-            printer.qr(url, size=size, native=True)
+            printer.qr(url_qr, size=size, native=True)
             printer.text("\n")
-            
-            self.logger.info("QR generado e impreso exitosamente")
+            self.logger.info("QR impreso exitosamente.")
         except Exception as e:
             self.logger.error(f"Error al imprimir código QR: {str(e)}")
             raise
 
-    def print_invoice(self, html_content, nit, cuf, numero_factura):
-        """Imprime la factura completa con código QR"""
+    def print_invoice(self, factura: FacturaProcesada) -> bool:
+        """Imprime la factura directamente desde el objeto FacturaProcesada."""
         try:
-            printer_logger.info(f"Imprimiendo factura {numero_factura}")
-            soup = BeautifulSoup(html_content, 'html.parser')
+            printer_logger.info(f"Imprimiendo factura {factura.numero_factura} desde objeto de datos.")
             
             with self.printer_connection() as printer:
-                # Tipo Factura y Subtítulo
-                tipo_factura = soup.find(id='tipo_factura_text')
-                subtitulo = soup.find(id='subtitulo_text')
-                if tipo_factura:
-                    self._print_line(printer, tipo_factura.text.strip(), align='center', font='a')
-                if subtitulo:
-                    self._print_line(printer, subtitulo.text.strip(), align='center', font='a')
-                
-                # Información de la empresa
-                razon_social = soup.find(id='razon_social')
-                nombre_sucursal = soup.find(id='nombre_sucursal')
-                codigo_punto_venta = soup.find(id='codigo_punto_venta')
-                if razon_social:
-                    self._print_line(printer, razon_social.text.strip(), align='center', font='a', width=1, height=1, bold=True)
-                if nombre_sucursal:
-                    self._print_line(printer, nombre_sucursal.text.strip(), align='center')
-                if codigo_punto_venta:
-                    self._print_line(printer, codigo_punto_venta.text.strip(), align='center')
+                # Encabezado
+                self._print_line(printer, factura.tipo_factura, align='center', bold=True)
+                self._print_line(printer, factura.subtitulo_factura, align='center')
+                self._print_line(printer, factura.razon_social_emisor, align='center', bold=True)
+                self._print_line(printer, factura.nombre_sucursal, align='center')
+                self._print_line(printer, f"Punto de Venta: {factura.punto_venta}", align='center')
                 
                 # Dirección y contacto
-                direccion = soup.find(id='direccion')
-                municipio = soup.find(id='municipio')
-                telefono = soup.find(id='telefono_empresa')
-                if direccion:
-                    self._print_line(printer, direccion.text.strip(), align='center')
-                if municipio:
-                    self._print_line(printer, municipio.text.strip(), align='center')
-                if telefono:
-                    self._print_line(printer, telefono.text.strip(), align='center')
+                self._print_line(printer, factura.direccion_emisor, align='center')
+                self._print_line(printer, factura.municipio_emisor, align='center')
+                self._print_line(printer, factura.telefono_emisor, align='center')
                 
                 self._print_separator(printer)
                 
-                # NIT y Número de Factura
-                nit = soup.find(id='nit')
-                numero_factura = soup.find(id='numero_factura')
-                if nit:
-                    self._print_line(printer, f"NIT: {nit.text.strip()}", align='center', bold=False)
-                if numero_factura:
-                    self._print_line(printer, f"Factura N°: {numero_factura.text.strip()}", 'center', bold=True)
-                
-                # CUF
-                cuf = soup.find(id='cuf')
-                if cuf:
-                    self._print_line(printer, "Código de Autorización:", align='center')
-                    texto_cuf = cuf.text.strip()
-                    while texto_cuf:
-                        self._print_line(printer, texto_cuf[:self.line_width], align='center')
-                        texto_cuf = texto_cuf[self.line_width:]
+                # Datos fiscales
+                self._print_line(printer, f"NIT: {factura.nit_emisor}", align='center')
+                self._print_line(printer, f"Factura N°: {factura.numero_factura}", align='center', bold=True)
+                self._print_line(printer, "Código de Autorización:", align='center')
+                # Lógica para cortar el CUF
+                texto_cuf = factura.cuf
+                while texto_cuf:
+                    self._print_line(printer, texto_cuf[:self.line_width], align='center', font='b')
+                    texto_cuf = texto_cuf[self.line_width:]
                 
                 self._print_separator(printer)
                 
-                # Información del cliente
-                nombre = soup.find(id='nombre_mayusculas')
-                documento = soup.find(id='numero_documento')
-                cod_cliente = soup.find(id='cod_cliente')
-                fecha = soup.find(id='fecha_emision')
-                
-                if nombre:
-                    self._print_line(printer, f"Nombre/Razón Social: {nombre.text.strip()}", bold=True)
-                if documento:
-                    self._print_line(printer, f"NIT/CI/CEX: {documento.text.strip()}")
-                if cod_cliente:
-                    self._print_line(printer, f"Cod. Cliente: {cod_cliente.text.strip()}")
-                if fecha:
-                    self._print_line(printer, f"Fecha de Emisión: {fecha.text.strip()}")
-                
+                # Datos del cliente
+                self._print_line(printer, f"Fecha: {factura.fecha_emision}")
+                self._print_line(printer, f"Nombre: {factura.nombre_cliente}")
+                self._print_line(printer, f"NIT/CI: {factura.numero_documento}")
+
                 self._print_separator(printer)
-                self._print_line(printer, "DETALLE", align='center', bold=True, font='b')
-                self._print_separator(printer)
-                
+                self._print_line(printer, "DETALLE", align='center', bold=True)
+
                 # Productos
-                for producto in soup.find_all('tr', class_='seccion_product-line'):
-                    nombre_id = producto.find('strong')
-                    unidad_id = producto.find('span', id=lambda x: x and x.endswith('_unidad'))
-                    cantidad_id = producto.find('span', id=lambda x: x and x.endswith('_cantidad'))
-                    monto_id = producto.find('td', class_='amount')
-                    
-                    if nombre_id:
-                        self._print_line(printer, nombre_id.text.strip(), bold=True)
-                    if unidad_id:
-                        self._print_line(printer, f"Unidad: {unidad_id.text.strip()}")
-                    if cantidad_id and monto_id:
-                        cantidad_text = cantidad_id.text.strip()
-                        monto_text = monto_id.text.strip()
-                        spaces = self.line_width - len(cantidad_text) - len(monto_text)
-                        self._print_line(printer, f"{cantidad_text}{' ' * spaces}{monto_text}")
-                    self._print_separator(printer)
-                
+                for producto in factura.lineas_productos:
+                    self._print_line(printer, f"{producto.codigo} - {producto.nombre}", bold=True)
+                    linea_detalle = f"{producto.cantidad:.2f} {producto.unidad} x {producto.precio:.2f}"
+                    linea_subtotal = f"{producto.sub_total:.2f}"
+                    espacios = self.line_width - len(linea_detalle) - len(linea_subtotal)
+                    if espacios < 1: espacios = 1
+                    self._print_line(printer, f"{linea_detalle}{' ' * espacios}{linea_subtotal}")
+
+                self._print_separator(printer)
+
                 # Totales
-                totales_ids = ['subtotal', 'descuento_adicional', 'total', 'giftcard', 
-                             'total_final', 'iva_base']
-                totales_labels = {
-                    'subtotal': 'Sub Total:',
-                    'descuento_adicional': 'Descuento:',
-                    'total': 'Total:',
-                    'giftcard': 'Gift Card:',
-                    'total_final': 'Monto a Pagar:',
-                    'iva_base': 'Imp. Base Cred. Fiscal:'
-                }
-                
-                for total_id in totales_ids:
-                    elemento = soup.find(id=total_id)
-                    if elemento:
-                        label = totales_labels.get(total_id, total_id)
-                        valor = elemento.text.strip()
-                        spaces = self.line_width - len(label) - len(valor)
-                        self._print_line(printer, f"{label}{' ' * spaces}{valor}", 
-                                       bold=(total_id == 'total_final'))
-                
-                # Total en palabras
-                total_palabras = soup.find(id='total_en_palabras_text')
-                if total_palabras:
-                    texto = f"Son: {total_palabras.text.strip()}"
-                    while texto:
-                        if len(texto) > self.line_width:
-                            pos = texto[:self.line_width].rfind(' ')
-                            if pos == -1:
-                                pos = self.line_width
-                            self._print_line(printer, texto[:pos], align='center', font='b')
-                            texto = texto[pos:].strip()
-                        else:
-                            self._print_line(printer, texto, align='center', font='b')
-                            break
+                self._print_line(printer, f"{'Sub Total:':<20}{factura.subtotal_factura:>10.2f}")
+                self._print_line(printer, f"{'Descuento:':<20}{factura.descuento_adicional:>10.2f}")
+                self._print_line(printer, f"{'Total:':<20}{factura.monto_total:>10.2f}", bold=True)
+                self._print_line(printer, f"{'Monto a Pagar:':<20}{factura.monto_total_pagar:>10.2f}", bold=True)
+
+                self._print_line(printer, f"Son: {factura.total_en_palabras}")
                 
                 self._print_separator(printer)
                 
-                # Leyenda
-                leyenda = soup.find(id='leyenda_text')
-                if leyenda:
-                    texto = leyenda.text.strip()
-                    while texto:
-                        if len(texto) > self.line_width:
-                            pos = texto[:self.line_width].rfind(' ')
-                            if pos == -1:
-                                pos = self.line_width
-                            self._print_line(printer, texto[:pos], align='center')
-                            texto = texto[pos:].strip()
-                        else:
-                            self._print_line(printer, texto, align='center')
-                            break
+                # Pie de página
+                self._print_line(printer, factura.leyenda, align='center')
+                self._print_qr(printer, factura.url_qr)
                 
-                #printer.text("\n")  # Espacio antes del QR
-                self._print_qr(printer, nit, cuf, numero_factura)
-                #printer.text("\n")  # Espacio después del QR
-                #Legal
-                legal = soup.find(id='legal')
-                if legal:
-                    texto = legal.text.strip()
-                    while texto:
-                        if len(texto) > self.line_width:
-                            pos = texto[:self.line_width].rfind(' ')
-                            if pos == -1:
-                                pos = self.line_width
-                            self._print_line(printer, texto[:pos], align='center')
-                            texto = texto[pos:].strip()
-                        else:
-                            self._print_line(printer, texto, align='center')
-                            break
                 printer.cut()
             
-            self.logger.info("Impresión completada exitosamente")
+            self.logger.info("Impresión desde objeto de datos completada.")
             return True
-            
         except Exception as e:
-            printer_logger.error(f"Error en impresión térmica: {e}")
-            printer_logger.error(traceback.format_exc())
-            self.logger.error(f"Error durante la impresión: {str(e)}")
+            printer_logger.error(f"Error en print_invoice desde objeto: {e}", exc_info=True)
             return False
 
-    def process_and_print_invoice(self, html_content, nit, cuf, numero_factura):
+    def process_and_print_invoice_legacy(self, html_content, nit, cuf, numero_factura):
         """
-        Procesa el contenido HTML, genera el PDF y realiza la impresión térmica.
+        MÉTODO LEGACY: Procesa el contenido HTML y realiza la impresión térmica.
+        
+        NOTA: Este método se mantiene solo para retrocompatibilidad.
+        Se recomienda usar print_invoice(factura_obj) con objetos FacturaProcesada.
 
         Args:
             html_content (str): Contenido HTML de la factura.
@@ -286,19 +169,13 @@ class ThermalPrinter:
             bool: True si la impresión fue exitosa, False en caso de error.
         """
         try:
-            # Imprimir factura
-            success = self.print_invoice(html_content, nit, cuf, numero_factura)
-            if not success:
-                raise Exception("Error durante la impresión térmica")
-
-            # Crear archivo de señalización
-            signal_dir = os.path.join(os.getcwd(), "debug")
-            os.makedirs(signal_dir, exist_ok=True)
-            signal_file = os.path.join(signal_dir, f"print_complete_{numero_factura}.signal")
-            with open(signal_file, "w") as f:
-                f.write(f"Impresión completada: {datetime.now().isoformat()}")
-
-            return True
+            self.logger.warning("Usando método legacy process_and_print_invoice_legacy. Se recomienda migrar a print_invoice con FacturaProcesada.")
+            
+            # Para el método legacy, necesitaríamos parsear el HTML aquí
+            # Por ahora, retornamos False y loggeamos que se debe usar el nuevo método
+            self.logger.error("Método legacy no implementado completamente. Use print_invoice con objeto FacturaProcesada.")
+            return False
+            
         except Exception as e:
-            self.logger.error(f"Error en el proceso de impresión: {str(e)}")
+            self.logger.error(f"Error en el proceso de impresión legacy: {str(e)}")
             return False

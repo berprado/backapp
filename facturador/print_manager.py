@@ -93,13 +93,11 @@ def imprimir_en_hilo(factura_obj: FacturaProcesada):
                 # Por ahora, lo registramos pero continuamos.
                 st.session_state['print_status'] = f"⚠️ Error en PDF, intentando impresión térmica..."
             
-            # --- 2. Impresión Térmica ---
+            # --- 2. Impresión Térmica (REACTIVADA) ---
             try:
                 printer_logger.info("Paso 2: Iniciando impresión térmica.")
-                printer = ThermalPrinter() # Se autoconfigurará más adelante
+                printer = ThermalPrinter()
                 
-                # Le pasamos el objeto de datos completo, no el HTML.
-                # El método print_invoice será refactorizado para aceptar esto.
                 success = printer.print_invoice(factura_obj)
 
                 if success:
