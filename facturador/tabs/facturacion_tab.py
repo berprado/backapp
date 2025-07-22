@@ -23,7 +23,8 @@ from zeeper import validar_xml, comprimir_xml, obtener_hash, enviar_solicitud
 from response_handler import parse_siat_response, display_siat_response
 from data_access import guardar_factura_cabecera, guardar_factura_detalle
 from invoice_manager import obtener_y_reservar_numero_factura
-from print_manager import initialize_print_state, mostrar_mensaje_impresion_en_curso, imprimir_en_hilo
+# CAMBIA ESTA LÍNEA DE IMPORTACIÓN
+from print_manager import initialize_print_state, solicitar_impresion
 
 # Módulos locales
 from facturacion_sidebar import load_base_data, render_sidebar_client_data, render_sidebar_invoice_config
@@ -239,44 +240,32 @@ def _render_facturar_button(is_online, invoice_config, client_data, tipos_docume
             logger.warning("Intento de facturación con campos incompletos")
 
 def _render_print_button():
-    """Renderiza el botón de impresión y maneja la lógica de impresión."""
+    """Renderiza el botón de impresión usando el sistema de cola de tareas."""
     initialize_print_state()
-    mostrar_mensaje_impresion_en_curso()
-
-    if st.session_state.get('impresion_en_progreso', False):
-        if st.button("Forzar liberación", key="force_release"):
-            st.session_state['impresion_en_progreso'] = False
-            st.session_state['print_status'] = "⚠️ Impresión liberada manualmente."
-            logger.info("Impresión liberada manualmente por el usuario.")
-            st.rerun()
+    
+    # Mostrar el estado actual del servicio de impresión
+    print_status = st.session_state.get('print_status', 'Sistema de impresión listo.')
+    if "✅" in print_status:
+        st.success(f"🖨️ {print_status}")
+    elif any(icon in print_status for icon in ["⚠️", "❌", "🚨"]):
+        st.error(f"🖨️ {print_status}")
+    else:
+        st.info(f"🖨️ {print_status}")
 
     if st.session_state.get('factura_validada'):
-        impresion_en_progreso = st.session_state.get('impresion_en_progreso', False)
-        
-        # Obtenemos nuestro nuevo objeto del session_state
         factura_obj = st.session_state.get('factura_a_procesar')
-
-        # El botón se activa si hay un objeto de factura listo
-        if st.button("Imprimir Factura", disabled=impresion_en_progreso or not factura_obj):
+        
+        if st.button("🖨️ Imprimir Factura", key="imprimir_factura_final", disabled=not factura_obj):
             if factura_obj:
                 try:
-                    # Marcar que la impresión está en progreso
-                    st.session_state['impresion_en_progreso'] = True
-                    st.session_state['print_status'] = "⏳ Procesando..."
-                    
-                    logger.info(f"Iniciando impresión para factura {factura_obj.numero_factura} usando objeto FacturaProcesada.")
-                    
-                    # Llamamos al hilo de impresión pasándole el objeto completo.
-                    # Ya NO necesitamos generar el HTML aquí.
-                    imprimir_en_hilo(factura_obj)
-                    
+                    logger.info(f"Solicitando impresión para factura {factura_obj.numero_factura}.")
+                    solicitar_impresion(factura_obj)
+                    st.rerun() # Actualiza la UI para mostrar el estado "enviado a la cola"
                 except Exception as e:
-                    st.session_state['print_status'] = f"❌ Error al iniciar impresión: {str(e)}"
-                    st.session_state['impresion_en_progreso'] = False
-                    printer_logger.exception("Error en el proceso de impresión desde facturacion_tab")
+                    st.error(f"❌ Error al solicitar la impresión: {str(e)}")
+                    logger.exception("Error en la llamada a solicitar_impresion")
             else:
-                st.error("No se encontraron los datos de la factura para imprimir. Por favor, vuelva a generar la factura.")
-                logger.error("Se intentó imprimir pero no se encontró 'factura_a_procesar' en session_state.")
+                st.error("No se encontraron los datos de la factura para imprimir.")
     else:
         st.info("El botón de impresión solo estará disponible cuando la factura haya sido validada exitosamente por el SIN.")
 

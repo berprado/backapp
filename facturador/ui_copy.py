@@ -100,8 +100,8 @@ def verificar_estado_sistema():
     
     return estado
 
-# Importar cliente para verificar conectividad
-from api_clients import is_soap_client_available, get_connectivity_info, reset_soap_client
+# Importar cliente para verificar conectividad (solo para el botón de reconexión)
+from api_clients import reset_soap_client
 
 # Configurar loggers
 ui_logger = get_logger('ui')  # Logger específico para la interfaz de usuario
@@ -124,30 +124,24 @@ except Exception as e:
 # para mantener la separación de responsabilidades
 
 # Gestión de pestañas con logs
-def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict = None):
+def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict = None, reconectar_callback=None):
     """
-    Renderiza la interfaz principal de la aplicación.
+    Renderiza la interfaz principal. Ahora es una vista "pura" que no realiza verificaciones.
     
     Args:
         is_online: Booleano que indica si el sistema está online.
         connectivity_info: Diccionario con información detallada de conectividad.
         evento_activo: Diccionario con la información del evento de contingencia activo, si existe.
+        reconectar_callback: Función de callback para el botón de reconexión.
     """
-    ui_logger.info("Renderizando la interfaz principal en modo online")
-    
-    # Si no se proporciona información de conectividad, obtenerla
-    if connectivity_info is None:
-        connectivity_info = get_connectivity_info()
-        is_online = connectivity_info["client_available"]
-        status = connectivity_info.get('status', 'Estado')
-        status_message = connectivity_info.get('status_message', 'Estado desconocido')
-    else:
-        # Si usamos connectivity_info de communication_manager
-        principal = connectivity_info.get("verificacion_principal", {})
-        estado_general = connectivity_info.get("estado_general", "DESCONOCIDO")
-        recomendacion = connectivity_info.get("recomendacion", "")
-        status = estado_general
-        status_message = recomendacion
+    ui_logger.info("Renderizando la interfaz principal...")
+
+    # Usar la información de conectividad ya proporcionada (no verificar de nuevo)
+    principal = connectivity_info.get("verificacion_principal", {})
+    estado_general = connectivity_info.get("estado_general", "DESCONOCIDO")
+    recomendacion = connectivity_info.get("recomendacion", "")
+    status = estado_general
+    status_message = recomendacion
     
     # Mostrar estado de conectividad en la parte superior
     col1, col2, col3 = st.columns([3, 1, 1])
@@ -171,17 +165,10 @@ def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict
             st.success("🖨️ Sistema OK", icon="✅")
     
     with col3:
-        # Botón para intentar reconectar
-        if not is_online:
+        # El botón de reconexión ahora usa una función "callback" pasada desde main.py
+        if not is_online and reconectar_callback:
             if st.button("🔄 Reconectar", help="Intentar reconectarse a los servicios del SIN"):
-                with st.spinner("Intentando reconectar..."):
-                    client = reset_soap_client()
-                    if client is not None:
-                        st.success("✅ Reconexión exitosa")
-                        st.rerun()  # Refrescar la página para mostrar el nuevo estado
-                    else:
-                        st.error("❌ No se pudo reconectar")
-                        st.rerun() # Actualizar la UI para mostrar el estado de error
+                reconectar_callback()
     
     # Información adicional en un expander colapsable
     # Determinar la hora del último chequeo según la fuente de datos disponible
@@ -265,12 +252,18 @@ def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict
                 st.exception(e)
 
 if __name__ == "__main__":
+    """
+    Ejecutor de respaldo. En el flujo normal, main.py es quien llama a render_full_ui.
+    """
     try:
         initialize_print_state()
-        # Obtener información de conectividad y pasar como parámetro
-        connectivity_info = get_connectivity_info()
-        is_online = connectivity_info["client_available"]
-        render_full_ui(is_online=is_online, connectivity_info=connectivity_info)
+        # Modo de respaldo - funcionalidad básica sin verificación completa
+        dummy_connectivity = {
+            "estado_general": "RESPALDO",
+            "recomendacion": "Ejecutando en modo de respaldo. Use main.py para funcionalidad completa.",
+            "verificacion_principal": {"conectado": False}
+        }
+        render_full_ui(is_online=False, connectivity_info=dummy_connectivity)
     except Exception as e:
         ui_logger.error(f"Error en la ejecución principal: {str(e)}", exc_info=True)
         st.error(f"Ha ocurrido un error: {str(e)}")

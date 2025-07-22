@@ -1,152 +1,105 @@
-"""
-Módulo para la gestión de impresión de facturas.
-
-Este módulo contiene funciones para la impresión de facturas en impresoras térmicas 
-y generación de documentos PDF.
-"""
-
+# print_manager.py
 import os
 import threading
-from datetime import datetime
-import logging
-import traceback
+import queue
+import time
 import streamlit as st
-from invoice_templates import generate_html_invoice as generate_html_for_pdf
 from siat_pdf import html_to_pdf
 from thermal_printer import ThermalPrinter
 from logger_config import get_printer_logger
 from facturador.data_models import FacturaProcesada
+from invoice_templates import generate_html_invoice as generate_html_for_pdf
 
 printer_logger = get_printer_logger()
 
-def initialize_print_state():
-    """
-    Inicializa el estado de impresión en la sesión de Streamlit.
-    
-    Esta función establece los valores predeterminados para el estado
-    de impresión en la sesión de Streamlit.
-    """
-    keys_defaults = {
-        'print_status': None,
-        'datos_impresion': {},
-        'cuf': None,
-        'ultima_factura': None,
-        'impresion_en_progreso': False,
-        'impresion_finalizada': False
-    }
-    for key, default in keys_defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = default
+# 1. EL BUZÓN DE CORREO (LA COLA)
+# @st.cache_resource asegura que la cola y el hilo se crean UNA SOLA VEZ por sesión de Streamlit.
+@st.cache_resource
+def get_printer_queue():
+    """Obtiene la instancia única de la cola de impresión."""
+    return queue.Queue()
 
-def reiniciar_estados():
+# 2. EL TRABAJADOR DEDICADO (EL CARTERO)
+def printer_worker(q: queue.Queue):
     """
-    Reinicia los estados de impresión en la sesión de Streamlit.
-    
-    Esta función elimina las claves relacionadas con la impresión
-    de la sesión de Streamlit.
+    Este es nuestro hilo trabajador. Se ejecuta en un bucle infinito
+    esperando trabajos de impresión en la cola.
     """
-    keys_to_reset = [
-        'factura_validada', 'print_status', 'datos_impresion', 
-        'cuf', 'ultima_factura', 'impresion_en_progreso', 
-        'impresion_finalizada'
-    ]
-    for key in keys_to_reset:
-        if key in st.session_state:
-            del st.session_state[key]
-
-def imprimir_en_hilo(factura_obj: FacturaProcesada):
-    """
-    Crea un hilo para manejar la impresión de la factura y la generación del PDF.
-    Esta función ahora acepta un objeto FacturaProcesada como única fuente de verdad.
-
-    Args:
-        factura_obj (FacturaProcesada): El objeto que contiene todos los datos de la factura.
-    """
-    def imprimir():
-        """Función que se ejecuta en un hilo separado."""
+    printer_logger.info("WORKER: Hilo de impresión iniciado y esperando trabajos.")
+    while True:
         try:
-            printer_logger.info(f"INICIO HILO: Procesando factura N° {factura_obj.numero_factura}")
+            # .get() es bloqueante: el hilo dormirá aquí hasta que llegue un trabajo.
+            factura_obj = q.get()
+            if factura_obj is None: # Señal para terminar el hilo (opcional, para cierres limpios)
+                break
 
-            # directorios de salida
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-            pdfs_dir = os.path.join(base_dir, "pdfs")
-            os.makedirs(pdfs_dir, exist_ok=True)
+            printer_logger.info(f"WORKER: Nuevo trabajo recibido para factura N° {factura_obj.numero_factura}")
+            st.session_state['print_status'] = f"⏱️ Procesando factura N° {factura_obj.numero_factura}..."
             
-            # --- 1. Generación de PDF ---
+            # --- Generación de PDF ---
+            pdf_generado_ok = False
             try:
-                printer_logger.info("Paso 1: Generando HTML para el PDF.")
-                # Usamos los datos del objeto para generar un HTML específico para el PDF
                 html_content_pdf = generate_html_for_pdf(factura_obj)
-                
+                pdfs_dir = os.path.join(os.getcwd(), "pdfs")
+                os.makedirs(pdfs_dir, exist_ok=True)
                 output_pdf_path = os.path.join(pdfs_dir, f"factura_{factura_obj.numero_factura}.pdf")
-                printer_logger.info(f"Generando PDF en: {output_pdf_path}")
-                
                 pdf_result = html_to_pdf(html_content_pdf, output_pdf_path)
-                if not pdf_result:
-                    raise Exception("La función html_to_pdf() retornó False.")
-                
-                printer_logger.info(f"PDF generado exitosamente: {output_pdf_path}")
-                
+                if not pdf_result: raise Exception("html_to_pdf retornó False")
+                printer_logger.info(f"WORKER: PDF generado: {output_pdf_path}")
+                pdf_generado_ok = True
             except Exception as e:
-                printer_logger.error(f"Error crítico durante la generación del PDF: {str(e)}", exc_info=True)
-                # Decidimos si el error de PDF debe detener la impresión térmica. 
-                # Por ahora, lo registramos pero continuamos.
-                st.session_state['print_status'] = f"⚠️ Error en PDF, intentando impresión térmica..."
-            
-            # --- 2. Impresión Térmica (REACTIVADA) ---
+                printer_logger.error(f"WORKER: Error en PDF para factura {factura_obj.numero_factura}: {e}", exc_info=True)
+                st.session_state['print_status'] = f"❌ Error al generar el PDF de la factura {factura_obj.numero_factura}."
+                q.task_done()
+                continue # No intentar imprimir si el PDF falló
+
+            # --- Impresión Térmica ---
             try:
-                printer_logger.info("Paso 2: Iniciando impresión térmica.")
                 printer = ThermalPrinter()
-                
                 success = printer.print_invoice(factura_obj)
-
-                if success:
-                    printer_logger.info("Impresión térmica completada exitosamente.")
-                    st.session_state['print_status'] = "✅ PDF generado e Impresión completada."
-                else:
-                    printer_logger.warning("Impresión térmica falló, pero el PDF podría haberse generado.")
-                    st.session_state['print_status'] = "⚠️ PDF generado, pero la impresión térmica falló."
-
+                if not success: raise Exception("print_invoice retornó False")
+                printer_logger.info(f"WORKER: Impresión térmica para factura {factura_obj.numero_factura} completada.")
+                st.session_state['print_status'] = f"✅ Factura N° {factura_obj.numero_factura} impresa exitosamente."
             except Exception as e:
-                error_msg = f"Error en impresión térmica: {str(e)}"
-                printer_logger.error(f"Error crítico durante la impresión térmica: {error_msg}", exc_info=True)
-                st.session_state['print_status'] = f"⚠️ PDF generado, pero error en impresión: {error_msg}"
+                printer_logger.error(f"WORKER: Error de impresora para factura {factura_obj.numero_factura}: {e}", exc_info=True)
+                st.session_state['print_status'] = f"⚠️ PDF de Factura {factura_obj.numero_factura} generado, pero la impresora falló."
+
+            q.task_done()
 
         except Exception as e:
-            # Captura errores generales del proceso
-            error_msg = f"❌ Error general en el hilo de impresión: {str(e)}"
-            printer_logger.error(error_msg, exc_info=True)
-            st.session_state['print_status'] = error_msg
-        finally:
-            printer_logger.info(f"FIN HILO: Limpiando estado para factura N° {factura_obj.numero_factura}")
-            st.session_state['impresion_en_progreso'] = False
-            st.session_state['impresion_finalizada'] = True
-    
-    # --- Lógica de control del hilo (se mantiene mayormente igual) ---
-    if st.session_state.get('impresion_en_progreso', False):
-        printer_logger.warning("Se intentó iniciar una nueva impresión mientras otra está en progreso.")
-        return
+            printer_logger.critical(f"WORKER: ERROR CRÍTICO EN EL HILO TRABAJADOR: {e}", exc_info=True)
+            st.session_state['print_status'] = "🚨 Error crítico en el servicio de impresión. Reinicie la aplicación."
+            time.sleep(5)
 
-    if not os.access('pdfs', os.W_OK):
-        printer_logger.error("No hay permisos de escritura en la carpeta pdfs")
-        st.session_state['print_status'] = "❌ No hay permisos de escritura en la carpeta de PDFs"
-        return
-    
-    # Actualizar el estado e iniciar el hilo
-    st.session_state['impresion_en_progreso'] = True
-    st.session_state['impresion_finalizada'] = False
-    st.session_state['print_status'] = "⏱️ Impresión en progreso..."
-    
-    thread = threading.Thread(target=imprimir, name=f"PrintThread_Factura_{factura_obj.numero_factura}")
-    thread.daemon = True
-    thread.start()
+# 3. FUNCIÓN PARA INICIAR EL WORKER
+@st.cache_resource
+def start_printer_worker():
+    """Inicia el hilo trabajador de impresión una única vez."""
+    q = get_printer_queue()
+    # Verificamos si ya hay un trabajador corriendo para evitar duplicados
+    if not any(t.name == "PrinterWorkerThread" for t in threading.enumerate()):
+        worker_thread = threading.Thread(target=printer_worker, args=(q,), daemon=True, name="PrinterWorkerThread")
+        worker_thread.start()
+        printer_logger.info("El hilo trabajador de impresión ha sido iniciado por primera vez.")
+        return worker_thread
+    else:
+        printer_logger.info("El hilo trabajador de impresión ya estaba en ejecución.")
 
-    printer_logger.info(f"Hilo de impresión iniciado para la factura {factura_obj.numero_factura}")
-    return True
+# 4. FUNCIÓN PÚBLICA PARA SOLICITAR UNA IMPRESIÓN
+def solicitar_impresion(factura_obj: FacturaProcesada):
+    """Añade un trabajo de impresión a la cola. Es una operación rápida y segura."""
+    printer_logger.info(f"SOLICITUD: Añadiendo factura N° {factura_obj.numero_factura} a la cola de impresión.")
+    q = get_printer_queue()
+    q.put(factura_obj)
+    st.session_state['print_status'] = "➡️ Factura enviada a la cola de impresión."
+
+# Mantener por compatibilidad con la UI, aunque la lógica de estado ahora es más simple
+def initialize_print_state():
+    if 'print_status' not in st.session_state:
+        st.session_state['print_status'] = 'Sistema de impresión listo.'
 
 def mostrar_mensaje_impresion_en_curso():
     """
-    Muestra un mensaje de advertencia en la UI si la impresión está en curso.
+    Función de compatibilidad. En el nuevo sistema, el estado se muestra directamente.
     """
-    if st.session_state.get('impresion_en_progreso', False):
-        st.warning("⚠️ La impresión está en curso. Por favor, espera a que finalice antes de iniciar una nueva impresión.")
+    pass

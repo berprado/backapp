@@ -15,10 +15,44 @@ from significant_events import register_significant_event, get_significant_event
 from communication_manager import communication_manager, EstadoComunicacion, TipoContingencia
 from logger_config import get_logger
 
+# IMPORTACIONES CLAVE PARA EL SISTEMA DE IMPRESIÓN
+from print_manager import start_printer_worker
+
+# IMPORTACIONES PARA LA RECONEXIÓN
+from api_clients import reset_soap_client
+
+# -----------------------------------------------------------------
+# INICIAR EL SERVICIO DE IMPRESIÓN EN SEGUNDO PLANO
+start_printer_worker()
+# -----------------------------------------------------------------
+
 # Fallback a la función original por compatibilidad
 #from soap_services import verificar_comunicacion
 
 logger = get_logger()
+
+def handle_reconexion():
+    """
+    Función callback para manejar la reconexión desde la UI.
+    Esta función centraliza toda la lógica de reconexión.
+    """
+    with st.spinner("Intentando reconectar..."):
+        # Reiniciar el cliente SOAP
+        client = reset_soap_client()
+        
+        # Verificar el estado después del reinicio
+        resultado_reconexion = communication_manager.verificar_comunicacion_completa()
+        principal = resultado_reconexion["verificacion_principal"]
+        conectado = principal["conectado"] if principal else False
+        
+        if conectado:
+            st.success("✅ Reconexión exitosa - Servicios del SIN disponibles")
+            logger.info("Reconexión exitosa - refresca automáticamente")
+        else:
+            st.error("❌ No se pudo reconectar - Servicios del SIN no disponibles")
+            logger.warning("Intento de reconexión falló")
+        
+        st.rerun()  # Refrescar la página para mostrar el nuevo estado
 
 st.set_page_config(
     page_title="BACKINVOICE",
@@ -118,7 +152,11 @@ def main():
         
         # Pasar el estado de conectividad y la información completa a la interfaz online
         # para evitar verificaciones redundantes
-        render_full_ui(is_online=conectado, connectivity_info=resultado_completo)
+        render_full_ui(
+            is_online=conectado, 
+            connectivity_info=resultado_completo, 
+            reconectar_callback=handle_reconexion
+        )
     else:
         st.error("❌ No se pudo conectar al SIN. Se activará la contingencia.")
 
@@ -168,7 +206,12 @@ def main():
 
         # Si tenemos un evento, llamamos a la UI completa en modo offline
         if evento:
-            render_full_ui(is_online=False, connectivity_info=resultado_completo, evento_activo=evento)
+            render_full_ui(
+                is_online=False, 
+                connectivity_info=resultado_completo, 
+                evento_activo=evento,
+                reconectar_callback=handle_reconexion
+            )
         else:
             st.error("❌ Error crítico: No se pudo obtener o registrar un evento de contingencia. La facturación está deshabilitada.")
 

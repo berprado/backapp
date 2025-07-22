@@ -283,13 +283,13 @@ if __name__ == "__main__":
 
 ### **Fase 3: La Prueba Final**
 
-Has completado toda la refactorización. La arquitectura es ahora robusta, lógica y sigue las mejores prácticas.
+Se ha completado toda la refactorización. La arquitectura es ahora robusta, lógica y sigue las mejores prácticas.
 
 **Acción Final:**
 
 1.  **Guarda todos los archivos modificados.**
-2.  **Reinicia tu aplicación Streamlit:** Detén el proceso en la terminal (Ctrl+C) y vuelve a lanzarlo con `streamlit run main.py`.
-3.  **Prueba el flujo completo:** Genera, valida e intenta imprimir una factura.
+2.  **Reinicia la aplicación Streamlit:** Detén el proceso en la terminal (Ctrl+C) y vuelve a lanzarlo con `streamlit run main.py` desde `C:\Users\Bernardo\Desktop\backapp\facturador`.
+3.  **Prueba el flujo completo:** Genera, valida e intenta imprimir una factura mediante #openSimpleBrowser.
 
 Lo que debe ocurrir: Observaremos el `print_status` en la interfaz. Deberiamos ver cómo cambia de "Enviado a la cola" a "Procesando" y finalmente a "Éxito" o un mensaje de error específico, **todo sin bloquear la aplicación**.
-Crucemos los dedos para que asi sea
+Crucemos los dedos para que asi sea.
