@@ -22,21 +22,22 @@ def get_printer_queue():
 # 2. EL TRABAJADOR DEDICADO (EL CARTERO)
 def printer_worker(q: queue.Queue):
     """
-    Este es nuestro hilo trabajador. Se ejecuta en un bucle infinito
-    esperando trabajos de impresión en la cola.
+    Hilo trabajador con conexión de impresora persistente.
     """
-    printer_logger.info("WORKER: Hilo de impresión iniciado y esperando trabajos.")
+    printer_logger.info("WORKER: Hilo de impresión iniciado.")
+    
+    # Creamos una ÚNICA instancia de la impresora para este worker.
+    printer = ThermalPrinter()
+    
     while True:
         try:
-            # .get() es bloqueante: el hilo dormirá aquí hasta que llegue un trabajo.
             factura_obj = q.get()
-            if factura_obj is None: # Señal para terminar el hilo (opcional, para cierres limpios)
-                break
+            if factura_obj is None: break
 
             printer_logger.info(f"WORKER: Nuevo trabajo recibido para factura N° {factura_obj.numero_factura}")
             st.session_state['print_status'] = f"⏱️ Procesando factura N° {factura_obj.numero_factura}..."
             
-            # --- Generación de PDF ---
+            # --- Generación de PDF (sin cambios) ---
             pdf_generado_ok = False
             try:
                 html_content_pdf = generate_html_for_pdf(factura_obj)
@@ -53,16 +54,21 @@ def printer_worker(q: queue.Queue):
                 q.task_done()
                 continue # No intentar imprimir si el PDF falló
 
-            # --- Impresión Térmica ---
+            # --- Impresión Térmica con Conexión Persistente ---
             try:
-                printer = ThermalPrinter()
+                # Conectamos solo si es necesario (la primera vez o si hubo un error)
+                printer.connect()
+                
                 success = printer.print_invoice(factura_obj)
                 if not success: raise Exception("print_invoice retornó False")
+                
                 printer_logger.info(f"WORKER: Impresión térmica para factura {factura_obj.numero_factura} completada.")
                 st.session_state['print_status'] = f"✅ Factura N° {factura_obj.numero_factura} impresa exitosamente."
             except Exception as e:
                 printer_logger.error(f"WORKER: Error de impresora para factura {factura_obj.numero_factura}: {e}", exc_info=True)
                 st.session_state['print_status'] = f"⚠️ PDF de Factura {factura_obj.numero_factura} generado, pero la impresora falló."
+                # Importante: Desconectamos para forzar un reintento de conexión en el próximo trabajo
+                printer.disconnect()
 
             q.task_done()
 
@@ -70,6 +76,10 @@ def printer_worker(q: queue.Queue):
             printer_logger.critical(f"WORKER: ERROR CRÍTICO EN EL HILO TRABAJADOR: {e}", exc_info=True)
             st.session_state['print_status'] = "🚨 Error crítico en el servicio de impresión. Reinicie la aplicación."
             time.sleep(5)
+
+    # Al salir del bucle (si alguna vez lo hace), nos aseguramos de desconectar
+    printer.disconnect()
+    printer_logger.info("WORKER: Hilo de impresión finalizado.")
 
 # 3. FUNCIÓN PARA INICIAR EL WORKER
 @st.cache_resource
