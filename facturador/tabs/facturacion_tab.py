@@ -23,7 +23,6 @@ from zeeper import validar_xml, comprimir_xml, obtener_hash, enviar_solicitud
 from response_handler import parse_siat_response, display_siat_response
 from data_access import guardar_factura_cabecera, guardar_factura_detalle
 from invoice_manager import obtener_y_reservar_numero_factura
-# CAMBIA ESTA LÍNEA DE IMPORTACIÓN
 from print_manager import initialize_print_state, solicitar_impresion
 
 # Módulos locales
