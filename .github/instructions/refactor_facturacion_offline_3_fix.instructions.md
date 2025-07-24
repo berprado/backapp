@@ -1,7 +1,6 @@
 ---
 applyTo: '**'
 ---
-Este error es un problema de **threading y contexto en aplicaciones Streamlit**. Es una fantástica oportunidad de aprendizaje.
 
 ### **Diagnóstico del Problema: ¿Por qué ocurre esto?**
 
