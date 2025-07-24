@@ -27,14 +27,6 @@ def numero_a_palabras_con_decimales_como_fraccion(numero, lang='es'):
     else:
         return f" {parte_entera_palabras} 00/100 bolivianos."
 
-def get_next_invoice_number():
-    """
-    [OBSOLETA] Usar obtener_y_reservar_numero_factura() de invoice_manager.
-    """
-    import logging
-    logging.warning("No usar get_next_invoice_number. Usar obtener_y_reservar_numero_factura().")
-    return None
-
 # Lista de códigos permitidos para gift cards (movido desde ui_copy.py)
 GIFT_CARD_CODES = [
     102, 109, 115, 120, 124, 128, 129, 130, 138, 146, 153, 159, 164, 168,
