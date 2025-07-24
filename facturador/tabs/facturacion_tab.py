@@ -512,8 +512,8 @@ def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos
     try:
         logger.info("Iniciando proceso de facturación OFFLINE")
 
-        # 1. OBTENER CUFD DEL EVENTO
-        cufd_evento = obtener_cufd_de_evento_activo() 
+        # 1. OBTENER CUFD DEL EVENTO (corrección normativa)
+        cufd_evento = evento_activo.get('cufd')
         if not cufd_evento:
             show_message('error', "No se encontró un CUFD válido para el evento de contingencia.", message_placeholder)
             return
@@ -533,11 +533,11 @@ def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos
             puntoVenta=int(os.getenv('CODIGO_PUNTO_VENTA'))
         )
 
-        # 3. MANEJAR EXCEPCIÓN DE NIT
+        # 3. MANEJAR EXCEPCIÓN DE NIT (verificación normativa)
         tipo_documento_seleccionado = next((doc for doc in tipos_documento if doc["descripcion"] == client_data['seleccion_tipo_documento']), None)
         codigo_excepcion = 1 if tipo_documento_seleccionado and tipo_documento_seleccionado['codigoClasificador'] == '5' else None
 
-        # 4. GENERAR XML
+        # 4. GENERAR XML (verificar parámetros de contingencia)
         xml_str, factura_cabecera_data, detalles_data = generate_xml_invoice(
             nit_emisor=nit_emisor,
             razon_social_emisor=os.getenv('RAZON_SOCIAL'),
@@ -571,15 +571,15 @@ def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos
             codigo_producto_sin=os.getenv('CODIGO_PRODUCTO_SIN'),
             codigoExcepcion=codigo_excepcion
         )
-        
+
         # 5. FIRMAR Y VALIDAR LOCALMENTE
         signed_xml_str = sign_xml(xml_str, "xmls/llaves/private_key_ok.pem", "xmls/llaves/certificado_ok.pem", cuf)
-        
+
         filename = f"offline_invoices/factura_{numero_factura}.xml"
         os.makedirs("offline_invoices", exist_ok=True)
         with open(filename, "w", encoding='utf-8') as f:
             f.write(signed_xml_str)
-        
+
         if not validar_xml(filename, 'xmls/schemas/facturaElectronicaCompraVenta.xsd'):
             show_message('error', "El XML generado localmente no es válido. Revise los logs.", message_placeholder)
             return
@@ -652,17 +652,17 @@ def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos
             show_message('error', f"Error interno al preparar datos para impresión/consulta: {e}", message_placeholder)
             return # Detener si hay un error aquí
 
-        # 7. GUARDAR EN BASE DE DATOS
+        # 7. GUARDAR EN BASE DE DATOS (confirmar estado y tipo de emisión)
         factura_cabecera_data['tipoEmision'] = "2" # <-- TIPO DE EMISIÓN OFFLINE
         factura_cabecera_data['estado'] = "PENDIENTE_ENVIO"
         factura_cabecera_data['codigoEvento'] = evento_activo.get('id')
-        
+
         guardar_factura_cabecera(factura_cabecera_data)
         for detalle in detalles_data:
             guardar_factura_detalle(detalle)
-        
+
         show_message('success', f"✅ Factura N° {numero_factura} generada y guardada localmente. Pendiente de envío.", message_placeholder)
-        
+
         # Conservamos el session_state para que los botones de imprimir/consultar estén disponibles
         # Ya no hacemos st.rerun() ni limpiamos 'factura_validada'
 

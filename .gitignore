@@ -66,6 +66,7 @@ facturador/logs/
 
 # Directorios innecesarios o pruebas fuera del repositorio principal
 facturador/off/
+facturador/unused/*
 */sql/
 
 # Directorios de datos de MySQL si usas Docker

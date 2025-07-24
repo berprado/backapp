@@ -100,12 +100,44 @@ class CommunicationManager:
             logger.error(f"Error en verificación de servicio {servicio}: {e}")
             return False, f"Error crítico: {e}"
     
-    def verificar_comunicacion_completa(self) -> Dict[str, Any]:
+    def verificar_comunicacion_completa(self, force_check: bool = False) -> Dict[str, Any]:
         """
-        NUEVA funcionalidad: Verificación completa usando TODAS las funciones existentes.
-        
-        Returns:
-            dict: Resultado completo con detalles de todas las verificaciones
+        NUEVA versión con caché en st.session_state para mejorar el rendimiento.
+        Args:
+            force_check (bool): Si True, ignora el caché y ejecuta una nueva verificación.
+        """
+        logger.info(f"Verificando comunicación (Forzado: {force_check})")
+        now = datetime.now()
+
+        # 1. Inicializar el caché en st.session_state si no existe
+        if 'comm_manager_cache' not in st.session_state:
+            st.session_state.comm_manager_cache = {
+                'timestamp': None,
+                'result': None
+            }
+
+        cache = st.session_state.comm_manager_cache
+
+        # 2. Revisar si el caché es válido y reciente (menos de 30 segundos)
+        if not force_check and cache['timestamp'] and (now - cache['timestamp']).total_seconds() < 30:
+            logger.info("Devolviendo resultado de comunicación desde CACHÉ.")
+            return cache['result']
+
+        # 3. Si el caché expiró o se forzó el chequeo, ejecutar la verificación real
+        logger.info("Caché expirado o chequeo forzado. Ejecutando verificación de red completa.")
+        resultado_completo = self._ejecutar_verificacion_real()
+
+        # 4. Actualizar el caché con el nuevo resultado y el timestamp actual
+        cache['timestamp'] = now
+        cache['result'] = resultado_completo
+
+        logger.info("Caché de comunicación actualizado.")
+
+        return resultado_completo
+
+    def _ejecutar_verificacion_real(self) -> Dict[str, Any]:
+        """
+        Lógica real de verificación completa (extraída de la función original).
         """
         resultado_completo = {
             "timestamp": datetime.now().isoformat(),
@@ -114,7 +146,6 @@ class CommunicationManager:
             "estado_general": EstadoComunicacion.MONITORING.value,
             "recomendacion": ""
         }
-        
         try:
             # 1. Verificación principal (soap_services.py - EXISTENTE)
             mensaje, conectado, tipo = self.verificar_comunicacion_principal()
@@ -124,14 +155,14 @@ class CommunicationManager:
                 "tipo_contingencia": tipo,
                 "fuente": "soap_services.py"
             }
-            
+
             # 2. Verificaciones por servicio (business_logic.py - EXISTENTE)
             servicios = [
                 "Facturación Códigos",
-                "Facturación Operaciones", 
+                "Facturación Operaciones",
                 "Facturación Sincronización"
             ]
-            
+
             for servicio in servicios:
                 try:
                     conectado_srv, mensaje_srv = self.verificar_comunicacion_por_servicio(servicio)
@@ -146,12 +177,12 @@ class CommunicationManager:
                         "mensaje": f"Error: {e}",
                         "fuente": "business_logic.py"
                     }
-            
+
             # 3. Análisis general (NUEVA funcionalidad)
             resultado_completo = self._analizar_resultados_completos(resultado_completo)
-            
+
             return resultado_completo
-            
+
         except Exception as e:
             logger.error(f"Error en verificación completa: {e}")
             resultado_completo["estado_general"] = EstadoComunicacion.OFFLINE.value
