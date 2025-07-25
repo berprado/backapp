@@ -226,26 +226,23 @@ def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict
     # Siempre añadimos las pestañas de diagnóstico al final
     tabs_to_render.extend(["🔧Diagnóstico", "🔧Pruebas"])
 
-    # Renderizar las pestañas
+    # Diccionario que mapea pestañas a los argumentos que requieren
+    tab_args = {
+        "🧾Facturar": {"is_online": is_online, "evento_activo": evento_activo},
+        "✅Validar NIT": {"is_online": is_online, "connectivity_info": connectivity_info},
+        "🔍Gestionar CUIS": {"is_online": is_online, "connectivity_info": connectivity_info},
+        # Agrega aquí otras pestañas si requieren argumentos especiales
+    }
+
     rendered_tabs = st.tabs(tabs_to_render)
 
-    # Mapear cada pestaña creada a su contenido
     for tab, tab_name in zip(rendered_tabs, tabs_to_render):
         with tab:
             ui_logger.debug(f"Renderizando pestaña: {tab_name}")
             try:
-                # Obtener la función de renderizado del diccionario y llamarla
                 render_function = tabs_config[tab_name]
-                
-                if tab_name == "🧾Facturar":
-                    # Caso especial: pasar el contexto a la pestaña de facturación
-                    render_function(is_online=is_online, evento_activo=evento_activo)
-                elif tab_name == "🔧Pruebas":
-                    # Caso especial: ejecutar diagnóstico completo de impresión
-                    render_function()
-                else:
-                    # Las otras pestañas no necesitan el contexto (por ahora)
-                    render_function()
+                args = tab_args.get(tab_name, {})
+                render_function(**args)
             except Exception as e:
                 ui_logger.error(f"Error al renderizar pestaña {tab_name}: {str(e)}", exc_info=True)
                 st.error(f"Error al cargar esta pestaña: {str(e)}")
