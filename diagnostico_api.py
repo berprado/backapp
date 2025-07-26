@@ -16,7 +16,7 @@ load_dotenv()
 
 # Configuración obtenida del entorno (.env)
 ENDPOINT_URL = os.environ.get("ENDPOINT_URL", "http://127.0.0.1:8000/")
-DATABASE_URL = os.environ.get("DATABASE_URL", "mysql+pymysql://root:password@localhost/adminerp_copy")
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
 def check_api_running():
     """Verifica si la API está ejecutándose."""

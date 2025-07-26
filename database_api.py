@@ -1,20 +1,31 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
+import os
+from dotenv import load_dotenv
 
-URL_DATABASE = "mysql+pymysql://root:admin123.@localhost:3306/adminerp_copy"
+# Cargar variables de entorno desde .env
+load_dotenv()
 
-# Create the engine to connect to the database
+DB_USER = os.getenv("MYSQL_USER", "")
+DB_PASSWORD = os.getenv("MYSQL_PASSWORD", "")
+DB_HOST = os.getenv("MYSQL_HOST", "")
+DB_PORT = os.getenv("MYSQL_PORT", "")
+DB_NAME = os.getenv("MYSQL_DATABASE", "")
+
+URL_DATABASE = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
+# Crear el engine para conectar a la base de datos
 engine = create_engine(URL_DATABASE)
 
-# Create a session factory for creating database sessions
+# Crear la fábrica de sesiones
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Create a base class for declarative models
+# Clase base para modelos declarativos
 Base = declarative_base()
 
-# Commented out alternative connection
-#URL_DATABASE = "mysql+pymysql://root:admin123.@0.tcp.sa.ngrok.io:15947/adminerp"
+# Conexión alternativa comentada
+#URL_DATABASE = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@0.tcp.sa.ngrok.io:15947/{DB_NAME}"
 #engine = create_engine(URL_DATABASE)
 #SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 #Base = declarative_base()
