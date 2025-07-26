@@ -1,9 +1,10 @@
 # models/invoice_data.py
-from dataclasses import dataclass
-from typing import List, Dict, Any, Optional
 
-@dataclass
-class DetalleFactura:
+from typing import List, Optional
+from pydantic import BaseModel
+
+
+class DetalleFactura(BaseModel):
     """Representa una línea de producto en el detalle de la factura."""
     codigo: str
     nombre: str
@@ -13,8 +14,8 @@ class DetalleFactura:
     montoDescuento: Optional[float]
     sub_total: float
 
-@dataclass
-class FacturaProcesada:
+
+class FacturaProcesada(BaseModel):
     """
     Contiene todos los datos de una factura validada, lista para ser
     impresa, convertida a PDF o enviada por correo.
@@ -33,7 +34,7 @@ class FacturaProcesada:
     direccion_emisor: str
     municipio_emisor: str
     telefono_emisor: str
-    
+
     # === Datos del Cliente ===
     nombre_cliente: str
     numero_documento: str
@@ -53,11 +54,11 @@ class FacturaProcesada:
     total_en_palabras: str
     metodo_pago: str
     ultimos_digitos_tarjeta: Optional[str]
-    
+
     # === Datos Fiscales y Leyendas ===
     tipo_factura: str
     subtitulo_factura: str
     leyenda: str
-    
+
     # === URL para QR (Generada una sola vez) ===
     url_qr: str

@@ -31,12 +31,25 @@ def printer_worker(q: queue.Queue):
     
     while True:
         try:
-            factura_obj = q.get()
-            if factura_obj is None: break
+            factura_data = q.get()
+            if factura_data is None:
+                break
+
+            # Deserialización segura
+            if not isinstance(factura_data, dict):
+                printer_logger.error(f"WORKER: Se esperaba un diccionario de la cola, pero se recibió {type(factura_data)}. Saltando tarea.")
+                q.task_done()
+                continue
+            try:
+                factura_obj = FacturaProcesada(**factura_data)
+            except Exception as e:
+                printer_logger.error(f"WORKER: Error al reconstruir FacturaProcesada desde los datos: {e}. Datos recibidos: {factura_data}")
+                q.task_done()
+                continue
 
             printer_logger.info(f"WORKER: Nuevo trabajo recibido para factura N° {factura_obj.numero_factura}")
             st.session_state['print_status'] = f"⏱️ Procesando factura N° {factura_obj.numero_factura}..."
-            
+
             # --- Generación de PDF (sin cambios) ---
             pdf_generado_ok = False
             try:
@@ -58,10 +71,8 @@ def printer_worker(q: queue.Queue):
             try:
                 # Conectamos solo si es necesario (la primera vez o si hubo un error)
                 printer.connect()
-                
                 success = printer.print_invoice(factura_obj)
                 if not success: raise Exception("print_invoice retornó False")
-                
                 printer_logger.info(f"WORKER: Impresión térmica para factura {factura_obj.numero_factura} completada.")
                 st.session_state['print_status'] = f"✅ Factura N° {factura_obj.numero_factura} impresa exitosamente."
             except Exception as e:
@@ -100,7 +111,8 @@ def solicitar_impresion(factura_obj: FacturaProcesada):
     """Añade un trabajo de impresión a la cola. Es una operación rápida y segura."""
     printer_logger.info(f"SOLICITUD: Añadiendo factura N° {factura_obj.numero_factura} a la cola de impresión.")
     q = get_printer_queue()
-    q.put(factura_obj)
+    # Serializamos el objeto antes de ponerlo en la cola (Pydantic v1 usa .dict())
+    q.put(factura_obj.dict())
     st.session_state['print_status'] = "➡️ Factura enviada a la cola de impresión."
 
 # Mantener por compatibilidad con la UI, aunque la lógica de estado ahora es más simple
