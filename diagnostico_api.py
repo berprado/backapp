@@ -8,21 +8,26 @@ from sqlalchemy import create_engine, text
 import time
 import traceback
 import json
+from dotenv import load_dotenv
 
-# Configuración
-API_URL = "http://127.0.0.1:8000/"
-DB_URL = "mysql+pymysql://root:admin123.@localhost:3306/adminerp_copy"
+# Cargar variables de entorno desde .env
+load_dotenv()
+
+
+# Configuración obtenida del entorno (.env)
+ENDPOINT_URL = os.environ.get("ENDPOINT_URL", "http://127.0.0.1:8000/")
+DATABASE_URL = os.environ.get("DATABASE_URL", "mysql+pymysql://root:password@localhost/adminerp_copy")
 
 def check_api_running():
     """Verifica si la API está ejecutándose."""
     print("\n--- Verificando si la API está ejecutándose ---")
     try:
-        response = requests.get(API_URL, timeout=5)
+        response = requests.get(ENDPOINT_URL, timeout=5)
         print(f"Status code: {response.status_code}")
         print(f"Respuesta: {response.text[:500]}..." if len(response.text) > 500 else f"Respuesta: {response.text}")
         return True
     except requests.exceptions.ConnectionError:
-        print(f"❌ No se pudo conectar a la API en {API_URL}")
+        print(f"❌ No se pudo conectar a la API en {ENDPOINT_URL}")
         print("   Asegúrate de que el servidor FastAPI esté en ejecución.")
         print("   Puedes iniciarlo con el comando: uvicorn api:app --reload")
         return False
@@ -35,7 +40,7 @@ def check_db_connection():
     """Verifica la conexión a la base de datos."""
     print("\n--- Verificando conexión a la base de datos ---")
     try:
-        engine = create_engine(DB_URL)
+        engine = create_engine(DATABASE_URL)
         with engine.connect() as connection:
             result = connection.execute(text("SELECT 1"))
             print("✅ Conexión a la base de datos exitosa.")
@@ -57,7 +62,7 @@ def check_full_api_flow():
     """Realiza una verificación completa del flujo de la API."""
     print("\n--- Realizando una solicitud completa a la API ---")
     try:
-        response = requests.get(API_URL, timeout=10)
+        response = requests.get(ENDPOINT_URL, timeout=10)
         if response.status_code == 200:
             data = response.json()
             print(f"✅ Solicitud exitosa. Recibidos {len(data)} registros.")

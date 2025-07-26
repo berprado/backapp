@@ -111,8 +111,8 @@ def solicitar_impresion(factura_obj: FacturaProcesada):
     """Añade un trabajo de impresión a la cola. Es una operación rápida y segura."""
     printer_logger.info(f"SOLICITUD: Añadiendo factura N° {factura_obj.numero_factura} a la cola de impresión.")
     q = get_printer_queue()
-    # Serializamos el objeto antes de ponerlo en la cola (Pydantic v1 usa .dict())
-    q.put(factura_obj.dict())
+    # Serializamos el objeto antes de ponerlo en la cola (Pydantic v2 usa .model_dump())
+    q.put(factura_obj.model_dump())
     st.session_state['print_status'] = "➡️ Factura enviada a la cola de impresión."
 
 # Mantener por compatibilidad con la UI, aunque la lógica de estado ahora es más simple
