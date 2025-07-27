@@ -11,11 +11,13 @@ IMPORTANTE:
 - SOLO proporciona nuevas funcionalidades opcionales
 """
 
+
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Tuple, Optional, Dict, Any
 from enum import Enum
 import streamlit as st
+
 
 # Importar las funciones existentes SIN modificarlas
 from soap_services import verificar_comunicacion as soap_verificar_comunicacion
@@ -23,6 +25,18 @@ from business_logic import verificar_comunicacion as business_verificar_comunica
 from logger_config import get_logger
 
 logger = get_logger()
+
+# =============================
+# NUEVO: función global cacheada (sin argumentos)
+# =============================
+@st.cache_data(ttl=30)
+def _execute_full_check():
+    """
+    Función global (fuera de la clase) que ejecuta la verificación completa.
+    Usa la instancia singleton global communication_manager directamente.
+    Decorada con @st.cache_data para cachear el resultado por 30 segundos.
+    """
+    return communication_manager._ejecutar_verificacion_real()
 
 class TipoContingencia(Enum):
     """Tipos de contingencia según normativa SIN - NUEVOS códigos estandarizados"""
@@ -102,38 +116,15 @@ class CommunicationManager:
     
     def verificar_comunicacion_completa(self, force_check: bool = False) -> Dict[str, Any]:
         """
-        NUEVA versión con caché en st.session_state para mejorar el rendimiento.
+        Versión con caché idiomático de Streamlit usando @st.cache_data.
         Args:
-            force_check (bool): Si True, ignora el caché y ejecuta una nueva verificación.
+            force_check (bool): Si True, limpia el caché y ejecuta una nueva verificación.
         """
-        logger.info(f"Verificando comunicación (Forzado: {force_check})")
-        now = datetime.now()
-
-        # 1. Inicializar el caché en st.session_state si no existe
-        if 'comm_manager_cache' not in st.session_state:
-            st.session_state.comm_manager_cache = {
-                'timestamp': None,
-                'result': None
-            }
-
-        cache = st.session_state.comm_manager_cache
-
-        # 2. Revisar si el caché es válido y reciente (menos de 30 segundos)
-        if not force_check and cache['timestamp'] and (now - cache['timestamp']).total_seconds() < 30:
-            logger.info("Devolviendo resultado de comunicación desde CACHÉ.")
-            return cache['result']
-
-        # 3. Si el caché expiró o se forzó el chequeo, ejecutar la verificación real
-        logger.info("Caché expirado o chequeo forzado. Ejecutando verificación de red completa.")
-        resultado_completo = self._ejecutar_verificacion_real()
-
-        # 4. Actualizar el caché con el nuevo resultado y el timestamp actual
-        cache['timestamp'] = now
-        cache['result'] = resultado_completo
-
-        logger.info("Caché de comunicación actualizado.")
-
-        return resultado_completo
+        logger.info(f"Solicitando verificación de comunicación (Forzado: {force_check})")
+        if force_check:
+            _execute_full_check.clear()
+            logger.info("Caché de comunicación limpiado forzosamente.")
+        return _execute_full_check()
 
     def _ejecutar_verificacion_real(self) -> Dict[str, Any]:
         """
