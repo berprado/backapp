@@ -133,7 +133,8 @@ def register_significant_event(event_code, description, start_time, end_time, cu
             descripcion=description,
             fecha_inicio=start_time,
             fecha_fin=end_time,
-            cufd=cufd
+            cufd=cufd,
+            fecha_registro=datetime.now()  # ✅ Agregar fecha_registro explícitamente
         )
         session.add(nuevo_evento)
         session.commit()

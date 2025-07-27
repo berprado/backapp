@@ -431,11 +431,12 @@ def register_significant_event_ui():
                 return False
 
             # Registrar el evento en la base de datos
+            # ✅ CORRECCIÓN: Usar fecha_inicio = fecha_fin para eventos abiertos (convención estándar)
             nuevo_evento = EventoSignificativoRegistrado(
                 codigo_evento=codigo_evento,
                 descripcion=descripcion_evento,
                 fecha_inicio=datetime.now(),
-                fecha_fin=None,  # Se actualizará cuando termine la contingencia
+                fecha_fin=datetime.now(),  # ✅ Mismo valor que fecha_inicio para eventos abiertos
                 cufd=cufd_record.codigo,
                 fecha_registro=datetime.now()
             )

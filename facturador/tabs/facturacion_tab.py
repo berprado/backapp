@@ -575,7 +575,19 @@ def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos
         # 5. FIRMAR Y VALIDAR LOCALMENTE
         signed_xml_str = sign_xml(xml_str, "xmls/llaves/private_key_ok.pem", "xmls/llaves/certificado_ok.pem", cuf)
 
-        filename = f"offline_invoices/factura_{numero_factura}.xml"
+        # --- INICIO DEL CÓDIGO DE REEMPLAZO ---
+
+        evento_id = evento_activo.get('id')
+        if not evento_id:
+            show_message('error', "Error crítico: El evento de contingencia no tiene un ID. No se puede guardar la factura.", message_placeholder)
+            logger.error(f"El evento activo {evento_activo} no tiene una clave 'id'.")
+            return
+
+        # Creamos un nombre de archivo descriptivo y fácil de procesar
+        filename = f"offline_invoices/factura_offline_ev{evento_id}_n{numero_factura}.xml"
+
+        # --- FIN DEL CÓDIGO DE REEMPLAZO ---
+
         os.makedirs("offline_invoices", exist_ok=True)
         with open(filename, "w", encoding='utf-8') as f:
             f.write(signed_xml_str)

@@ -15,15 +15,19 @@ def get_eventos_parametricos():
         session.close()
 
 def insertar_evento_local(codigo_evento, descripcion, fecha_inicio, cufd):
-    """Inserta un nuevo evento significativo en la BD local"""
+    """
+    Inserta un nuevo evento significativo en la BD local.
+    Para eventos "abiertos", usa fecha_inicio = fecha_fin siguiendo la convención estándar.
+    """
     session = SessionLocal()
     try:
         nuevo_evento = EventoSignificativoRegistrado(
             codigo_evento=codigo_evento,
             descripcion=descripcion,
             fecha_inicio=fecha_inicio,
-            fecha_fin=fecha_inicio,
-            cufd=cufd
+            fecha_fin=fecha_inicio,  # Para eventos abiertos - convención estándar
+            cufd=cufd,
+            fecha_registro=datetime.now()  # ✅ Agregar fecha_registro explícitamente
         )
         session.add(nuevo_evento)
         session.commit()

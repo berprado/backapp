@@ -61,8 +61,8 @@ class ContingencyManager:
         self.event_description = None
         self.state_file_path = "contingency_state.json"
         self.cufd_contingency = None
-        self.check_interval = 60  # Intervalo de verificación en segundos (1 minuto)
-        self.failure_threshold = 3  # Número de fallos consecutivos para activar contingencia
+        self.check_interval = 30  # ✅ AJUSTE: Intervalo más rápido (30 segundos)
+        self.failure_threshold = 2  # ✅ AJUSTE: Menos fallos para activar contingencia (2 fallos)
         self.consecutive_failures = 0
         self.recovery_threshold = 2  # Número de éxitos consecutivos para considerar recuperación
         self.consecutive_successes = 0
@@ -335,6 +335,16 @@ class ContingencyManager:
             # Guardar estado
             self._save_state()
 
+            # ✅ AGREGAR: Registrar el evento en la BD 
+            try:
+                logger.info("Registrando evento significativo en la base de datos...")
+                # Llamar a la función que está en el mismo archivo
+                handle_offline_mode()
+                logger.info("Evento significativo registrado exitosamente")
+            except Exception as e:
+                logger.error(f"Error al registrar evento significativo: {e}")
+                # No fallar la activación de contingencia por este error
+            
             # Iniciar monitoreo si no está activo
             self.start_monitoring()
 

@@ -15,6 +15,8 @@ from contingencia_auto import finalizar_evento_si_conectado
 from significant_events import register_significant_event, get_significant_events, close_significant_event
 # NUEVO: Importar el communication_manager para diagnóstico avanzado
 from communication_manager import communication_manager, EstadoComunicacion, TipoContingencia
+# ✅ AGREGAR: Importar handle_offline_mode para registro automático de eventos
+from contingency_manager import handle_offline_mode, get_contingency_manager
 from logger_config import get_logger
 
 # IMPORTACIONES CLAVE PARA EL SISTEMA DE IMPRESIÓN
@@ -68,23 +70,6 @@ st.set_page_config(
     }
 )
 
-def registrar_evento_significativo_automatico(tipo_evento, descripcion, cufd):
-    """
-    Registra un evento significativo automáticamente usando la función centralizada.
-    """
-    now = datetime.now()
-    fecha_inicio = now.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
-    fecha_fin = None  # El evento se cierra manualmente por el usuario
-
-    exito, mensaje = register_significant_event(
-        event_code=int(tipo_evento),
-        description=descripcion,
-        start_time=fecha_inicio,
-        end_time=fecha_fin,
-        cufd=cufd
-    )
-    return exito, mensaje
-
 def notificar_reconexion_si_aplica():
     """
     Verifica si la conexión y los servicios del SIN han vuelto y notifica al usuario,
@@ -106,6 +91,14 @@ def notificar_reconexion_si_aplica():
         st.warning("🔴 El sistema sigue en modo contingencia. Esperando reconexión...")
 
 def main():
+    # ✅ NUEVO: Inicializar el monitoreo automático de contingencias
+    contingency_manager = get_contingency_manager()
+    if not contingency_manager.monitoring_thread or not contingency_manager.monitoring_thread.is_alive():
+        logger.info("Iniciando monitoreo automático de contingencias...")
+        contingency_manager.start_monitoring()
+    else:
+        logger.info("Monitoreo automático de contingencias ya está activo")
+    
     # Paso previo: intentar finalizar evento abierto si hay conexión
     resultado = finalizar_evento_si_conectado()
     if resultado:
@@ -171,37 +164,29 @@ def main():
             st.info("ℹ️ Ya existe un evento registrado en modo contingencia.")
             evento = eventos_activos[0]
         else:
-            # Paso 3: Registrar evento automáticamente con información mejorada
+            # ✅ NUEVA LÓGICA: Usar handle_offline_mode() para registro automático
             st.warning("⚠️ Registrando evento significativo automáticamente...")
-
-            # Obtener CUFD vigente
-            cufd = obtener_cufd_vigente()
-            if not cufd:
-                st.error("❌ No se pudo obtener CUFD vigente para registrar el evento.")
-                evento = None
-            else:
-                eventos_parametricos = get_eventos_parametricos()
-                tipos = {e["codigoClasificador"]: e["descripcion"] for e in eventos_parametricos}
+            
+            try:
+                # Llamar a la función existente que maneja todo el registro automático
+                logger.info("Llamando a handle_offline_mode() para registro automático del evento")
+                handle_offline_mode()
                 
-                # Usar tipo_contingencia del communication_manager si está disponible
-                tipo_evento = tipo_deducido if tipo_deducido in tipos else "5"
-                
-                # Obtener información más detallada del communication_manager
-                try:
-                    nombre_contingencia = TipoContingencia(tipo_evento).name
-                    detalle_adicional = resultado_completo.get("recomendacion", "")
-                    descripcion = f"{tipos.get(tipo_evento, 'Evento automático')}: {nombre_contingencia} - {detalle_adicional}"
-                except:
-                    descripcion = tipos.get(tipo_evento, "Evento no identificado automáticamente")
-
-                exito, mensaje = registrar_evento_significativo_automatico(tipo_evento, descripcion, cufd)
-                if exito:
-                    st.success(f"✅ Evento registrado: {descripcion}")
-                    eventos_activos = get_significant_events(limit=5, only_open=True)
-                    evento = eventos_activos[0] if eventos_activos else None
+                # Verificar si el evento se registró correctamente
+                eventos_activos = get_significant_events(limit=5, only_open=True)
+                if eventos_activos:
+                    evento = eventos_activos[0]
+                    st.success(f"✅ Evento registrado automáticamente: {evento.get('descripcion', 'Evento de contingencia')}")
+                    logger.info(f"Evento de contingencia creado automáticamente con ID: {evento.get('id')}")
                 else:
-                    st.error(f"❌ Error al registrar evento: {mensaje}")
+                    st.error("❌ Error: No se pudo crear el evento automáticamente.")
+                    logger.error("handle_offline_mode() se ejecutó pero no se encontró un evento activo después")
                     evento = None
+                    
+            except Exception as e:
+                st.error(f"❌ Error al registrar evento automáticamente: {str(e)}")
+                logger.exception("Error en handle_offline_mode() durante registro automático")
+                evento = None
 
         # Paso 4: Cargar la interfaz offline
         st.warning("🛠️ Activando modo offline de facturación...")

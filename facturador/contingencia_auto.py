@@ -24,15 +24,15 @@ def finalizar_evento_si_conectado():
 
     evento = obtener_evento_abierto()
     if not evento:
-        print("[✅] No hay evento abierto. El sistema está en modo normal.")
+        logger.info("[✅] No hay evento abierto. El sistema está en modo normal.")
         return True
 
-    print(f"[📡] Conexión restablecida. Finalizando evento #{evento['id']}...")
+    logger.info(f"[📡] Conexión restablecida. Finalizando evento #{evento['id']}...")
 
     # Paso 1: Obtener CUFD vigente
     cufd_actual = obtener_cufd_vigente()
     if not cufd_actual:
-        print("[⚠️] No se pudo obtener CUFD actual para finalizar el evento.")
+        logger.warning("[⚠️] No se pudo obtener CUFD actual para finalizar el evento.")
         return False
 
     # Paso 2: Enviar solicitud SOAP al SIN
@@ -44,30 +44,50 @@ def finalizar_evento_si_conectado():
     )
 
     if not transaccion:
-        print("[❌] El SIN no aceptó el cierre del evento.")
+        logger.error("[❌] El SIN no aceptó el cierre del evento.")
         return False
 
     # Paso 3: Guardar código de recepción y fecha fin
     actualizar_evento_final(evento_id=evento["id"], fecha_fin=fecha_fin, codigo_recepcion=codigo_recepcion)
-    print(f"[✅] Evento #{evento['id']} finalizado exitosamente con código {codigo_recepcion}.")
+    logger.info(f"[✅] Evento #{evento['id']} finalizado exitosamente con código {codigo_recepcion}.")
 
-    # Paso 4: Verificar si hay archivos relacionados
+    # --- CORRECCIÓN: Usar la carpeta y patrón correctos ---
+    # Paso 4: Verificar si hay archivos relacionados en la carpeta correcta
+    carpeta_offline = "offline_invoices"
+    if not os.path.exists(carpeta_offline):
+        logger.info(f"[ℹ️] No existe la carpeta {carpeta_offline}. No hay facturas offline para procesar.")
+        return True
+
+    # Buscar archivos con el patrón correcto: factura_offline_ev{evento_id}_n{numero}.xml
     archivos = [
-        f for f in os.listdir("offline")
-        if f.startswith(f"offline_{evento['id']}_") and f.endswith(".xml")
+        f for f in os.listdir(carpeta_offline)
+        if f.startswith(f"factura_offline_ev{evento['id']}_") and f.endswith(".xml")
     ]
 
     if archivos:
-        os.makedirs("offline_archivos", exist_ok=True)
-        nombre_zip = f"offline_archivos/{evento['id']}_{codigo_recepcion}.zip"
+        # Crear carpeta de paquetes procesados si no existe
+        os.makedirs("paquetes_contingencia", exist_ok=True)
+        nombre_zip = f"paquetes_contingencia/evento_{evento['id']}_recepcion_{codigo_recepcion}.zip"
 
         with zipfile.ZipFile(nombre_zip, "w", zipfile.ZIP_DEFLATED) as zipf:
             for archivo in archivos:
-                ruta = os.path.join("offline", archivo)
-                zipf.write(ruta, arcname=archivo)
+                ruta_completa = os.path.join(carpeta_offline, archivo)
+                zipf.write(ruta_completa, arcname=archivo)
+                logger.debug(f"Añadido al ZIP: {archivo}")
 
-        print(f"[📦] Archivos comprimidos y guardados como: {nombre_zip}")
+        logger.info(f"[📦] {len(archivos)} facturas comprimidas en: {nombre_zip}")
+        
+        # Opcional: Mover archivos procesados a una subcarpeta
+        carpeta_procesados = os.path.join(carpeta_offline, "procesados")
+        os.makedirs(carpeta_procesados, exist_ok=True)
+        
+        for archivo in archivos:
+            origen = os.path.join(carpeta_offline, archivo)
+            destino = os.path.join(carpeta_procesados, archivo)
+            os.rename(origen, destino)
+            
+        logger.info(f"[📁] Archivos movidos a {carpeta_procesados}")
     else:
-        print("[ℹ️] No se encontraron facturas offline para este evento.")
+        logger.info(f"[ℹ️] No se encontraron facturas offline para el evento #{evento['id']}.")
 
     return True

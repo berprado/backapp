@@ -3,7 +3,7 @@
 import streamlit as st
 from datetime import datetime
 from soap_services import verificar_comunicacion
-from data_access import get_eventos_parametricos, get_cufd_vigente, obtener_evento_abierto, insertar_evento_local
+from data_access import get_eventos_parametricos, obtener_cufd_vigente, obtener_evento_abierto, insertar_evento_local
 
 st.set_page_config(page_title="Eventos Significativos", layout="centered")
 
@@ -38,7 +38,7 @@ with st.form("form_evento_planificado"):
     submit = st.form_submit_button("📝 Registrar Evento Significativo")
 
     if submit:
-        cufd = get_cufd_vigente()
+        cufd = obtener_cufd_vigente()
         if not cufd:
             st.error("⚠️ No se pudo obtener CUFD vigente para registrar el evento.")
         else:
