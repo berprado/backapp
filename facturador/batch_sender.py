@@ -8,7 +8,7 @@ from datetime import datetime
 from zeep import Client, Transport, helpers
 from requests import Session
 from database import SessionLocal
-from facturador.models import FacturaCabecera, Cufd
+from models import FacturaCabecera, Cufd
 from facturador.offline_billing import update_invoice_status_after_sending
 from facturador.logger_config import get_logger  # Cambiar esta importación
 from dotenv import load_dotenv

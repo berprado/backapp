@@ -1,7 +1,5 @@
 import os
 import sys
-import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import time
 import json
 import threading
@@ -10,19 +8,19 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Dict, Any, Optional, Tuple, List
 import streamlit as st
-from database import SessionLocal
+from data_access import SessionLocal
 from sqlalchemy.exc import SQLAlchemyError
-from facturador.logger_config import get_logger  # Cambiar esta importación
+from logger_config import get_logger
 
-from facturador.models import (
+from models import (
     FacturaCabecera, 
     Cufd, 
     SincronizarParametricaEventosSignificativos,
     SincronizarParametricaTipoEmision
 )
-from facturador.response_handler import parse_siat_response
-from facturador.significant_events import register_significant_event
-from facturador.utils.log_cleaner import clean_xml_responses
+from response_handler import parse_siat_response
+from significant_events import register_significant_event
+from utils.log_cleaner import clean_xml_responses
 
 # Obtener logger para este módulo
 logger = get_logger('contingency')  # Usar el logger general con nombre específico
@@ -598,7 +596,7 @@ def handle_offline_mode():
             return
 
         # Registrar el evento en la tabla eventos_significativos_registrados
-        from facturador.models import EventoSignificativoRegistrado
+        from models import EventoSignificativoRegistrado
         nuevo_evento = EventoSignificativoRegistrado(
             codigo_evento=evento_significativo.codigoClasificador,
             descripcion=evento_significativo.descripcion,

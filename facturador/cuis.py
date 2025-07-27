@@ -1,12 +1,10 @@
 import os
-import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import streamlit as st
 from datetime import datetime
 from sqlalchemy.orm import Session
-from facturador.database import get_db, init_db
-from facturador.data_access import solicitar_cuis, insertar_cuis_manual
-from facturador.models import Cuis, PuntoVenta
+from database import get_db, init_db
+from data_access import solicitar_cuis, insertar_cuis_manual
+from models import Cuis, PuntoVenta
 from dotenv import load_dotenv
 
 # Cargar las variables de entorno desde el archivo .env

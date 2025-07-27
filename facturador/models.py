@@ -6,6 +6,10 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
+# Configurar el registro de SQLAlchemy para evitar conflictos
+import sqlalchemy
+sqlalchemy.util.warn_deprecated = lambda *args, **kwargs: None
+
 
 
 
@@ -85,7 +89,8 @@ class Cliente(Base):
     fecha_creacion = Column(TIMESTAMP, server_default=func.current_timestamp(), nullable=False)
     fecha_modificacion = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp(), nullable=False)
 
-    tipo_documento = relationship("SincronizarParametricaTipoDocumentoIdentidad", back_populates="clientes")
+    # Comentamos temporalmente la relación para evitar conflictos
+    # tipo_documento = relationship("SincronizarParametricaTipoDocumentoIdentidad", back_populates="clientes", lazy="select")
     
 
     def to_dict(self):
@@ -194,8 +199,8 @@ class FacturaCabecera(Base):
     estadoContingencia = Column(String(20), nullable=True, comment='Estado de contingencia: PENDIENTE, SINCRONIZADO, ERROR')
     fechaSincronizacion = Column(DateTime, nullable=True, comment='Fecha en que se sincronizó la factura de contingencia')
 
-    # Relación con eventos significativos registrados
-    evento_significativo = relationship("EventoSignificativoRegistrado", backref="facturas")
+    # Comentamos temporalmente la relación para evitar conflictos
+    # evento_significativo = relationship("EventoSignificativoRegistrado", backref="facturas")
   
 
     def to_dict(self):
@@ -348,8 +353,8 @@ class PuntoVenta(Base):
     fecha_creacion = Column(TIMESTAMP, nullable=False, server_default=text('CURRENT_TIMESTAMP'))
     fecha_modificacion = Column(TIMESTAMP, nullable=False, server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))
 
-    # Relación con CUIS
-    cuis = relationship("Cuis", back_populates="punto_venta")
+    # Comentamos temporalmente la relación para evitar conflictos
+    # cuis = relationship("Cuis", back_populates="punto_venta")
    
 
     def to_dict(self):
@@ -376,8 +381,8 @@ class Cuis(Base):
     vigente = Column(Boolean, default=True)
     codigo_punto_venta = Column(Integer, ForeignKey('punto_venta.codigo_punto_venta'), nullable=False)
 
-    # Relación con PuntoVenta
-    punto_venta = relationship("PuntoVenta", back_populates="cuis")
+    # Comentamos temporalmente la relación para evitar conflictos
+    # punto_venta = relationship("PuntoVenta", back_populates="cuis")
     
 
     def to_dict(self):
@@ -497,8 +502,8 @@ class EventoSignificativoRegistrado(Base):
     codigo_recepcion = Column(String(50), nullable=True)
     fecha_registro = Column(DateTime, nullable=False, default=datetime.utcnow)
 
-    # Relación con el catálogo de eventos significativos
-    tipo_evento = relationship("SincronizarParametricaEventosSignificativos", backref="eventos_registrados")
+    # Comentamos temporalmente la relación para evitar conflictos
+    # tipo_evento = relationship("SincronizarParametricaEventosSignificativos", backref="eventos_registrados")
 
     def to_dict(self):
         return {
@@ -767,8 +772,8 @@ class SincronizarParametricaTipoDocumentoIdentidad(Base):
     fecha_sincronizacion = Column(TIMESTAMP, nullable=True)
     estado_sincronizacion = Column(String(10), nullable=True)
 
-        # Relación con la tabla Cliente
-    clientes = relationship("Cliente", back_populates="tipo_documento")
+    # Comentamos temporalmente la relación para evitar conflictos
+    # clientes = relationship("Cliente", back_populates="tipo_documento", lazy="select")
     
     def to_dict(self):
         return {

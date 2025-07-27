@@ -14,7 +14,7 @@ if parent_dir not in sys.path:
 from facturador.contingency_manager import get_contingency_manager, ContingencyStatus, SignificantEventType
 from facturador.batch_sender import BatchSender
 from facturador.significant_events import register_significant_event, get_significant_events, query_siat_significant_events
-from facturador.models import FacturaCabecera
+from models import FacturaCabecera
 from database import SessionLocal
 from facturador.logger_config import get_logger  # Cambiar esta importación
 

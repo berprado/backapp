@@ -2,10 +2,10 @@ import os
 from datetime import datetime
 from zeep import Client, Transport
 from requests import Session
-from database import SessionLocal
-from facturador.models import EventoSignificativoRegistrado
+from data_access import SessionLocal
+from models import EventoSignificativoRegistrado
 from dotenv import load_dotenv
-from facturador.logger_config import get_logger  # Cambiar esta importación
+from logger_config import get_logger
 
 logger = get_logger('contingency')  # Usar el logger general con nombre específico
 load_dotenv()
@@ -225,7 +225,7 @@ def query_siat_significant_events():
     session = SessionLocal()
     try:
         # Obtener CUFD vigente
-        from facturador.models import Cufd
+        from models import Cufd
         cufd_record = session.query(Cufd).filter(Cufd.vigente == 1).first()
         if not cufd_record:
             return False, "No se encontró un CUFD válido"

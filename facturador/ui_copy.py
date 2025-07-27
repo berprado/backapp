@@ -3,11 +3,6 @@ import sys
 import logging
 from datetime import datetime
 
-# Agregar la ruta del directorio padre al path de Python
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-if parent_dir not in sys.path:
-    sys.path.append(parent_dir)
-
 # Streamlit
 import streamlit as st
 

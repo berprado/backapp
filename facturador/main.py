@@ -4,10 +4,12 @@ import streamlit as st
 from datetime import datetime
 import os
 import sys
-# Asegurar que estamos importando desde el directorio correcto 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-# Importar explícitamente desde el archivo database.py local del directorio facturador
-from database import get_eventos_parametricos, get_cufd_vigente, obtener_evento_abierto, insertar_evento_local
+# Asegura que el path raíz del proyecto esté en sys.path para que Python encuentre el paquete facturador
+ROOT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if ROOT_PATH not in sys.path:
+    sys.path.insert(0, ROOT_PATH)
+
+from data_access import get_eventos_parametricos, obtener_cufd_vigente, obtener_evento_abierto, insertar_evento_local
 from ui_copy import render_full_ui
 from contingencia_auto import finalizar_evento_si_conectado
 from significant_events import register_significant_event, get_significant_events, close_significant_event
@@ -173,7 +175,7 @@ def main():
             st.warning("⚠️ Registrando evento significativo automáticamente...")
 
             # Obtener CUFD vigente
-            cufd = get_cufd_vigente()
+            cufd = obtener_cufd_vigente()
             if not cufd:
                 st.error("❌ No se pudo obtener CUFD vigente para registrar el evento.")
                 evento = None

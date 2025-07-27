@@ -18,10 +18,10 @@ facturador_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.extend([root_dir, facturador_dir])
 
 # Importar desde database.py en el directorio facturador
-from facturador.database import get_db, Base
+from database import get_db, Base
 
 # Importar todos los modelos necesarios con nombres completamente cualificados
-from facturador.models import (
+from models import (
     SincronizarActividades as ModeloSincronizarActividades,
     SincronizarListaActividadesDocumentoSector as ModeloSincronizarListaActividadesDocumentoSector,
     SincronizarListaLeyendasFactura as ModeloSincronizarListaLeyendasFactura,

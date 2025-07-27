@@ -1,17 +1,86 @@
+def get_eventos_parametricos():
+    """Obtiene los eventos significativos disponibles (paramétricos)"""
+    session = SessionLocal()
+    try:
+        # Ajusta el nombre del modelo si es diferente
+        eventos = session.query(SincronizarParametricaEventosSignificativos).all()
+        return [
+            {"codigoClasificador": e.codigoClasificador, "descripcion": e.descripcion}
+            for e in eventos
+        ]
+    except Exception as e:
+        logger.error(f"Error al obtener eventos paramétricos: {e}")
+        return []
+    finally:
+        session.close()
+
+def insertar_evento_local(codigo_evento, descripcion, fecha_inicio, cufd):
+    """Inserta un nuevo evento significativo en la BD local"""
+    session = SessionLocal()
+    try:
+        nuevo_evento = EventoSignificativoRegistrado(
+            codigo_evento=codigo_evento,
+            descripcion=descripcion,
+            fecha_inicio=fecha_inicio,
+            fecha_fin=fecha_inicio,
+            cufd=cufd
+        )
+        session.add(nuevo_evento)
+        session.commit()
+        logger.info(f"Evento significativo insertado: {codigo_evento} - {descripcion}")
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error al insertar evento significativo: {e}")
+    finally:
+        session.close()
+
+def obtener_evento_abierto():
+    """Devuelve el último evento sin cerrar (fecha_inicio = fecha_fin y sin codigo_recepcion)"""
+    session = SessionLocal()
+    try:
+        evento = (
+            session.query(EventoSignificativoRegistrado)
+            .filter(EventoSignificativoRegistrado.fecha_inicio == EventoSignificativoRegistrado.fecha_fin)
+            .filter(EventoSignificativoRegistrado.codigo_recepcion == None)
+            .order_by(EventoSignificativoRegistrado.fecha_inicio.desc())
+            .first()
+        )
+        if evento:
+            return {c.name: getattr(evento, c.name) for c in EventoSignificativoRegistrado.__table__.columns}
+        return None
+    except Exception as e:
+        logger.error(f"Error al obtener evento abierto: {e}")
+        return None
+    finally:
+        session.close()
+
+def actualizar_evento_final(evento_id, fecha_fin, codigo_recepcion):
+    """Actualiza el evento con su fecha de cierre y código de recepción"""
+    session = SessionLocal()
+    try:
+        evento = session.query(EventoSignificativoRegistrado).filter_by(id=evento_id).first()
+        if evento:
+            evento.fecha_fin = fecha_fin
+            evento.codigo_recepcion = codigo_recepcion
+            evento.fecha_registro = datetime.now()
+            session.commit()
+            logger.info(f"Evento actualizado (id={evento_id}): fecha_fin={fecha_fin}, codigo_recepcion={codigo_recepcion}")
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error al actualizar evento final: {e}")
+    finally:
+        session.close()
 import os
 import sys
-# Agregar la ruta del directorio padre al path de Python si no está ya
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-if (parent_dir not in sys.path):
-    sys.path.append(parent_dir)
-
 import random
 import requests
 import streamlit as st
 from database import SessionLocal, engine, URL_DATABASE
 from config import ENDPOINT_URL
 from dotenv import load_dotenv
-from facturador.models import (SincronizarListaLeyendasFactura, SincronizarParametricaTipoMetodoPago, SincronizarParametricaTipoDocumentoIdentidad, Cliente, FacturaCabecera, FacturaDetalle, ProductoSiat, PuntoVenta, Cuis, SincronizarParametricaMotivoAnulacion, SincronizarListaMensajesServicios, Cufd)
+from models import (
+    SincronizarListaLeyendasFactura, SincronizarParametricaTipoMetodoPago, SincronizarParametricaTipoDocumentoIdentidad, Cliente, FacturaCabecera, FacturaDetalle, ProductoSiat, PuntoVenta, Cuis, SincronizarParametricaMotivoAnulacion, SincronizarListaMensajesServicios, Cufd, SincronizarParametricaEventosSignificativos, EventoSignificativoRegistrado
+)
 from sqlalchemy import create_engine, Table, Column, Integer, String, DECIMAL, MetaData, TIMESTAMP, Text, BIGINT, ForeignKeyConstraint
 from sqlalchemy.dialects.mysql import VARCHAR
 from typing import List, Dict, Union
@@ -25,7 +94,7 @@ from logger_config import get_logger
 from api_clients import get_soap_client
 import traceback
 from typing import Optional
-from facturador.models import EventoSignificativoRegistrado 
+from models import EventoSignificativoRegistrado 
 
 # Obtener logger para este módulo
 logger = get_logger()

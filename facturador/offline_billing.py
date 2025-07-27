@@ -2,9 +2,9 @@ import os
 import time
 import logging
 from datetime import datetime
-from database import SessionLocal
-from facturador.models import FacturaCabecera, FacturaDetalle
-from facturador.logger_config import get_logger  # Cambiar esta importación
+from data_access import SessionLocal
+from models import FacturaCabecera, FacturaDetalle
+from logger_config import get_logger
 
 logger = get_logger('contingency')  # Usar el logger general con nombre específico
 facturacion_logger = get_logger('facturacion')
@@ -249,9 +249,9 @@ import os
 import sys
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
-from database import SessionLocal
-from facturador.models import FacturaCabecera, FacturaDetalle, Cufd
-from facturador.logger_config import get_logger  # Cambiar esta importación
+from data_access import SessionLocal
+from models import FacturaCabecera, FacturaDetalle, Cufd
+from logger_config import get_logger
 
 # Obtener logger para este módulo
 logger = get_logger('contingency')  # Usar el logger general con nombre específico
@@ -395,9 +395,9 @@ def update_invoice_status_after_sending(numero_factura, codigo_recepcion, estado
         session.close()
 
 import streamlit as st
-from database import SessionLocal
-from facturador.models import SincronizarParametricaEventosSignificativos, EventoSignificativoRegistrado, Cufd
-from facturador.logger_config import get_logger
+from data_access import SessionLocal
+from models import SincronizarParametricaEventosSignificativos, EventoSignificativoRegistrado, Cufd
+from logger_config import get_logger
 
 logger = get_logger('contingency')
 

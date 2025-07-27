@@ -7,7 +7,7 @@ import streamlit as st
 from siat_pdf import html_to_pdf
 from thermal_printer import ThermalPrinter
 from logger_config import get_printer_logger
-from facturador.data_models import FacturaProcesada
+from data_models import FacturaProcesada
 from invoice_templates import generate_html_invoice as generate_html_for_pdf
 
 printer_logger = get_printer_logger()

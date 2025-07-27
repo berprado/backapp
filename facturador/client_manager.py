@@ -7,7 +7,7 @@ Este módulo contiene funciones para guardar, recuperar y validar datos de clien
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 import logging
 from database import SessionLocal
-from facturador.models import Cliente
+from models import Cliente
 from validators import es_email_valido, es_telefono_valido, verificar_nit
 from api_clients import get_soap_client
 from logger_config import get_logger

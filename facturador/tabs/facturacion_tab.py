@@ -10,7 +10,7 @@ from decimal import Decimal
 
 # Imports de la aplicación
 from database import SessionLocal
-from facturador.data_models import FacturaProcesada, DetalleFactura
+from data_models import FacturaProcesada, DetalleFactura
 from data_access import fetch_tipos_documento, obtener_cufd_de_evento_activo
 from business_logic import calculate_totals, collect_product_lines, generate_invoice_link
 from invoice_xml_generator import generate_xml_invoice
@@ -38,7 +38,7 @@ printer_logger = get_printer_logger()
 def get_cufd():
     """Obtiene el CUFD válido de la base de datos."""
     from database import SessionLocal
-    from facturador.models import Cufd
+    from models import Cufd
     
     session = SessionLocal()
     try:
@@ -55,7 +55,7 @@ def get_cufd():
 def verificar_y_obtener_cufd(message_placeholder):
     """Verifica y obtiene un CUFD válido, renovándolo si es necesario."""
     from database import SessionLocal
-    from facturador.models import Cufd
+    from models import Cufd
     
     session = SessionLocal()
     try:

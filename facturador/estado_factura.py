@@ -1,12 +1,11 @@
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import requests
 import streamlit as st  # Añadir esta importación para usar st.cache_data
 import xml.etree.ElementTree as ET
 from dotenv import load_dotenv
 from database import SessionLocal
-from facturador.data_access import obtener_cuf_por_numero_factura
+from data_access import obtener_cuf_por_numero_factura
 from datetime import datetime
 
 # Importar loggers

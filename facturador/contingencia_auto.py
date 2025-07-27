@@ -1,7 +1,7 @@
 import os
 import zipfile
 from datetime import datetime
-from facturador.database import obtener_evento_abierto, get_cufd_vigente, actualizar_evento_final
+from data_access import obtener_evento_abierto, obtener_cufd_vigente, actualizar_evento_final
 from communication_manager import communication_manager
 from soap_services import enviar_evento_significativo
 from logger_config import get_logger
@@ -30,7 +30,7 @@ def finalizar_evento_si_conectado():
     print(f"[📡] Conexión restablecida. Finalizando evento #{evento['id']}...")
 
     # Paso 1: Obtener CUFD vigente
-    cufd_actual = get_cufd_vigente()
+    cufd_actual = obtener_cufd_vigente()
     if not cufd_actual:
         print("[⚠️] No se pudo obtener CUFD actual para finalizar el evento.")
         return False

@@ -14,7 +14,7 @@ logger = get_logger()
 printer_logger = get_printer_logger()
 
 from escpos.printer import Usb
-from facturador.data_models import FacturaProcesada  # IMPORTANTE
+from data_models import FacturaProcesada  # IMPORTANTE
 import logging
 from contextlib import contextmanager
 

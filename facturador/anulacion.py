@@ -16,7 +16,7 @@ import requests
 import xml.etree.ElementTree as ET
 from dotenv import load_dotenv
 from database import SessionLocal
-from facturador.models import SincronizarParametricaMotivoAnulacion, Cufd
+from models import SincronizarParametricaMotivoAnulacion, Cufd
 from datetime import datetime
 from data_access import obtener_mensaje_por_codigo, obtener_cuf_por_numero_factura
 

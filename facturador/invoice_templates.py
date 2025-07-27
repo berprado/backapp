@@ -4,7 +4,7 @@ from num2words import num2words
 from business_logic import generate_qr
 from datetime import datetime
 from decimal import Decimal  # Asegúrate de importar Decimal al inicio del archivo
-from facturador.data_models import FacturaProcesada
+from data_models import FacturaProcesada
 
 
 def numero_a_palabras_con_decimales_como_fraccion(numero, lang='es'):

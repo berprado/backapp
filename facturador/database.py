@@ -48,6 +48,9 @@ if __name__ == "__main__":
 
 # ----------------------------------------
 # 🛠️ PyMySQL directo (Contingencia y eventos)
+# AVISO: Las funciones get_eventos_parametricos, get_cufd_vigente, insertar_evento_local, obtener_evento_abierto, actualizar_evento_final
+# han sido migradas a facturador.data_access usando SQLAlchemy.
+# Por favor, importa desde facturador.data_access para acceso ORM y compatibilidad futura.
 # ----------------------------------------
 import pymysql
 import pymysql.cursors
