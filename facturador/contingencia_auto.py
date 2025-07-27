@@ -2,16 +2,24 @@ import os
 import zipfile
 from datetime import datetime
 from facturador.database import obtener_evento_abierto, get_cufd_vigente, actualizar_evento_final
-from soap_services import verificar_comunicacion, enviar_evento_significativo
+from communication_manager import communication_manager
+from soap_services import enviar_evento_significativo
+from logger_config import get_logger
+logger = get_logger()
 
 def finalizar_evento_si_conectado():
     """
     Verifica si hay un evento activo y finaliza el evento si el sistema ha recuperado la conexión.
     Además, si hay archivos XML offline vinculados, los comprime en un ZIP y lo nombra con el id y código de recepción.
     """
-    mensaje, conectado, _ = verificar_comunicacion()
+
+    # Llamamos a nuestro gestor centralizado. La respuesta será casi instantánea si está en caché.
+    resultado_completo = communication_manager.verificar_comunicacion_completa()
+    principal = resultado_completo.get("verificacion_principal", {})
+    conectado = principal.get("conectado", False)
+
     if not conectado:
-        print("[🛑] Aún no hay conexión con el SIN. No se puede finalizar evento.")
+        logger.info("[🛑] Aún no hay conexión con el SIN según el CommunicationManager. No se puede finalizar evento.")
         return False
 
     evento = obtener_evento_abierto()
