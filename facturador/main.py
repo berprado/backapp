@@ -4,19 +4,28 @@ import streamlit as st
 from datetime import datetime
 import os
 import sys
+
 # Asegura que el path raíz del proyecto esté en sys.path para que Python encuentre el paquete facturador
 ROOT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if ROOT_PATH not in sys.path:
     sys.path.insert(0, ROOT_PATH)
 
-from data_access import get_eventos_parametricos, obtener_cufd_vigente, obtener_evento_abierto, insertar_evento_local
+from data_access import (
+    get_eventos_parametricos, 
+    obtener_cufd_vigente, 
+    registrar_evento_local_normativo,
+    obtener_evento_activo_actual,
+    cerrar_evento_significativo,
+    obtener_evento_por_id
+)
 from ui_copy import render_full_ui
 from contingencia_auto import finalizar_evento_si_conectado
-from significant_events import register_significant_event, get_significant_events, close_significant_event
+# NOTA: significant_events.py será deprecado en favor del nuevo sistema normativo
+# from significant_events import register_significant_event, get_significant_events, close_significant_event
 # NUEVO: Importar el communication_manager para diagnóstico avanzado
 from communication_manager import communication_manager, EstadoComunicacion, TipoContingencia
-# ✅ AGREGAR: Importar handle_offline_mode para registro automático de eventos
-from contingency_manager import handle_offline_mode, get_contingency_manager
+# NOTA: El contingency_manager será simplificado en favor del sistema normativo integrado
+# from contingency_manager import handle_offline_mode, get_contingency_manager
 from logger_config import get_logger
 
 # IMPORTACIONES CLAVE PARA EL SISTEMA DE IMPRESIÓN
@@ -29,9 +38,6 @@ from api_clients import reset_soap_client
 # INICIAR EL SERVICIO DE IMPRESIÓN EN SEGUNDO PLANO
 start_printer_worker()
 # -----------------------------------------------------------------
-
-# Fallback a la función original por compatibilidad
-#from soap_services import verificar_comunicacion
 
 logger = get_logger()
 
@@ -91,13 +97,8 @@ def notificar_reconexion_si_aplica():
         st.warning("🔴 El sistema sigue en modo contingencia. Esperando reconexión...")
 
 def main():
-    # ✅ NUEVO: Inicializar el monitoreo automático de contingencias
-    contingency_manager = get_contingency_manager()
-    if not contingency_manager.monitoring_thread or not contingency_manager.monitoring_thread.is_alive():
-        logger.info("Iniciando monitoreo automático de contingencias...")
-        contingency_manager.start_monitoring()
-    else:
-        logger.info("Monitoreo automático de contingencias ya está activo")
+    # NOTA: La gestión automática de contingencias ahora se maneja en el flujo principal
+    # en lugar de usar un hilo separado para mayor simplicidad y control normativo
     
     # Paso previo: intentar finalizar evento abierto si hay conexión
     resultado = finalizar_evento_si_conectado()
@@ -158,45 +159,55 @@ def main():
         # Notificar si la reconexión es posible (no cambia el modo automáticamente)
         notificar_reconexion_si_aplica()
 
-        # Paso 2: Verificar si ya hay un evento abierto
-        eventos_activos = get_significant_events(limit=5, only_open=True)
-        if eventos_activos:
-            st.info("ℹ️ Ya existe un evento registrado en modo contingencia.")
-            evento = eventos_activos[0]
+        # Paso 2: Verificar si ya hay un evento activo usando las funciones normativas
+        evento_activo = obtener_evento_activo_actual()
+        
+        if evento_activo:
+            st.info(f"ℹ️ Ya existe un evento registrado en modo contingencia: {evento_activo.get('descripcion', 'Sin descripción')}")
+            logger.info(f"Usando evento activo existente con ID: {evento_activo.get('id')}")
         else:
-            # ✅ NUEVA LÓGICA: Usar handle_offline_mode() para registro automático
-            st.warning("⚠️ Registrando evento significativo automáticamente...")
+            # Paso 3: Registrar nuevo evento usando la función normativa
+            st.warning("⚠️ Registrando evento significativo según normativa...")
             
             try:
-                # Llamar a la función existente que maneja todo el registro automático
-                logger.info("Llamando a handle_offline_mode() para registro automático del evento")
-                handle_offline_mode()
-                
-                # Verificar si el evento se registró correctamente
-                eventos_activos = get_significant_events(limit=5, only_open=True)
-                if eventos_activos:
-                    evento = eventos_activos[0]
-                    st.success(f"✅ Evento registrado automáticamente: {evento.get('descripcion', 'Evento de contingencia')}")
-                    logger.info(f"Evento de contingencia creado automáticamente con ID: {evento.get('id')}")
+                # Obtener CUFD vigente antes del evento según normativa
+                cufd_actual = obtener_cufd_vigente()
+                if not cufd_actual:
+                    st.error("❌ Error: No se pudo obtener CUFD vigente para el evento.")
+                    logger.error("No se pudo obtener CUFD vigente para crear evento")
+                    evento_activo = None
                 else:
-                    st.error("❌ Error: No se pudo crear el evento automáticamente.")
-                    logger.error("handle_offline_mode() se ejecutó pero no se encontró un evento activo después")
-                    evento = None
+                    # Usar la función mejorada con descripción oficial del SIN
+                    evento_id = registrar_evento_local_normativo(
+                        codigo_evento=tipo_deducido,  # Tipo deducido de la verificación (1-7)
+                        # descripcion ya no es necesaria - se obtiene de la tabla parametrizada
+                        cufd=cufd_actual  # CUFD vigente pre-corte
+                    )
                     
+                    if evento_id:
+                        # Obtener el evento completo para pasarlo a la UI
+                        evento_activo = obtener_evento_por_id(evento_id)
+                        st.success(f"✅ Evento registrado normativo: {evento_activo.get('descripcion') if evento_activo else 'Evento creado'}")
+                        logger.info(f"Evento de contingencia creado con ID: {evento_id} según normativa")
+                    else:
+                        st.error("❌ Error: No se pudo registrar el evento según normativa.")
+                        logger.error("registrar_evento_local_normativo() falló")
+                        evento_activo = None
+                        
             except Exception as e:
-                st.error(f"❌ Error al registrar evento automáticamente: {str(e)}")
-                logger.exception("Error en handle_offline_mode() durante registro automático")
-                evento = None
+                st.error(f"❌ Error al registrar evento normativo: {str(e)}")
+                logger.exception("Error en registrar_evento_local_normativo()")
+                evento_activo = None
 
         # Paso 4: Cargar la interfaz offline
         st.warning("🛠️ Activando modo offline de facturación...")
 
         # Si tenemos un evento, llamamos a la UI completa en modo offline
-        if evento:
+        if evento_activo:
             render_full_ui(
                 is_online=False, 
                 connectivity_info=resultado_completo, 
-                evento_activo=evento,
+                evento_activo=evento_activo,
                 reconectar_callback=handle_reconexion
             )
         else:

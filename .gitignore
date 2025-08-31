@@ -6,6 +6,7 @@
 
 # Archivos comprimidos
 *.gz
+*.zip
 
 # Archivos de texto temporales o de respaldo
 *.txt
@@ -24,8 +25,10 @@ sql/adminerp_copy_*.sql
 
 # Directorios de facturas generadas
 /xmls
-facturador/facturadorv1
-
+facturador/facturadorv1/
+facturador/paquetes_contingencia/
+facturador/offline_invoices/
+facturador/xmls/
 
 # Archivos de respaldo y copias
 *-Copy.py
@@ -69,8 +72,11 @@ facturador/off/
 facturador/unused/*
 */sql/
 
+
 # Directorios de datos de MySQL si usas Docker
 mysql_data/
 
 # Archivos de MySQL Workbench
 *.mwb
+
+facturador/paquetes_contingencia/

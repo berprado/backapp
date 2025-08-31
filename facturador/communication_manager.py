@@ -39,13 +39,19 @@ def _execute_full_check():
     return communication_manager._ejecutar_verificacion_real()
 
 class TipoContingencia(Enum):
-    """Tipos de contingencia según normativa SIN - NUEVOS códigos estandarizados"""
+    """
+    Tipos de contingencia según normativa boliviana SIN - CÓDIGOS OFICIALES
+    
+    Referencia: Resolución Normativa de Régimen Específico Nº 102500000013
+    """
     NORMAL = "0"  # Sin contingencia
-    SIN_RESPUESTA = "1"  # Sin respuesta del SIN
-    ERROR_SERVICIO = "2"  # Error en servicios
-    FALLA_SOFTWARE = "5"  # Virus informático o falla de software
-    FALLA_HARDWARE = "6"  # Cambio de infraestructura o falla de hardware
-    CORTE_ENERGIA = "7"  # Corte de energía eléctrica
+    CORTE_INTERNET = "1"  # Corte del servicio de Internet
+    INACCESIBILIDAD_SIN = "2"  # Inaccesibilidad al Servicio Web de la Administración Tributaria
+    DESPLIEGUE_PUNTOS_VENTA = "3"  # Ingreso a zonas sin Internet por despliegue de puntos de venta
+    VENTA_SIN_INTERNET = "4"  # Venta en Lugares sin internet
+    FALLA_SOFTWARE = "5"  # Virus informático o falla de software  
+    FALLA_HARDWARE = "6"  # Cambio de infraestructura de sistema o falla de hardware
+    CORTE_ENERGIA = "7"  # Corte de suministro de energía eléctrica
 
 class EstadoComunicacion(Enum):
     """Estados posibles de comunicación - NUEVOS estados para mejor control"""

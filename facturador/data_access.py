@@ -1,3 +1,71 @@
+# ==============================================================================
+# IMPORTACIONES CONSOLIDADAS
+# ==============================================================================
+import os
+import sys
+import random
+import requests
+import streamlit as st
+import traceback
+from datetime import datetime
+from typing import List, Dict, Union, Optional
+
+# Base de datos
+from database import SessionLocal, engine, URL_DATABASE
+from sqlalchemy import create_engine, Table, Column, Integer, String, DECIMAL, MetaData, TIMESTAMP, Text, BIGINT, ForeignKeyConstraint, inspect
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.dialects.mysql import VARCHAR
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
+
+# Modelos y configuración
+from config import ENDPOINT_URL
+from models import (
+    SincronizarListaLeyendasFactura, SincronizarParametricaTipoMetodoPago, 
+    SincronizarParametricaTipoDocumentoIdentidad, Cliente, FacturaCabecera, 
+    FacturaDetalle, ProductoSiat, PuntoVenta, Cuis, SincronizarParametricaMotivoAnulacion, 
+    SincronizarListaMensajesServicios, Cufd, SincronizarParametricaEventosSignificativos, 
+    EventoSignificativoRegistrado
+)
+
+# Servicios externos
+from zeep import Client
+from logger_config import get_logger
+from api_clients import get_soap_client
+
+# Configuración única
+from dotenv import load_dotenv
+load_dotenv()
+
+# ==============================================================================
+# CONFIGURACIÓN GLOBAL ÚNICA
+# ==============================================================================
+
+# Logger único
+logger = get_logger()
+
+# Variables de entorno (UNA SOLA VEZ)
+ACTIVIDAD_ECONOMICA = os.getenv('ACTIVIDAD_ECONOMICA')
+LEYENDA_IDS = [2, 6, 9, 13, 19, 22, 27, 31]
+
+# Variables SOAP (UNA SOLA VEZ)
+wsdl_url_codigos = os.getenv("WSDL_URL_CODIGOS")
+api_key = os.getenv("API_KEY")
+codigo_ambiente = int(os.getenv("CODIGO_AMBIENTE"))
+codigo_modalidad = int(os.getenv("CODIGO_MODALIDAD"))
+codigo_punto_venta = int(os.getenv("CODIGO_PUNTO_VENTA"))
+codigo_sistema = os.getenv("CODIGO_SISTEMA")
+codigo_sucursal = int(os.getenv("CODIGO_SUCURSAL"))
+nit = int(os.getenv("NIT"))
+
+# Metadata única
+metadata = MetaData()
+
+# ==============================================================================
+# FUNCIONES DE EVENTOS SIGNIFICATIVOS
+# ==============================================================================
+
 def get_eventos_parametricos():
     """Obtiene los eventos significativos disponibles (paramétricos)"""
     session = SessionLocal()
@@ -38,8 +106,17 @@ def insertar_evento_local(codigo_evento, descripcion, fecha_inicio, cufd):
     finally:
         session.close()
 
+# ============================================================================== 
+# FUNCIONES OBSOLETAS - MANTENER PARA COMPATIBILIDAD TEMPORAL
+# USAR LAS VERSIONES NORMATIVAS EN SU LUGAR
+# ============================================================================== 
+
 def obtener_evento_abierto():
-    """Devuelve el último evento sin cerrar (fecha_inicio = fecha_fin y sin codigo_recepcion)"""
+    """
+    OBSOLETO: Usar obtener_evento_activo_actual() en su lugar.
+    Devuelve el último evento sin cerrar (fecha_inicio = fecha_fin y sin codigo_recepcion)
+    """
+    logger.warning("DEPRECADO: obtener_evento_abierto() - Usar obtener_evento_activo_actual()")
     session = SessionLocal()
     try:
         evento = (
@@ -59,7 +136,11 @@ def obtener_evento_abierto():
         session.close()
 
 def actualizar_evento_final(evento_id, fecha_fin, codigo_recepcion):
-    """Actualiza el evento con su fecha de cierre y código de recepción"""
+    """
+    OBSOLETO: Usar cerrar_evento_significativo() en su lugar.
+    Actualiza el evento con su fecha de cierre y código de recepción
+    """
+    logger.warning("DEPRECADO: actualizar_evento_final() - Usar cerrar_evento_significativo()")
     session = SessionLocal()
     try:
         evento = session.query(EventoSignificativoRegistrado).filter_by(id=evento_id).first()
@@ -74,44 +155,207 @@ def actualizar_evento_final(evento_id, fecha_fin, codigo_recepcion):
         logger.error(f"Error al actualizar evento final: {e}")
     finally:
         session.close()
-import os
-import sys
-import random
-import requests
-import streamlit as st
-from database import SessionLocal, engine, URL_DATABASE
-from config import ENDPOINT_URL
-from dotenv import load_dotenv
-from models import (
-    SincronizarListaLeyendasFactura, SincronizarParametricaTipoMetodoPago, SincronizarParametricaTipoDocumentoIdentidad, Cliente, FacturaCabecera, FacturaDetalle, ProductoSiat, PuntoVenta, Cuis, SincronizarParametricaMotivoAnulacion, SincronizarListaMensajesServicios, Cufd, SincronizarParametricaEventosSignificativos, EventoSignificativoRegistrado
-)
-from sqlalchemy import create_engine, Table, Column, Integer, String, DECIMAL, MetaData, TIMESTAMP, Text, BIGINT, ForeignKeyConstraint
-from sqlalchemy.dialects.mysql import VARCHAR
-from typing import List, Dict, Union
-from sqlalchemy.exc import SQLAlchemyError
-import logging
-from sqlalchemy.orm import Session
-from sqlalchemy import inspect
-from datetime import datetime
-from zeep import Client
-from logger_config import get_logger
-from api_clients import get_soap_client
-import traceback
-from typing import Optional
-from models import EventoSignificativoRegistrado 
 
-# Obtener logger para este módulo
-logger = get_logger()
+def obtener_cufd_de_evento_activo() -> Optional[str]:
+    """
+    Busca el último evento significativo abierto en la base de datos y devuelve 
+    el CUFD que se registró con él.
 
-# Configurar logging básico - NO REPETIR ESTO
-logging.basicConfig(level=logging.DEBUG, 
-                    format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
-                    filename='invoice_log.log')
-# Cargar variables de entorno solo una vez
-load_dotenv()
-# Definir metadata y engine solo una vez
-metadata = MetaData()
-engine = create_engine(URL_DATABASE)
+    Esta función es crucial para la facturación en modo de contingencia, ya que
+    las facturas offline deben usar el CUFD del evento al que pertenecen.
+
+    Un evento se considera "abierto" si todavía no tiene un código de recepción del SIN.
+    
+    Returns:
+        Optional[str]: El código CUFD del evento activo como una cadena, 
+                       o None si no se encuentra ningún evento activo o si ocurre un error.
+    """
+    logger.info("Buscando CUFD de un evento de contingencia activo...")
+    session = SessionLocal()
+    try:
+        # La lógica para encontrar un evento abierto es que su 'codigo_recepcion' aún es NULL.
+        # Se ordena por fecha de inicio descendente para obtener el más reciente en caso de
+        # que haya más de uno por error.
+        evento_activo = session.query(EventoSignificativoRegistrado)\
+            .filter(EventoSignificativoRegistrado.codigo_recepcion.is_(None))\
+            .order_by(EventoSignificativoRegistrado.fecha_inicio.desc())\
+            .first()
+            
+        if evento_activo:
+            logger.info(f"Evento activo encontrado (ID: {evento_activo.id}). CUFD asociado: {evento_activo.cufd}")
+            return evento_activo.cufd
+        else:
+            logger.warning("No se encontró ningún evento de contingencia activo en la base de datos.")
+            return None
+            
+    except Exception as e:
+        logger.error(f"Error al obtener el CUFD del evento de contingencia activo: {e}", exc_info=True)
+        return None
+    finally:
+        session.close()
+
+def registrar_evento_local_normativo(codigo_evento: str, descripcion: str = None, cufd: str = None):
+    """
+    Registra un evento significativo en la BD local siguiendo la normativa boliviana.
+    IMPORTANTE: Solo puede existir UN evento activo a la vez.
+    
+    Args:
+        codigo_evento: Código del tipo de evento (1, 2, 5, etc.)
+        descripcion: Descripción personalizada (opcional - si no se proporciona, se obtiene de la tabla paramétrica)
+        cufd: CUFD que estaba vigente al momento del evento
+        
+    Returns:
+        int: ID del evento (nuevo o existente), None si hay error
+    """
+    session = SessionLocal()
+    try:
+        # 1. Si no se proporciona descripción, obtenerla de la tabla paramétrica
+        if not descripcion:
+            evento_parametrico = session.query(SincronizarParametricaEventosSignificativos)\
+                .filter_by(codigoClasificador=codigo_evento)\
+                .first()
+            
+            if evento_parametrico:
+                # ✅ Usar la descripción oficial de la tabla sincronizada
+                descripcion = evento_parametrico.descripcion
+                logger.info(f"Descripción obtenida de tabla paramétrica: {descripcion}")
+            else:
+                # Fallback si no existe en la tabla paramétrica (no debería pasar si la sincronización está completa)
+                descripcion = f"Evento significativo código {codigo_evento}"
+                logger.warning(f"No se encontró descripción para código {codigo_evento} en tabla paramétrica. Usando descripción genérica.")
+
+        # 2. Verificar si ya existe un evento ABIERTO (sin codigo_recepcion)
+        evento_abierto = session.query(EventoSignificativoRegistrado)\
+            .filter(EventoSignificativoRegistrado.codigo_recepcion.is_(None))\
+            .first()
+            
+        if evento_abierto:
+            logger.info(f"Ya existe un evento abierto con ID {evento_abierto.id}. Reutilizando evento existente.")
+            # IMPORTANTE: No creamos uno nuevo, devolvemos el existente
+            return evento_abierto.id
+
+        # 2. Si no hay evento abierto, crear uno nuevo
+        logger.info(f"No hay eventos abiertos. Creando nuevo evento de contingencia.")
+        
+        nuevo_evento = EventoSignificativoRegistrado(
+            codigo_evento=codigo_evento,
+            descripcion=descripcion,
+            fecha_inicio=datetime.now(),
+            fecha_fin=None,  # NULL = evento abierto
+            cufd=cufd,
+            codigo_recepcion=None  # NULL = evento abierto
+        )
+        
+        session.add(nuevo_evento)
+        session.commit()
+        
+        logger.info(f"Nuevo evento significativo registrado con ID {nuevo_evento.id}")
+        return nuevo_evento.id
+        
+    except Exception as e:
+        logger.error(f"Error al registrar evento local: {str(e)}")
+        session.rollback()
+        return None
+    finally:
+        session.close()
+
+def obtener_evento_por_id(evento_id):
+    """
+    Obtiene un evento significativo por su ID desde la base de datos local.
+    
+    Args:
+        evento_id: ID del evento a buscar
+        
+    Returns:
+        dict: Datos del evento si existe, None si no existe
+    """
+    session = SessionLocal()
+    try:
+        evento = session.query(EventoSignificativoRegistrado).filter_by(id=evento_id).first()
+        if evento:
+            return {
+                'id': evento.id,
+                'codigo_evento': evento.codigo_evento,
+                'descripcion': evento.descripcion,
+                'cufd': evento.cufd,
+                'fecha_inicio': evento.fecha_inicio,
+                'fecha_fin': evento.fecha_fin,
+                'codigo_recepcion': evento.codigo_recepcion
+            }
+        return None
+    except Exception as e:
+        logger.error(f"Error al obtener evento por ID {evento_id}: {str(e)}")
+        return None
+    finally:
+        session.close()
+
+def obtener_evento_activo_actual():
+    """
+    Obtiene el evento significativo actualmente abierto (sin codigo_recepcion).
+    
+    Returns:
+        dict: Datos del evento activo, None si no hay evento abierto
+    """
+    session = SessionLocal()
+    try:
+        evento = session.query(EventoSignificativoRegistrado)\
+            .filter(EventoSignificativoRegistrado.codigo_recepcion.is_(None))\
+            .order_by(EventoSignificativoRegistrado.fecha_inicio.desc())\
+            .first()
+            
+        if evento:
+            return {
+                'id': evento.id,
+                'codigo_evento': evento.codigo_evento,
+                'descripcion': evento.descripcion,
+                'cufd': evento.cufd,
+                'fecha_inicio': evento.fecha_inicio,
+                'fecha_fin': evento.fecha_fin
+            }
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error al obtener evento activo: {str(e)}")
+        return None
+    finally:
+        session.close()
+
+def cerrar_evento_significativo(evento_id: int, codigo_recepcion: str):
+    """
+    Cierra un evento significativo estableciendo la fecha_fin y codigo_recepcion.
+    
+    Args:
+        evento_id: ID del evento a cerrar
+        codigo_recepcion: Código de recepción del SIN
+        
+    Returns:
+        bool: True si se cerró exitosamente, False si hubo error
+    """
+    session = SessionLocal()
+    try:
+        evento = session.query(EventoSignificativoRegistrado)\
+            .filter_by(id=evento_id).first()
+        
+        if evento and evento.fecha_fin is None:  # Verificar que esté abierto
+            evento.fecha_fin = datetime.now()     # Cerrar evento
+            evento.codigo_recepcion = codigo_recepcion
+            session.commit()
+            logger.info(f"Evento {evento_id} cerrado correctamente con código de recepción: {codigo_recepcion}")
+            return True
+        else:
+            logger.warning(f"Evento {evento_id} no encontrado o ya estaba cerrado")
+            return False
+            
+    except Exception as e:
+        logger.error(f"Error al cerrar evento {evento_id}: {str(e)}")
+        session.rollback()
+        return False
+    finally:
+        session.close()
+
+# ==============================================================================
+# FUNCIONES DE DATOS BÁSICOS
+# ============================================================================== 
 
 @st.cache_resource
 def fetch_comandas():
@@ -249,16 +493,12 @@ def fetch_random_leyenda():
     finally:
         session.close()
 
-metadata = MetaData()
-
-# Crear el motor de conexión a la base de datos
-engine = create_engine(URL_DATABASE)
-
-# Reflejar las tablas en la base de datos
-metadata.create_all(engine)
+# ==============================================================================
+# FUNCIONES DE BASE DE DATOS
+# ==============================================================================
 
 def guardar_factura_cabecera(cabecera: Dict[str, Union[str, float, int]]) -> None:
-    logging.debug(f"Preparando para almacenar la cabecera: {cabecera}")
+    logger.debug(f"Preparando para almacenar la cabecera: {cabecera}")
 
     session = SessionLocal()
     try:
@@ -332,29 +572,28 @@ def guardar_factura_cabecera(cabecera: Dict[str, Union[str, float, int]]) -> Non
                 if field in column_names and field in cabecera:
                     values[field] = cabecera.get(field)
             
-            logging.debug(f"Campos de contingencia detectados y añadidos: {[f for f in contingency_fields if f in column_names]}")
+            logger.debug(f"Campos de contingencia detectados y añadidos: {[f for f in contingency_fields if f in column_names]}")
         except Exception as e:
-            logging.warning(f"No se pudieron verificar columnas de contingencia: {str(e)}")
+            logger.warning(f"No se pudieron verificar columnas de contingencia: {str(e)}")
             # Continuar sin añadir campos de contingencia
 
         # Ejecutar la inserción con los campos que sabemos que existen
         query = FacturaCabecera.__table__.insert().values(**values)
         session.execute(query)
         session.commit()
-        logging.info(f"Cabecera almacenada exitosamente: {cabecera['numeroFactura']}")
+        logger.info(f"Cabecera almacenada exitosamente: {cabecera['numeroFactura']}")
     except SQLAlchemyError as e:
         session.rollback()
-        logging.error(f"Error al guardar la cabecera de la factura: {e}")
+        logger.error(f"Error al guardar la cabecera de la factura: {e}")
         raise e
     finally:
         session.close()
 
 # Metadatos y tabla de factura_detalle
-metadata = MetaData()
 factura_detalle_table = Table('factura_detalle', metadata, autoload_with=engine)
 
 def guardar_factura_detalle(detalle: Dict[str, Union[str, float, int]]) -> None:
-    logging.debug(f"Preparando para almacenar el detalle: {detalle}")
+    logger.debug(f"Preparando para almacenar el detalle: {detalle}")
     
     # Crear una nueva sesión
     session = SessionLocal()
@@ -375,10 +614,10 @@ def guardar_factura_detalle(detalle: Dict[str, Union[str, float, int]]) -> None:
         )
         session.add(nuevo_detalle)
         session.commit()
-        logging.info(f"Detalle almacenado exitosamente: {detalle}")
+        logger.info(f"Detalle almacenado exitosamente: {detalle}")
     except SQLAlchemyError as e:
         session.rollback()
-        logging.error(f"Error al guardar el detalle de la factura: {e}")
+        logger.error(f"Error al guardar el detalle de la factura: {e}")
         raise
     finally:
         session.close()
@@ -390,7 +629,7 @@ def obtener_nombre_unidad_medida(codigo_producto: str, db: Session) -> str:
             return producto.unidad_medida
         return "Unidadxxx."  # Valor por defecto si la unidad no se encuentra
     except SQLAlchemyError as e:
-        logging.error(f"Error al obtener el nombre de la unidad de medida: {e}")
+        logger.error(f"Error al obtener el nombre de la unidad de medida: {e}")
         return "Error"
 
 def obtener_codigo_unidad_medida_sin(codigo_producto: str, db: Session) -> str:
@@ -400,17 +639,8 @@ def obtener_codigo_unidad_medida_sin(codigo_producto: str, db: Session) -> str:
             return producto.codigo_unidad_medida_sin
         return "Unid."  # Valor predeterminado si no se encuentra el código
     except SQLAlchemyError as e:
-        logging.error(f"Error al obtener el código de la unidad de medida SIN: {e}")
+        logger.error(f"Error al obtener el código de la unidad de medida SIN: {e}")
         return "ERROR"
-
-wsdl_url_codigos = os.getenv("WSDL_URL_CODIGOS")
-api_key = os.getenv("API_KEY")
-codigo_ambiente = int(os.getenv("CODIGO_AMBIENTE"))
-codigo_modalidad = int(os.getenv("CODIGO_MODALIDAD"))
-codigo_punto_venta = int(os.getenv("CODIGO_PUNTO_VENTA"))
-codigo_sistema = os.getenv("CODIGO_SISTEMA")
-codigo_sucursal = int(os.getenv("CODIGO_SUCURSAL"))
-nit = int(os.getenv("NIT"))
 
 def solicitar_cuis(db: Session):
     """Solicita un nuevo CUIS y lo guarda en la base de datos si es necesario."""
@@ -513,10 +743,11 @@ def obtener_motivos_anulacion():
             return [motivo.descripcion for motivo in motivos]  # Retorna las descripciones
         return []
     except Exception as e:
-        logging.error(f"Error al obtener los motivos de anulación: {e}")
+        logger.error(f"Error al obtener los motivos de anulación: {e}")
         return []
     finally:
         session.close()
+
 @st.cache_data
 def obtener_mensaje_por_codigo(codigo_clasificador):
     session = SessionLocal()
@@ -530,7 +761,7 @@ def obtener_mensaje_por_codigo(codigo_clasificador):
         else:
             return None  # Si no se encuentra el código
     except Exception as e:
-        logging.error(f"Error al obtener el mensaje: {e}")
+        logger.error(f"Error al obtener el mensaje: {e}")
         return None
     finally:
         session.close()
@@ -544,7 +775,7 @@ def obtener_cufd_vigente():
         else:
             return None
     except Exception as e:
-        logging.error(f"Error al obtener CUFD vigente: {e}")
+        logger.error(f"Error al obtener CUFD vigente: {e}")
         return None
     finally:
         session.close()
@@ -653,43 +884,5 @@ def obtener_factura_completa(numero_factura):
         logger.error(f"Error al obtener factura completa #{numero_factura}: {str(e)}")
         logger.error(traceback.format_exc())
         return None, None, f"Error: {str(e)}"
-    finally:
-        session.close()
-        
-def obtener_cufd_de_evento_activo() -> Optional[str]:
-    """
-    Busca el último evento significativo abierto en la base de datos y devuelve 
-    el CUFD que se registró con él.
-
-    Esta función es crucial para la facturación en modo de contingencia, ya que
-    las facturas offline deben usar el CUFD del evento al que pertenecen.
-
-    Un evento se considera "abierto" si todavía no tiene un código de recepción del SIN.
-    
-    Returns:
-        Optional[str]: El código CUFD del evento activo como una cadena, 
-                       o None si no se encuentra ningún evento activo o si ocurre un error.
-    """
-    logger.info("Buscando CUFD de un evento de contingencia activo...")
-    session = SessionLocal()
-    try:
-        # La lógica para encontrar un evento abierto es que su 'codigo_recepcion' aún es NULL.
-        # Se ordena por fecha de inicio descendente para obtener el más reciente en caso de
-        # que haya más de uno por error.
-        evento_activo = session.query(EventoSignificativoRegistrado)\
-            .filter(EventoSignificativoRegistrado.codigo_recepcion.is_(None))\
-            .order_by(EventoSignificativoRegistrado.fecha_inicio.desc())\
-            .first()
-            
-        if evento_activo:
-            logger.info(f"Evento activo encontrado (ID: {evento_activo.id}). CUFD asociado: {evento_activo.cufd}")
-            return evento_activo.cufd
-        else:
-            logger.warning("No se encontró ningún evento de contingencia activo en la base de datos.")
-            return None
-            
-    except Exception as e:
-        logger.error(f"Error al obtener el CUFD del evento de contingencia activo: {e}", exc_info=True)
-        return None
     finally:
         session.close()

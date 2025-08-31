@@ -49,18 +49,32 @@ def verificar_comunicacion() -> Tuple[str, bool, Optional[str]]:
                 None
             )
 
-        # Clasificación de errores comunes
-        if response.status_code in [500, 502]:
-            return f"Error HTTP {response.status_code}", False, "2"  # Inaccesibilidad al servicio SIN
+        # Clasificación COMPLETA de errores según normativa boliviana SIN
+        if response.status_code in [500, 502, 503]:
+            return f"Error HTTP {response.status_code} - Servidor SIN no disponible", False, "2"  # Inaccesibilidad al servicio SIN
+        elif response.status_code in [400, 404]:
+            return f"Error HTTP {response.status_code} - Servicio remoto inaccesible", False, "2"  # Inaccesibilidad al servicio SIN
+        elif response.status_code in [401, 403]:
+            return f"Error HTTP {response.status_code} - Problemas de autenticación", False, "2"  # Inaccesibilidad al servicio SIN
         else:
             return f"Error HTTP {response.status_code}", False, "1"  # Corte de internet general
 
     except requests.exceptions.Timeout:
-        return "Timeout al conectar con el SIN", False, "2"
-    except requests.exceptions.ConnectionError:
-        return "Error de conexión o DNS", False, "1"
+        return "Timeout al conectar con el SIN (normativa: activar contingencia)", False, "2"
+    except requests.exceptions.ConnectionError as e:
+        # Detectar casos específicos mencionados en la normativa
+        error_str = str(e).lower()
+        if "java null" in error_str or "nullpointer" in error_str:
+            return "Java Null Point Exception detectado (normativa: activar contingencia)", False, "2"
+        else:
+            return "Error de conexión o DNS (normativa: activar contingencia)", False, "1"
     except Exception as e:
-        return f"Error inesperado: {e}", False, "5"  # Falla de software
+        error_str = str(e).lower()
+        # Detectar el código -1 mencionado en la normativa
+        if "-1" in error_str or "codigo -1" in error_str:
+            return "Código -1 detectado (normativa: activar contingencia)", False, "2"
+        else:
+            return f"Error inesperado: {e} (normativa: falla de software)", False, "5"  # Falla de software
 
 from typing import Dict
 

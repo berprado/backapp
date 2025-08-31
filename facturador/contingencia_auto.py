@@ -1,7 +1,11 @@
 import os
 import zipfile
 from datetime import datetime
-from data_access import obtener_evento_abierto, obtener_cufd_vigente, actualizar_evento_final
+from data_access import (
+    obtener_evento_activo_actual, 
+    obtener_cufd_vigente, 
+    cerrar_evento_significativo
+)
 from communication_manager import communication_manager
 from soap_services import enviar_evento_significativo
 from logger_config import get_logger
@@ -22,34 +26,49 @@ def finalizar_evento_si_conectado():
         logger.info("[🛑] Aún no hay conexión con el SIN según el CommunicationManager. No se puede finalizar evento.")
         return False
 
-    evento = obtener_evento_abierto()
+    evento = obtener_evento_activo_actual()
     if not evento:
         logger.info("[✅] No hay evento abierto. El sistema está en modo normal.")
         return True
 
     logger.info(f"[📡] Conexión restablecida. Finalizando evento #{evento['id']}...")
 
-    # Paso 1: Obtener CUFD vigente
-    cufd_actual = obtener_cufd_vigente()
-    if not cufd_actual:
-        logger.warning("[⚠️] No se pudo obtener CUFD actual para finalizar el evento.")
+    # PASO 1: SEGÚN NORMATIVA - OBTENER **NUEVO** CUFD ANTES DE REGISTRAR EVENTO
+    logger.info("[🔄] Obteniendo NUEVO CUFD según normativa (NO reutilizar el anterior)...")
+    
+    # Importar la función para obtener nuevo CUFD
+    from cufd import solicitar_cufd
+    
+    nuevo_cufd = solicitar_cufd()
+    if not nuevo_cufd:
+        logger.error("[❌] CRÍTICO: No se pudo obtener NUEVO CUFD. No se puede finalizar evento según normativa.")
         return False
+    
+    logger.info(f"[✅] NUEVO CUFD obtenido según normativa: {nuevo_cufd}")
 
-    # Paso 2: Enviar solicitud SOAP al SIN
+    # PASO 2: SEGÚN NORMATIVA - REGISTRAR evento con el SIN usando el NUEVO CUFD
     fecha_fin = datetime.now()
     codigo_recepcion, transaccion = enviar_evento_significativo(
         evento=evento,
         fecha_fin=fecha_fin,
-        cufd=cufd_actual
+        cufd=nuevo_cufd  # Usar el NUEVO CUFD según normativa
     )
 
     if not transaccion:
         logger.error("[❌] El SIN no aceptó el cierre del evento.")
         return False
 
-    # Paso 3: Guardar código de recepción y fecha fin
-    actualizar_evento_final(evento_id=evento["id"], fecha_fin=fecha_fin, codigo_recepcion=codigo_recepcion)
-    logger.info(f"[✅] Evento #{evento['id']} finalizado exitosamente con código {codigo_recepcion}.")
+    # Paso 3: Usar la nueva función normativa para cerrar el evento
+    resultado_cierre = cerrar_evento_significativo(
+        evento_id=evento["id"], 
+        codigo_recepcion=codigo_recepcion
+    )
+    
+    if resultado_cierre:
+        logger.info(f"[✅] Evento #{evento['id']} finalizado exitosamente con código {codigo_recepcion}.")
+    else:
+        logger.error(f"[❌] Error al cerrar el evento #{evento['id']} en base de datos.")
+        return False
 
     # --- CORRECCIÓN: Usar la carpeta y patrón correctos ---
     # Paso 4: Verificar si hay archivos relacionados en la carpeta correcta

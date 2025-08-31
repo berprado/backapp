@@ -497,7 +497,7 @@ class EventoSignificativoRegistrado(Base):
     codigo_evento = Column(String(10), ForeignKey('sincronizarparametricaeventossignificativos.codigoClasificador'), nullable=False)
     descripcion = Column(String(255), nullable=False)
     fecha_inicio = Column(DateTime, nullable=False)
-    fecha_fin = Column(DateTime, nullable=False)
+    fecha_fin = Column(DateTime, nullable=True)
     cufd = Column(String(100), nullable=False)
     codigo_recepcion = Column(String(50), nullable=True)
     fecha_registro = Column(DateTime, nullable=False, default=datetime.utcnow)
