@@ -2,8 +2,6 @@ import os
 import gzip
 import base64
 import hashlib
-import logging
-import time
 from datetime import datetime
 from zeep import Client, Transport, helpers
 from requests import Session

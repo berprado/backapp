@@ -8,7 +8,6 @@ teléfonos, NIT, así como los datos de factura cabecera y detalle.
 import re
 import os
 from dotenv import load_dotenv
-import logging
 from logger_config import get_logger
 from api_clients import get_soap_client
 
