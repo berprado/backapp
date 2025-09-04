@@ -886,3 +886,80 @@ def obtener_factura_completa(numero_factura):
         return None, None, f"Error: {str(e)}"
     finally:
         session.close()
+
+
+# ==============================================================================
+# FUNCIONES PARA ACTUALIZACIÓN DE PAQUETES POST-CONTINGENCIA
+# ==============================================================================
+
+def actualizar_estado_paquete(evento_id, codigo_recepcion, estado_paquete):
+    """
+    Actualiza el estado de un paquete de contingencia en la tabla de eventos significativos.
+    
+    Args:
+        evento_id (int): ID del evento significativo
+        codigo_recepcion (str): Código de recepción del paquete del SIN
+        estado_paquete (str): Estado del paquete (VALIDADO, OBSERVADO, PENDIENTE)
+    """
+    from sqlalchemy import text
+    
+    session = SessionLocal()
+    try:
+        session.execute(
+            text("""
+                UPDATE eventos_significativos_registrados
+                SET codigo_recepcion = :codigo_recepcion,
+                    fecha_fin = NOW()
+                WHERE id = :evento_id
+            """),
+            {"codigo_recepcion": codigo_recepcion, "evento_id": evento_id}
+        )
+        session.commit()
+        logger.info(f"[✅] Estado del evento #{evento_id} actualizado con código de recepción: {codigo_recepcion}")
+    except Exception as e:
+        logger.error(f"[❌] Error al actualizar estado del evento #{evento_id}: {e}")
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+def actualizar_estado_facturas(batch_numbers, codigo_recepcion, estado_paquete):
+    """
+    Actualiza el estado de las facturas procesadas en un paquete de contingencia.
+    
+    Args:
+        batch_numbers (list): Lista de números de factura del lote
+        codigo_recepcion (str): Código de recepción del paquete del SIN
+        estado_paquete (str): Estado del paquete (VALIDADO, OBSERVADO, PENDIENTE)
+    """
+    from sqlalchemy import text
+    
+    if not batch_numbers:
+        logger.warning("[⚠️] No hay facturas para actualizar en el lote.")
+        return
+    
+    session = SessionLocal()
+    try:
+        session.execute(
+            text("""
+                UPDATE factura_cabecera
+                SET codigoRecepcion = :codigo_recepcion,
+                    estadoContingencia = :estado_paquete,
+                    fechaSincronizacion = NOW()
+                WHERE numeroFactura IN :facturas
+            """),
+            {
+                "codigo_recepcion": codigo_recepcion, 
+                "estado_paquete": estado_paquete, 
+                "facturas": tuple(batch_numbers)
+            }
+        )
+        session.commit()
+        logger.info(f"[✅] {len(batch_numbers)} facturas actualizadas con estado: {estado_paquete}")
+    except Exception as e:
+        logger.error(f"[❌] Error al actualizar estado de facturas del lote: {e}")
+        session.rollback()
+        raise
+    finally:
+        session.close()

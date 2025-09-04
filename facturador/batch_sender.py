@@ -5,10 +5,11 @@ import hashlib
 from datetime import datetime
 from zeep import Client, Transport, helpers
 from requests import Session
+from sqlalchemy import text
 from database import SessionLocal
 from models import FacturaCabecera, Cufd
-from facturador.offline_billing import update_invoice_status_after_sending
-from facturador.logger_config import get_logger  # Cambiar esta importación
+from offline_billing import update_invoice_status_after_sending
+from logger_config import get_logger  # Cambiar esta importación
 from dotenv import load_dotenv
 
 logger = get_logger('contingency')  # Usar el logger general con nombre específico
@@ -22,7 +23,7 @@ class BatchSender:
         self.max_batch_size = 500  # Máximo 500 facturas por paquete según normativa
         self.soap_session = Session()
         self.soap_session.headers.update({'apikey': os.getenv('API_KEY') or ''})
-        self.wsdl_url = os.getenv('WSDL_URL_OPERACIONES')
+        self.wsdl_url = os.getenv('WSDL_URL_FACTURACION')
         
         # Asegurar que existe el directorio para archivos comprimidos
         os.makedirs("xmls_batch", exist_ok=True)
@@ -160,90 +161,214 @@ class BatchSender:
             logger.error(f"Error al codificar archivo: {str(e)}")
             return None
     
-    def send_batch(self, xml_path, compressed_path, cufd_code):
+    def _get_client(self, service_name):
         """
-        Sends a batch of invoices to the SIAT system.
-
+        Obtiene el cliente SOAP para el servicio especificado.
+        
         Args:
-            xml_path (str): Path to the XML file.
-            compressed_path (str): Path to the compressed file.
-            cufd_code (str): Current CUFD code.
-
+            service_name (str): Nombre del servicio
+            
         Returns:
-            tuple: (bool, dict) Success and response data.
+            Client: Cliente SOAP configurado
         """
         try:
-            # Validate inputs
-            if not os.path.exists(xml_path):
-                logger.error(f"XML file not found: {xml_path}")
-                return False, {"error": "XML file not found."}
-
-            if not os.path.exists(compressed_path):
-                logger.error(f"Compressed file not found: {compressed_path}")
-                return False, {"error": "Compressed file not found."}
-
-            if not cufd_code:
-                logger.error("CUFD code is required but not provided.")
-                return False, {"error": "CUFD code is missing."}
-
-            # Calculate the hash of the compressed file
-            hash_archivo = self.calculate_hash(compressed_path)
-            if not hash_archivo:
-                return False, {"error": "Failed to calculate file hash."}
-
-            # Encode the file in base64
-            archivo_base64 = self.encode_file_to_base64(compressed_path)
-            if not archivo_base64:
-                return False, {"error": "Failed to encode file to base64."}
-
-            # Create the SOAP client
-            client = Client(
+            return Client(
                 self.wsdl_url,
                 transport=Transport(session=self.soap_session)
             )
+        except Exception as e:
+            logger.error(f"Error al crear cliente SOAP para {service_name}: {e}")
+            return None
+    
+    def validate_package_status(self, codigo_recepcion, cufd):
+        """
+        Valida el estado de un paquete de facturas enviado al SIN.
+        
+        Args:
+            codigo_recepcion (str): Código de recepción del paquete
+            cufd (str): CUFD vigente para la validación
+            
+        Returns:
+            Response: Respuesta del servicio de validación o None si hay error
+        """
+        client = self._get_client("FacturaCompraVenta")
+        if not client:
+            return None
+            
+        solicitud_validacion_paquete = {
+            'codigoAmbiente': int(os.getenv('CODIGO_AMBIENTE')),
+            'codigoSistema': os.getenv('CODIGO_SISTEMA'),
+            'codigoSucursal': int(os.getenv('CODIGO_SUCURSAL')),
+            'codigoPuntoVenta': int(os.getenv('CODIGO_PUNTO_VENTA', 0)),
+            'codigoDocumentoSector': int(os.getenv('CODIGO_DOCUMENTO_SECTOR')),
+            'codigoEmision': 2,  # offline
+            'codigoModalidad': int(os.getenv('CODIGO_MODALIDAD')),
+            'cuis': os.getenv('CUIS'),
+            'cufd': cufd,
+            'tipoFacturaDocumento': int(os.getenv('CODIGO_TIPO_FACTURA', 1)),
+            'codigoRecepcion': codigo_recepcion
+        }
+        try:
+            response = client.service.validacionRecepcionPaqueteFactura(
+                solicitudValidacionRecepcionPaquete=solicitud_validacion_paquete
+            )
+            logger.info(f"[📡] Respuesta validación paquete: {response}")
+            return response
+        except Exception as e:
+            logger.error(f"[❌] Error al validar paquete {codigo_recepcion}: {e}")
+            return None
+    
+    def send_batch(self, xml_path, compressed_path, cufd_code, batch_numbers, codigo_evento):
+        """
+        Envía un paquete de facturas al sistema SIAT.
 
-            # Prepare the request
-            solicitud = {
-                'codigoAmbiente': os.getenv('CODIGO_AMBIENTE'),
-                'codigoDocumentoSector': os.getenv('CODIGO_DOCUMENTO_SECTOR'),
-                'codigoEmision': 2,  # Offline mode
-                'codigoModalidad': os.getenv('CODIGO_MODALIDAD'),
-                'codigoPuntoVenta': os.getenv('CODIGO_PUNTO_VENTA'),
+        Args:
+            xml_path (str): Ruta del archivo XML.
+            compressed_path (str): Ruta del archivo comprimido.
+            cufd_code (str): Código CUFD actual.
+            batch_numbers (list): Lista de números de factura del lote.
+            codigo_evento (int): Código del evento significativo.
+
+        Returns:
+            Response object: Respuesta del servicio o None si hay error.
+        """
+        try:
+            # Validate inputs
+            if not os.path.exists(compressed_path):
+                logger.error(f"Compressed file not found: {compressed_path}")
+                return None
+
+            if not cufd_code:
+                logger.error("CUFD code is required but not provided.")
+                return None
+
+            if not codigo_evento:
+                logger.error("Código evento is required but not provided.")
+                return None
+
+            # Verificaciones adicionales recomendadas
+            if not os.path.getsize(compressed_path) > 0:
+                logger.error(f"Compressed file is empty: {compressed_path}")
+                return None
+
+            if len(batch_numbers) < 1:
+                logger.error("cantidadFacturas must be >= 1")
+                return None
+
+            # Read and encode the compressed file
+            with open(compressed_path, "rb") as f:
+                archivo_gzip = f.read()
+
+            base64_file = base64.b64encode(archivo_gzip).decode("utf-8")
+            sha256_hash = hashlib.sha256(archivo_gzip).hexdigest()
+
+            # Create the SOAP client
+            client = self._get_client("FacturaCompraVenta")
+            if not client:
+                logger.error("Failed to create SOAP client")
+                return None
+
+            # Prepare the request with ALL required normative parameters
+            # CORRECCIÓN: Encapsular parámetros según estructura SOAP esperada
+            solicitud_recepcion_paquete = {
+                'codigoAmbiente': int(os.getenv('CODIGO_AMBIENTE')),
+                'codigoPuntoVenta': int(os.getenv('CODIGO_PUNTO_VENTA', 0)),
                 'codigoSistema': os.getenv('CODIGO_SISTEMA'),
-                'codigoSucursal': os.getenv('CODIGO_SUCURSAL'),
+                'codigoSucursal': int(os.getenv('CODIGO_SUCURSAL')),
+                'codigoDocumentoSector': int(os.getenv('CODIGO_DOCUMENTO_SECTOR')),
+                'codigoEmision': 2,  # offline
+                'codigoModalidad': int(os.getenv('CODIGO_MODALIDAD')),
                 'cufd': cufd_code,
                 'cuis': os.getenv('CUIS'),
-                'nit': os.getenv('NIT'),
-                'tipoFacturaDocumento': os.getenv('TIPO_FACTURA_DOCUMENTO'),
-                'archivo': archivo_base64,
-                'hashArchivo': hash_archivo,
-                'cantidadFacturas': len(os.path.basename(xml_path).split('_'))
+                'tipoFacturaDocumento': int(os.getenv('CODIGO_TIPO_FACTURA', 1)),
+                'archivo': base64_file,
+                'fechaEnvio': datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f"),
+                'hashArchivo': sha256_hash,
+                'cantidadFacturas': len(batch_numbers),
+                'codigoEvento': codigo_evento
             }
+
+            logger.info(f"[📦] Enviando paquete con {len(batch_numbers)} facturas, evento {codigo_evento}")
 
             # Retry mechanism
             max_retries = 3
             for attempt in range(max_retries):
                 try:
                     logger.info(f"Attempt {attempt + 1} to send batch...")
-                    response = client.service.recepcionPaqueteFactura(**solicitud)
-
-                    # Process the response
-                    if response and hasattr(response, 'transaccion') and response.transaccion:
-                        logger.info(f"Batch sent successfully. Reception code: {response.codigoRecepcion}")
-                        return True, helpers.serialize_object(response)
-                    else:
-                        error_msg = "Unknown error while sending batch."
-                        if hasattr(response, 'mensajesList') and response.mensajesList:
-                            error_msg = response.mensajesList[0].descripcion
-
-                        logger.error(f"Error sending batch: {error_msg}")
-                        return False, {"error": error_msg}
+                    # CORRECCIÓN: Usar estructura correcta según mensaje de error SOAP
+                    response = client.service.recepcionPaqueteFactura(
+                        solicitudRecepcionPaquete=solicitud_recepcion_paquete
+                    )
+                    
+                    logger.info(f"[📡] Respuesta RecepcionPaqueteFactura: {response}")
+                    return response
 
                 except Exception as e:
                     logger.error(f"Exception during batch sending attempt {attempt + 1}: {str(e)}")
 
-            return False, {"error": "Failed to send batch after multiple attempts."}
+            return None
 
         except Exception as e:
             logger.error(f"Exception in send_batch: {str(e)}")
-            return False, {"error": str(e)}
+            return None
+    
+    def process_and_validate_batch(self, xml_path, gzip_path, cufd, batch_numbers, evento_id):
+        """
+        Orquestador completo para envío y validación de paquetes offline.
+        
+        Args:
+            xml_path (str): Ruta del archivo XML del paquete
+            gzip_path (str): Ruta del archivo comprimido
+            cufd (str): CUFD para el envío
+            batch_numbers (list): Lista de números de factura del lote
+            evento_id (int): ID del evento significativo
+            
+        Returns:
+            bool: True si el proceso fue exitoso, False en caso contrario
+        """
+        # Obtener el código del evento desde la base de datos
+        try:
+            from data_access import obtener_evento_por_id
+            evento_data = obtener_evento_por_id(evento_id)
+            if not evento_data:
+                logger.error(f"[❌] No se pudo obtener los datos del evento #{evento_id}")
+                return False
+            codigo_evento = evento_data.get('codigo_evento')
+        except Exception as e:
+            logger.error(f"[❌] Error al obtener código del evento #{evento_id}: {e}")
+            return False
+        
+        # Paso 1: Enviar el paquete
+        response = self.send_batch(xml_path, gzip_path, cufd, batch_numbers, codigo_evento)
+        if not response or not getattr(response, "codigoRecepcion", None):
+            logger.error("[❌] No se obtuvo codigoRecepcion en el envío del paquete.")
+            return False
+
+        codigo_recepcion = response.codigoRecepcion
+        logger.info(f"[✅] Paquete enviado exitosamente. Código de recepción: {codigo_recepcion}")
+        
+        # Paso 2: Validar el estado del paquete
+        result = self.validate_package_status(codigo_recepcion, cufd)
+        if not result:
+            logger.error(f"[❌] No se pudo validar el estado del paquete {codigo_recepcion}")
+            return False
+
+        # Paso 3: Determinar el estado basado en la respuesta
+        if getattr(result, "transaccion", False):
+            estado_paquete = "VALIDADO"
+        elif hasattr(result, "mensajesList") and result.mensajesList:
+            estado_paquete = "OBSERVADO"
+        else:
+            estado_paquete = "PENDIENTE"
+
+        # Paso 4: Actualizar las tablas correspondientes
+        try:
+            from data_access import actualizar_estado_paquete, actualizar_estado_facturas
+            actualizar_estado_paquete(evento_id, codigo_recepcion, estado_paquete)
+            actualizar_estado_facturas(batch_numbers, codigo_recepcion, estado_paquete)
+            
+            logger.info(f"[📦] Paquete {codigo_recepcion} validado con estado: {estado_paquete}")
+            return True
+        except Exception as e:
+            logger.error(f"[❌] Error al actualizar estados en base de datos: {e}")
+            return False

@@ -4,11 +4,25 @@ import streamlit as st
 from datetime import datetime
 import os
 import sys
+import logging
 
 # Asegura que el path raíz del proyecto esté en sys.path para que Python encuentre el paquete facturador
 ROOT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if ROOT_PATH not in sys.path:
     sys.path.insert(0, ROOT_PATH)
+
+# 🔧 CONFIGURACIÓN PARA REDUCIR OUTPUT VERBOSO EN TERMINAL
+# Suprimir logs DEBUG de librerías externas que generan ruido
+logging.getLogger('fontTools').setLevel(logging.WARNING)
+logging.getLogger('fontTools.ttLib').setLevel(logging.WARNING)
+logging.getLogger('fontTools.subset').setLevel(logging.WARNING)
+logging.getLogger('fontTools.ttLib.ttFont').setLevel(logging.WARNING)
+logging.getLogger('fontTools.subset.timer').setLevel(logging.WARNING)
+
+# También suprimir otros posibles logs verbosos
+logging.getLogger('matplotlib').setLevel(logging.WARNING)
+logging.getLogger('PIL').setLevel(logging.WARNING)
+logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 from data_access import (
     get_eventos_parametricos, 
