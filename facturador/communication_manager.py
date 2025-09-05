@@ -12,7 +12,7 @@ IMPORTANTE:
 """
 
 
-import time
+import logging
 from datetime import datetime
 from typing import Tuple, Optional, Dict, Any
 from enum import Enum
@@ -29,7 +29,7 @@ logger = get_logger()
 # =============================
 # NUEVO: función global cacheada (sin argumentos)
 # =============================
-#@st.cache_data(ttl=30)
+@st.cache_data(ttl=30)
 def _execute_full_check():
     """
     Función global (fuera de la clase) que ejecuta la verificación completa.
@@ -75,32 +75,28 @@ class CommunicationManager:
         self.max_intentos = 3
         self.historial_verificaciones = []
         
-    def verificar_comunicacion_principal(self) -> Tuple[str, bool, Optional[str], float]:
+    def verificar_comunicacion_principal(self) -> Tuple[str, bool, Optional[str]]:
         """
         Wrapper que usa la función EXISTENTE de soap_services.py sin modificarla.
         
         Returns:
-            tuple: (mensaje, conectado, tipo_deducido, response_time) - Incluye tiempo de respuesta
+            tuple: (mensaje, conectado, tipo_deducido) - MISMO formato que soap_services
         """
         try:
             logger.info("Usando verificación EXISTENTE de soap_services.py")
-            
-            # Medir tiempo de respuesta
-            start_time = time.time()
+            # Llamar a la función ORIGINAL sin modificaciones
             resultado = soap_verificar_comunicacion()
-            response_time = time.time() - start_time
             
             # Registrar en historial para análisis (NUEVA funcionalidad)
             self._registrar_verificacion("soap_services", resultado)
             
-            # Retornar resultado original + tiempo de respuesta
-            return resultado[0], resultado[1], resultado[2], response_time
+            return resultado
             
         except Exception as e:
             logger.error(f"Error en verificación principal: {e}")
-            return f"Error crítico: {e}", False, TipoContingencia.FALLA_SOFTWARE.value, 0.0
+            return f"Error crítico: {e}", False, TipoContingencia.FALLA_SOFTWARE.value
     
-    def verificar_comunicacion_por_servicio(self, servicio: str) -> Tuple[bool, str, float]:
+    def verificar_comunicacion_por_servicio(self, servicio: str) -> Tuple[bool, str]:
         """
         Wrapper que usa la función EXISTENTE de business_logic.py sin modificarla.
         
@@ -108,25 +104,21 @@ class CommunicationManager:
             servicio: Nombre del servicio a verificar
             
         Returns:
-            tuple: (conectado, mensaje, response_time) - Incluye tiempo de respuesta
+            tuple: (conectado, mensaje) - MISMO formato que business_logic
         """
         try:
             logger.info(f"Usando verificación EXISTENTE de business_logic.py para {servicio}")
-            
-            # Medir tiempo de respuesta
-            start_time = time.time()
+            # Llamar a la función ORIGINAL sin modificaciones
             resultado = business_verificar_comunicacion(servicio)
-            response_time = time.time() - start_time
             
             # Registrar en historial para análisis (NUEVA funcionalidad)
             self._registrar_verificacion(f"business_logic_{servicio}", resultado)
             
-            # Retornar resultado original + tiempo de respuesta
-            return resultado[0], resultado[1], response_time
+            return resultado
             
         except Exception as e:
             logger.error(f"Error en verificación de servicio {servicio}: {e}")
-            return False, f"Error crítico: {e}", 0.0
+            return False, f"Error crítico: {e}"
     
     def verificar_comunicacion_completa(self, force_check: bool = False) -> Dict[str, Any]:
         """
@@ -153,37 +145,34 @@ class CommunicationManager:
         }
         try:
             # 1. Verificación principal (soap_services.py - EXISTENTE)
-            mensaje, conectado, tipo, response_time = self.verificar_comunicacion_principal()
+            mensaje, conectado, tipo = self.verificar_comunicacion_principal()
             resultado_completo["verificacion_principal"] = {
                 "mensaje": mensaje,
                 "conectado": conectado,
                 "tipo_contingencia": tipo,
-                "fuente": "soap_services.py",
-                "response_time": f"{response_time:.3f}s"
+                "fuente": "soap_services.py"
             }
 
             # 2. Verificaciones por servicio (business_logic.py - EXISTENTE)
             servicios = [
                 "Facturación Códigos",
-                "Facturación Operaciones", 
+                "Facturación Operaciones",
                 "Facturación Sincronización"
             ]
 
             for servicio in servicios:
                 try:
-                    conectado_srv, mensaje_srv, response_time_srv = self.verificar_comunicacion_por_servicio(servicio)
+                    conectado_srv, mensaje_srv = self.verificar_comunicacion_por_servicio(servicio)
                     resultado_completo["verificaciones_servicios"][servicio] = {
                         "conectado": conectado_srv,
                         "mensaje": mensaje_srv,
-                        "fuente": "business_logic.py",
-                        "response_time": f"{response_time_srv:.3f}s"
+                        "fuente": "business_logic.py"
                     }
                 except Exception as e:
                     resultado_completo["verificaciones_servicios"][servicio] = {
                         "conectado": False,
                         "mensaje": f"Error: {e}",
-                        "fuente": "business_logic.py",
-                        "response_time": "Error"
+                        "fuente": "business_logic.py"
                     }
 
             # 3. Análisis general (NUEVA funcionalidad)

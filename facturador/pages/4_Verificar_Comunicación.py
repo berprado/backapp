@@ -1,6 +1,9 @@
 import streamlit as st
 import os
 import sys
+import requests
+import time
+from dotenv import load_dotenv
 import pandas as pd
 
 # Agregar ruta del directorio padre al path de Python
@@ -8,285 +11,166 @@ parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 if parent_dir not in sys.path:
     sys.path.append(parent_dir)
 
-# Importar el sistema centralizado de verificación
-from facturador.communication_manager import communication_manager
+from facturador.response_handler import parse_siat_response
 from logger_config import get_logger
 
 # Obtener logger para este módulo
 logger = get_logger()
 
-def mostrar_estado_servicios(resultado_verificacion):
+# Cargar las variables desde el archivo .env
+load_dotenv()
+
+# Función para verificar la comunicación con el servicio SIAT
+def verificar_servicio(url, nombre_servicio):
     """
-    Muestra el estado de los servicios usando los resultados del communication_manager.
+    Verifica la comunicación con un servicio del SIAT
     
     Args:
-        resultado_verificacion (dict): Resultado de la verificación centralizada
+        url (str): URL del servicio SOAP
+        nombre_servicio (str): Nombre descriptivo del servicio
+        
+    Returns:
+        tuple: (bool, str) - (éxito, mensaje)
     """
-    results = []
+    # Plantilla de solicitud SOAP
+    soap_request = """<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:siat="https://siat.impuestos.gob.bo/">
+       <soapenv:Header/>
+       <soapenv:Body>
+          <siat:verificarComunicacion/>
+       </soapenv:Body>
+    </soapenv:Envelope>"""
     
-    # Agregar verificación principal
-    principal = resultado_verificacion.get("verificacion_principal", {})
-    if principal:
-        tiempo_respuesta = principal.get("response_time", "N/A")
-        
-        # Formatear el tiempo de respuesta con colores
-        if tiempo_respuesta != "N/A" and tiempo_respuesta != "Error":
-            try:
-                tiempo_num = float(tiempo_respuesta.replace('s', ''))
-                if tiempo_num < 1.0:
-                    tiempo_formateado = f"🟢 {tiempo_respuesta}"  # Verde para respuestas rápidas
-                elif tiempo_num < 3.0:
-                    tiempo_formateado = f"🟡 {tiempo_respuesta}"  # Amarillo para respuestas normales
-                else:
-                    tiempo_formateado = f"🔴 {tiempo_respuesta}"  # Rojo para respuestas lentas
-            except:
-                tiempo_formateado = tiempo_respuesta
-        else:
-            tiempo_formateado = tiempo_respuesta
-        
-        results.append({
-            "Servicio": "🔍 Verificación Principal",
-            "Estado": "✅ Operativo" if principal.get("conectado") else "❌ Con problemas", 
-            "Mensaje": principal.get("mensaje", "Sin mensaje"),
-            "Fuente": principal.get("fuente", "Sistema general"),
-            "Tiempo": tiempo_formateado
-        })
-    
-    # Agregar verificaciones por servicio
-    servicios = resultado_verificacion.get("verificaciones_servicios", {})
-    service_names = {
-        "FacturacionCodigos": "📋 Facturación Códigos",
-        "FacturacionOperaciones": "⚙️ Facturación Operaciones", 
-        "FacturacionSincronizacion": "🔄 Facturación Sincronización",
-        "DocumentosAjuste": "📄 Documentos de Ajuste",
-        "FacturaCompraVenta": "💰 Facturación Compra-Venta"
+    headers = {
+        "Content-Type": "text/xml;charset=UTF-8",
+        "SOAPAction": "",
+        "apikey": os.getenv('API_KEY')
     }
     
-    for servicio, detalle in servicios.items():
-        nombre_amigable = service_names.get(servicio, servicio)
-        tiempo_respuesta = detalle.get("response_time", "N/A")
-        
-        # Formatear el tiempo de respuesta con colores
-        if tiempo_respuesta != "N/A" and tiempo_respuesta != "Error":
-            try:
-                tiempo_num = float(tiempo_respuesta.replace('s', ''))
-                if tiempo_num < 1.0:
-                    tiempo_formateado = f"🟢 {tiempo_respuesta}"  # Verde para respuestas rápidas
-                elif tiempo_num < 3.0:
-                    tiempo_formateado = f"🟡 {tiempo_respuesta}"  # Amarillo para respuestas normales
-                else:
-                    tiempo_formateado = f"🔴 {tiempo_respuesta}"  # Rojo para respuestas lentas
-            except:
-                tiempo_formateado = tiempo_respuesta
-        else:
-            tiempo_formateado = tiempo_respuesta
-        
-        results.append({
-            "Servicio": nombre_amigable,
-            "Estado": "✅ Operativo" if detalle.get("conectado") else "❌ Con problemas",
-            "Mensaje": detalle.get("mensaje", "Sin mensaje"),
-            "Fuente": detalle.get("fuente", "Sistema específico"),
-            "Tiempo": tiempo_formateado
-        })
+    start_time = time.time()
+    status_placeholder = st.empty()
     
-    # Mostrar tabla si hay resultados
-    if results:
-        # Mostrar estadísticas de rendimiento
-        st.subheader("📊 Estadísticas de Rendimiento")
+    try:
+        status_placeholder.info(f"⏱️ Verificando servicio: {nombre_servicio}...")
         
-        # Extraer tiempos para estadísticas
-        tiempos_validos = []
-        for row in results:
-            tiempo_str = row["Tiempo"]
-            if "🟢" in tiempo_str or "🟡" in tiempo_str or "🔴" in tiempo_str:
-                try:
-                    tiempo_limpio = tiempo_str.split()[-1].replace('s', '')
-                    tiempos_validos.append(float(tiempo_limpio))
-                except:
-                    continue
+        # Enviar la solicitud SOAP
+        response = requests.post(url, data=soap_request, headers=headers, timeout=10)
         
-        if tiempos_validos:
-            col1, col2, col3, col4 = st.columns(4)
-            with col1:
-                st.metric("⚡ Tiempo Promedio", f"{sum(tiempos_validos)/len(tiempos_validos):.3f}s")
-            with col2:
-                st.metric("🚀 Más Rápido", f"{min(tiempos_validos):.3f}s")
-            with col3:
-                st.metric("🐌 Más Lento", f"{max(tiempos_validos):.3f}s")
-            with col4:
-                st.metric("📊 Servicios OK", f"{sum(1 for r in results if '✅' in r['Estado'])}/{len(results)}")
+        # Verificar que la respuesta sea exitosa (código 200)
+        response.raise_for_status()
         
-        st.subheader("🔍 Detalle por Servicio")
-        df = pd.DataFrame(results)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        # Calcular tiempo de respuesta
+        response_time = time.time() - start_time
         
-        # Determinar estado general
-        todos_operativos = all(row["Estado"] == "✅ Operativo" for row in results)
+        # Procesar la respuesta usando el módulo response_handler
+        success, response_data = parse_siat_response(response.content)
         
-        if todos_operativos:
-            st.success("✅ Todos los servicios están operativos")
+        if success:
+            # Verificar si la transacción fue exitosa
+            transaccion_ok = response_data.get('transaccion', False)
+            
+            if transaccion_ok:
+                status_placeholder.success(f"✅ Servicio: {nombre_servicio} - OK ({response_time:.2f}s)")
+                return True, f"Comunicación exitosa en {response_time:.2f} segundos"
+            else:
+                codigo = response_data.get('codigoEstado', 'Desconocido')
+                desc = response_data.get('codigoDescripcion', 'Sin descripción')
+                status_placeholder.warning(f"⚠️ Servicio: {nombre_servicio} - Respuesta: {codigo} ({response_time:.2f}s)")
+                return False, f"Respuesta no exitosa: {codigo} - {desc}"
         else:
-            servicios_con_problemas = [
-                row["Servicio"] for row in results 
-                if row["Estado"] != "✅ Operativo"
-            ]
-            st.error(f"⚠️ Hay problemas con: {', '.join(servicios_con_problemas)}")
+            error = response_data.get('error', 'Error desconocido')
+            status_placeholder.error(f"❌ Servicio: {nombre_servicio} - Error: {error} ({response_time:.2f}s)")
+            return False, f"Error en la comunicación: {error}"
             
-            # Mostrar recomendación de contingencia
-            recomendacion = resultado_verificacion.get("recomendacion", "")
-            if recomendacion:
-                st.warning(f"💡 **Recomendación del Sistema:** {recomendacion}")
-            
-            st.info("""
-            **Sugerencia:** Si los problemas persisten, considere activar el modo de contingencia.
-            El sistema puede detectar automáticamente el tipo de contingencia apropiado.
-            """)
-    else:
-        st.warning("No se obtuvieron resultados de la verificación")
+    except requests.exceptions.Timeout:
+        status_placeholder.error(f"⏱️ Servicio: {nombre_servicio} - TIMEOUT (>10s)")
+        return False, "Tiempo de espera agotado (>10s)"
+    except requests.exceptions.ConnectionError:
+        status_placeholder.error(f"🔌 Servicio: {nombre_servicio} - ERROR DE CONEXIÓN")
+        return False, "Error de conexión al servidor"
+    except requests.exceptions.RequestException as e:
+        status_placeholder.error(f"❌ Servicio: {nombre_servicio} - ERROR: {str(e)}")
+        return False, f"Error en la solicitud: {str(e)}"
 
 def main():
-    st.title("🔍 Verificador de Comunicación con SIAT")
+    st.title("Verificador de Comunicación con SIAT")
     
-    st.write("""
-    Esta herramienta utiliza el **sistema centralizado de verificación** para diagnosticar 
-    la comunicación con los servicios de facturación del SIAT de manera optimizada.
-    """)
+    # Extraer los endpoints y el API_KEY del .env
+    endpoints = {
+        "Facturación Códigos": os.getenv("WSDL_URL_CODIGOS"),
+        "Facturación Operaciones": os.getenv("WSDL_URL_OPERACIONES"),
+        "Facturación Sincronización": os.getenv("WSDL_URL_SYNC"),
+        "Documentos de Ajuste": os.getenv("WSDL_URL_AJUSTE"),
+        "Facturación Compra-Venta": os.getenv("WSDL_URL_FACTURACION")
+    }
     
-    # Información del sistema
-    st.info("""
-    ℹ️ **Sistema Optimizado**: Esta página utiliza caché inteligente de 30 segundos 
-    para evitar sobrecargar los servicios del SIAT con consultas repetitivas.
-    """)
+    st.write("Esta herramienta verifica la comunicación con los servicios de facturación del SIAT.")
     
-    # Botones de acción principales
-    st.subheader("🎯 Opciones de Verificación")
-    
-    col1, col2, col3 = st.columns(3)
+    # Opciones de verificación
+    st.subheader("Opciones de Verificación")
+    col1, col2 = st.columns(2)
     
     with col1:
-        verificar_normal = st.button(
-            "🔧 Verificación Estándar", 
-            help="Usa caché si está disponible (recomendado)",
-            use_container_width=True
+        # Permitir seleccionar servicios específicos
+        servicios_seleccionados = st.multiselect(
+            "Seleccione los servicios a verificar:",
+            options=list(endpoints.keys()),
+            default=list(endpoints.keys())
         )
     
     with col2:
-        verificar_forzado = st.button(
-            "🔄 Verificación Forzada", 
-            help="Ignora caché y ejecuta verificación nueva",
-            use_container_width=True
-        )
+        # Botones de acción
+        verificar_todos = st.button("Verificar Todos")
+        verificar_seleccionados = st.button("Verificar Seleccionados")
     
-    with col3:
-        diagnostico_completo = st.button(
-            "🩺 Diagnóstico Completo", 
-            help="Muestra interfaz avanzada de diagnóstico",
-            use_container_width=True
-        )
+    # Mostrar resultados en formato tabla
+    st.subheader("Estado de los Servicios")
     
-    # Mostrar estado de caché
-    with st.expander("📊 Información del Sistema de Caché"):
-        st.write("""
-        - **Tiempo de vida del caché**: 30 segundos
-        - **Última verificación**: Se muestra en los resultados
-        - **Estado del sistema**: Centralizado y optimizado
-        """)
-    
-    # Procesar acciones de los botones
-    if verificar_normal:
-        st.subheader("📋 Resultados de Verificación Estándar")
+    # Si se presiona algún botón, realizar las verificaciones correspondientes
+    if verificar_todos or (verificar_seleccionados and servicios_seleccionados):
+        # Determinar qué servicios verificar
+        servicios_a_verificar = list(endpoints.keys()) if verificar_todos else servicios_seleccionados
         
-        with st.spinner("🔍 Verificando comunicación (usando caché si está disponible)..."):
-            try:
-                resultado = communication_manager.verificar_comunicacion_completa(force_check=False)
-                mostrar_estado_servicios(resultado)
+        # Crear un DataFrame para mostrar los resultados
+        results = []
+        
+        # Verificar cada servicio seleccionado
+        for servicio in servicios_a_verificar:
+            if servicio in endpoints and endpoints[servicio]:
+                exito, mensaje = verificar_servicio(endpoints[servicio], servicio)
                 
-                # Mostrar timestamp
-                timestamp = resultado.get("timestamp", "No disponible")
-                st.caption(f"⏰ Última verificación: {timestamp}")
+                results.append({
+                    "Servicio": servicio,
+                    "Estado": "✅ Operativo" if exito else "❌ Con problemas",
+                    "Mensaje": mensaje
+                })
+            else:
+                results.append({
+                    "Servicio": servicio,
+                    "Estado": "⚠️ No configurado",
+                    "Mensaje": "URL no disponible en archivo .env"
+                })
+        
+        # Mostrar resultados en una tabla
+        if results:
+            df = pd.DataFrame(results)
+            st.dataframe(df, use_container_width=True, hide_index=True)
+            
+            # Determinar si todos los servicios están operativos
+            todos_operativos = all(row["Estado"] == "✅ Operativo" for row in results)
+            
+            if todos_operativos:
+                st.success("✅ Todos los servicios están operativos")
+            else:
+                servicios_con_problemas = [row["Servicio"] for row in results if row["Estado"] != "✅ Operativo"]
+                st.error(f"⚠️ Hay problemas con los siguientes servicios: {', '.join(servicios_con_problemas)}")
                 
-            except Exception as e:
-                st.error(f"❌ Error durante la verificación: {str(e)}")
-                logger.error(f"Error en verificación estándar: {e}")
-    
-    elif verificar_forzado:
-        st.subheader("🔄 Resultados de Verificación Forzada")
-        
-        with st.spinner("🚀 Ejecutando verificación completa (ignorando caché)..."):
-            try:
-                resultado = communication_manager.verificar_comunicacion_completa(force_check=True)
-                mostrar_estado_servicios(resultado)
-                
-                # Mostrar timestamp
-                timestamp = resultado.get("timestamp", "No disponible")
-                st.success(f"✅ Verificación forzada completada: {timestamp}")
-                
-            except Exception as e:
-                st.error(f"❌ Error durante la verificación forzada: {str(e)}")
-                logger.error(f"Error en verificación forzada: {e}")
-    
-    elif diagnostico_completo:
-        st.subheader("🩺 Diagnóstico Completo del Sistema")
-        
-        try:
-            # Mostrar la interfaz completa de diagnóstico del communication_manager
-            communication_manager.mostrar_diagnostico_completo()
-            
-        except Exception as e:
-            st.error(f"❌ Error en diagnóstico completo: {str(e)}")
-            logger.error(f"Error en diagnóstico completo: {e}")
-    
-    # Sección de ayuda
-    with st.expander("❓ Ayuda y Guía de Uso"):
-        st.markdown("""
-        ### 🎯 ¿Cuándo usar cada opción?
-        
-        - **🔧 Verificación Estándar**: Para uso normal. Es rápida y eficiente.
-        - **🔄 Verificación Forzada**: Cuando necesites datos en tiempo real o si sospechas cambios recientes.
-        - **🩺 Diagnóstico Completo**: Para análisis detallado, historial y troubleshooting avanzado.
-        
-        ### 📊 Estados de los Servicios
-        
-        - **✅ Operativo**: El servicio responde correctamente
-        - **❌ Con problemas**: Hay errores de comunicación o respuesta
-        - **⚠️ No configurado**: El servicio no está configurado en el sistema
-        
-        ### ⏱️ Interpretación de Tiempos de Respuesta
-        
-        - **� < 1.0s**: Excelente - Respuesta muy rápida
-        - **🟡 1.0-3.0s**: Normal - Tiempo de respuesta aceptable  
-        - **🔴 > 3.0s**: Lento - Puede indicar problemas de conectividad
-        - **Error**: El servicio no respondió o falló la conexión
-        
-        ### �🚨 Recomendaciones de Contingencia
-        
-        El sistema puede sugerir automáticamente el tipo de contingencia apropiado 
-        basándose en el patrón de errores detectados.
-        """)
-        
-        # Agregar información técnica adicional
-        with st.expander("🔧 Información Técnica"):
-            st.markdown("""
-            ### 📈 Métricas de Rendimiento
-            
-            - **Caché TTL**: 30 segundos para optimizar rendimiento
-            - **Timeout**: 10 segundos por servicio
-            - **Servicios monitoreados**: 4 servicios principales del SIAT
-            - **Historial**: Se mantienen los últimos 50 registros
-            
-            ### 🔍 Servicios Verificados
-            
-            1. **Verificación Principal**: Usando `soap_services.py`
-            2. **Facturación Códigos**: Sincronización de catálogos
-            3. **Facturación Operaciones**: CUFD, CUIS y operaciones
-            4. **Facturación Sincronización**: Sincronización de tiempo
-            """)
-                # Footer con información del sistema
-    st.markdown("---")
-    st.caption("""
-    🔗 **Sistema Centralizado**: Esta página utiliza el `CommunicationManager` 
-    para verificaciones optimizadas y consistentes en toda la aplicación.
-    """)
+                # Sugerir activar modo contingencia si hay problemas
+                st.warning("""
+                **Sugerencia:** Si los problemas persisten, considere activar el modo de contingencia.
+                Puede hacerlo desde la sección 'Gestión de Contingencia' en el menú lateral.
+                """)
+        else:
+            st.warning("No se seleccionó ningún servicio para verificar")
 
 if __name__ == "__main__":
     main()
