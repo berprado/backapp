@@ -7,7 +7,6 @@ import requests
 from dotenv import load_dotenv
 import xml.etree.ElementTree as ET
 import sys
-import traceback
 import time
 
 # Agregar la ruta del directorio padre al path de Python si no está ya

@@ -1,7 +1,6 @@
 # facturador/main.py
 
 import streamlit as st
-from datetime import datetime
 import os
 import sys
 import logging
@@ -25,11 +24,9 @@ logging.getLogger('PIL').setLevel(logging.WARNING)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 from data_access import (
-    get_eventos_parametricos, 
     obtener_cufd_vigente, 
     registrar_evento_local_normativo,
     obtener_evento_activo_actual,
-    cerrar_evento_significativo,
     obtener_evento_por_id
 )
 from ui_copy import render_full_ui
