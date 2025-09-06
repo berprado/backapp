@@ -67,62 +67,36 @@ class BatchSender:
     
     def create_batch_file(self, batch_numbers):
         """
-        Crea un archivo XML con todas las facturas del lote
-        
+        Crea un archivo .tar.gz con los XML individuales de las facturas del lote (normativa SIN).
         Args:
             batch_numbers (list): Lista de números de factura en el lote
-            
         Returns:
-            tuple: (str, str) Ruta del archivo XML generado y del archivo comprimido
+            tuple: (str, str) Ruta del archivo .tar.gz generado y lista de XML incluidos
         """
+        import tarfile
         try:
-            # Nombre del archivo basado en timestamp
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            batch_file_path = f"xmls_batch/batch_{timestamp}.xml"
-            
-            # Crear el archivo XML principal que contendrá todas las facturas
-            with open(batch_file_path, "w", encoding="utf-8") as batch_file:
-                batch_file.write('<?xml version="1.0" encoding="UTF-8"?>\n')
-                batch_file.write('<facturas>\n')
-                
+            tar_filename = f"xmls_batch/paquete_facturas_{timestamp}.tar.gz"
+            xml_paths_incluidos = []
+            with tarfile.open(tar_filename, "w:gz") as tar:
                 for numero_factura in batch_numbers:
-                    # Buscar la factura en la base de datos
                     factura = self.session.query(FacturaCabecera).filter(
                         FacturaCabecera.numeroFactura == numero_factura
                     ).first()
-                    
                     if factura:
-                        # Buscar el XML almacenado de la factura
-                        xml_path = f"xmls_offline/factura_{factura.numeroFactura}_{factura.cuf}.xml"
-                        
+                        xml_path = f"offline_invoices/factura_offline_ev{factura.codigoEvento}_n{factura.numeroFactura}.xml"
                         if os.path.exists(xml_path):
-                            with open(xml_path, "r", encoding="utf-8") as xml_file:
-                                xml_content = xml_file.read()
-                                
-                                # Eliminar la declaración XML para evitar conflictos
-                                xml_content = xml_content.replace('<?xml version="1.0" encoding="UTF-8"?>', '')
-                                
-                                # Agregar el contenido al archivo de lote
-                                batch_file.write(xml_content)
+                            tar.add(xml_path, arcname=os.path.basename(xml_path))
+                            xml_paths_incluidos.append(xml_path)
                         else:
-                            logger.warning(f"No se encontró el XML para la factura {numero_factura}")
+                            logger.warning(f"No se encontró el XML para la factura {numero_factura} en {xml_path}")
                     else:
                         logger.warning(f"No se encontró la factura {numero_factura} en la base de datos")
-                
-                batch_file.write('</facturas>\n')
-            
-            # Comprimir el archivo
-            compressed_file_path = f"{batch_file_path}.gz"
-            with open(batch_file_path, 'rb') as f_in:
-                with gzip.open(compressed_file_path, 'wb') as f_out:
-                    f_out.write(f_in.read())
-            
-            logger.info(f"Archivo de lote creado: {compressed_file_path}")
-            return batch_file_path, compressed_file_path
-        
+            logger.info(f"Archivo comprimido generado: {tar_filename} con {len(xml_paths_incluidos)} XMLs")
+            return tar_filename, xml_paths_incluidos
         except Exception as e:
-            logger.error(f"Error al crear archivo de lote: {str(e)}")
-            return None, None
+            logger.error(f"Error al crear archivo comprimido de lote: {str(e)}")
+            return None, []
     
     def calculate_hash(self, file_path):
         """
@@ -205,12 +179,13 @@ class BatchSender:
             'codigoModalidad': int(os.getenv('CODIGO_MODALIDAD')),
             'cuis': os.getenv('CUIS'),
             'cufd': cufd,
+            'nit': int(os.getenv('NIT')),
             'tipoFacturaDocumento': int(os.getenv('CODIGO_TIPO_FACTURA', 1)),
             'codigoRecepcion': codigo_recepcion
         }
         try:
             response = client.service.validacionRecepcionPaqueteFactura(
-                solicitudValidacionRecepcionPaquete=solicitud_validacion_paquete
+                SolicitudServicioValidacionRecepcionPaquete=solicitud_validacion_paquete
             )
             logger.info(f"[📡] Respuesta validación paquete: {response}")
             return response
@@ -268,8 +243,8 @@ class BatchSender:
                 logger.error("Failed to create SOAP client")
                 return None
 
+
             # Prepare the request with ALL required normative parameters
-            # CORRECCIÓN: Encapsular parámetros según estructura SOAP esperada
             solicitud_recepcion_paquete = {
                 'codigoAmbiente': int(os.getenv('CODIGO_AMBIENTE')),
                 'codigoPuntoVenta': int(os.getenv('CODIGO_PUNTO_VENTA', 0)),
@@ -280,32 +255,39 @@ class BatchSender:
                 'codigoModalidad': int(os.getenv('CODIGO_MODALIDAD')),
                 'cufd': cufd_code,
                 'cuis': os.getenv('CUIS'),
+                'nit': int(os.getenv('NIT')),
                 'tipoFacturaDocumento': int(os.getenv('CODIGO_TIPO_FACTURA', 1)),
                 'archivo': base64_file,
-                'fechaEnvio': datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f"),
+                'fechaEnvio': datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3],
                 'hashArchivo': sha256_hash,
+                'cafc': os.getenv('CAFC', ''),
                 'cantidadFacturas': len(batch_numbers),
                 'codigoEvento': codigo_evento
             }
 
             logger.info(f"[📦] Enviando paquete con {len(batch_numbers)} facturas, evento {codigo_evento}")
+            logger.info("[📝] Valores de la solicitud SOAP RecepcionPaqueteFactura:")
+            for k, v in solicitud_recepcion_paquete.items():
+                if k == 'archivo':
+                    logger.info(f"  {k}: [base64, longitud={len(v)}]")
+                elif k == 'hashArchivo':
+                    logger.info(f"  {k}: {v}")
+                else:
+                    logger.info(f"  {k}: {v}")
 
             # Retry mechanism
             max_retries = 3
             for attempt in range(max_retries):
                 try:
                     logger.info(f"Attempt {attempt + 1} to send batch...")
-                    # CORRECCIÓN: Usar estructura correcta según mensaje de error SOAP
+                    # CORREGIDO: Usar el nombre exacto del argumento según WSDL
                     response = client.service.recepcionPaqueteFactura(
-                        solicitudRecepcionPaquete=solicitud_recepcion_paquete
+                        SolicitudServicioRecepcionPaquete=solicitud_recepcion_paquete
                     )
-                    
                     logger.info(f"[📡] Respuesta RecepcionPaqueteFactura: {response}")
                     return response
-
                 except Exception as e:
                     logger.error(f"Exception during batch sending attempt {attempt + 1}: {str(e)}")
-
             return None
 
         except Exception as e:
@@ -315,29 +297,30 @@ class BatchSender:
     def process_and_validate_batch(self, xml_path, gzip_path, cufd, batch_numbers, evento_id):
         """
         Orquestador completo para envío y validación de paquetes offline.
-        
         Args:
             xml_path (str): Ruta del archivo XML del paquete
             gzip_path (str): Ruta del archivo comprimido
             cufd (str): CUFD para el envío
             batch_numbers (list): Lista de números de factura del lote
             evento_id (int): ID del evento significativo
-            
         Returns:
             bool: True si el proceso fue exitoso, False en caso contrario
         """
-        # Obtener el código del evento desde la base de datos
+        # Obtener el código de recepción del evento desde la base de datos
         try:
             from data_access import obtener_evento_por_id
             evento_data = obtener_evento_por_id(evento_id)
             if not evento_data:
                 logger.error(f"[❌] No se pudo obtener los datos del evento #{evento_id}")
                 return False
-            codigo_evento = evento_data.get('codigo_evento')
+            codigo_evento = evento_data.get('codigo_recepcion')
+            if not codigo_evento:
+                logger.error(f"[❌] El evento #{evento_id} no tiene código de recepción asignado.")
+                return False
         except Exception as e:
-            logger.error(f"[❌] Error al obtener código del evento #{evento_id}: {e}")
+            logger.error(f"[❌] Error al obtener código de recepción del evento #{evento_id}: {e}")
             return False
-        
+
         # Paso 1: Enviar el paquete
         response = self.send_batch(xml_path, gzip_path, cufd, batch_numbers, codigo_evento)
         if not response or not getattr(response, "codigoRecepcion", None):
@@ -346,7 +329,7 @@ class BatchSender:
 
         codigo_recepcion = response.codigoRecepcion
         logger.info(f"[✅] Paquete enviado exitosamente. Código de recepción: {codigo_recepcion}")
-        
+
         # Paso 2: Validar el estado del paquete
         result = self.validate_package_status(codigo_recepcion, cufd)
         if not result:
@@ -366,7 +349,6 @@ class BatchSender:
             from data_access import actualizar_estado_paquete, actualizar_estado_facturas
             actualizar_estado_paquete(evento_id, codigo_recepcion, estado_paquete)
             actualizar_estado_facturas(batch_numbers, codigo_recepcion, estado_paquete)
-            
             logger.info(f"[📦] Paquete {codigo_recepcion} validado con estado: {estado_paquete}")
             return True
         except Exception as e:

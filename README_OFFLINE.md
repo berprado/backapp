@@ -2,7 +2,6 @@
 
 Este documento describe detalladamente el flujo implementado para la emisión de facturas cuando el sistema **NO tiene conectividad** con el Servicio de Impuestos Nacionales (SIAT), conforme a la normativa boliviana.
 
----
 
 ## 🔄 **FLUJO COMPLETO OFFLINE**
 
@@ -19,15 +18,9 @@ conectado = principal["conectado"] if principal else False
 
 #### **1.2 Detección de Errores Normativos (soap_services.py:53-72)**
 El sistema detecta automáticamente los siguientes estados que activan contingencia según normativa:
-- `HTTP 400/404/500/502/503` - Servicios SIN inaccesibles
-- `Timeout` - Tiempo de espera agotado  
-- `ConnectionError` - Corte de Internet
-- `Código -1` - Error específico normativo
-- `Java Null Point Exception` - Error Java
 
 **Función:** `verificar_comunicacion()` clasifica automáticamente el tipo de contingencia (códigos 1-7).
 
----
 
 ### **2. REGISTRO AUTOMÁTICO DEL EVENTO SIGNIFICATIVO**
 
@@ -53,7 +46,6 @@ evento_activo = registrar_evento_local_normativo(evento_data)
 
 **Función:** `registrar_evento_local_normativo()` en `data_access.py:787-825` garantiza que solo exista **1 evento activo** simultáneamente conforme a normativa.
 
----
 
 ### **3. ACTIVACIÓN DE INTERFAZ OFFLINE**
 
@@ -70,20 +62,13 @@ render_full_ui(
 ```
 
 #### **3.2 Configuración del Entorno Offline (ui_copy.py)**
-- Desactiva servicios online
-- Activa modo contingencia en todas las pestañas
-- Pasa el `evento_activo` a la pestaña de facturación
 
----
 
 ### **4. GENERACIÓN DE FACTURAS OFFLINE**
 
 **Archivos participantes:** `tabs/facturacion_tab.py`, `data_access.py`, `invoice_xml_generator.py`
 
 #### **4.1 Preparación de Datos (facturacion_tab.py:290-310)**
-- Recopila datos del cliente (nombre, NIT/CI)
-- Selecciona comandas y calcula totales
-- Obtiene método de pago e información adicional
 
 #### **4.2 Obtención del CUFD del Evento (facturacion_tab.py:340-344)**
 ```python
@@ -116,7 +101,6 @@ cuf = generate_cuf(
 
 **Archivo:** `generate_cuf.py` genera el Código Único de Facturación con `tipoEmision=2` indicando **facturación offline**.
 
----
 
 ### **5. CREACIÓN DEL XML FISCAL**
 
@@ -134,10 +118,6 @@ xml_content = generate_xml_invoice(
 ```
 
 **Función:** `generate_xml_invoice()` en `invoice_xml_generator.py` crea el XML con estructura normativa incluyendo:
-- Cabecera con información fiscal
-- Detalles de productos/servicios  
-- Leyenda aleatoria de base de datos
-- Código de excepción cuando aplica
 
 #### **5.2 Almacenamiento del XML (facturacion_tab.py:410-415)**
 ```python
@@ -150,7 +130,6 @@ with open(filename, 'w', encoding='utf-8') as f:
 
 **PATRÓN NORMATIVO:** `factura_offline_ev{ID_EVENTO}_n{NUMERO}.xml` permite identificar facturas por evento para procesamiento posterior.
 
----
 
 ### **6. REGISTRO EN BASE DE DATOS LOCAL**
 
@@ -177,7 +156,6 @@ for detalle in factura_detalles_data:
 
 **Funciones:** `guardar_factura_cabecera()` y `guardar_factura_detalle()` en `data_access.py` almacenan toda la información fiscal localmente.
 
----
 
 ### **7. INCREMENTO DE NUMERACIÓN**
 
@@ -189,7 +167,6 @@ incrementar_numero_factura()
 
 **Función:** `incrementar_numero_factura()` en `data_access.py:253-270` mantiene secuencia numérica consistente entre facturas online y offline.
 
----
 
 ### **8. GENERACIÓN E IMPRESIÓN**
 
@@ -208,7 +185,6 @@ solicitar_impresion(factura_procesada)
 
 **Hilo independiente:** `print_manager.py` maneja la impresión térmica en segundo plano sin bloquear la interfaz.
 
----
 
 ## 🔄 **FINALIZACIÓN AUTOMÁTICA DE CONTINGENCIA**
 
@@ -257,7 +233,6 @@ nombre_zip = f"paquetes_contingencia/evento_{evento['id']}_recepcion_{codigo_rec
 
 **Resultado:** Todas las facturas del evento se comprimen en un ZIP con nombre normativo para envío posterior al SIN.
 
----
 
 ## 📊 **ARCHIVOS Y FUNCIONES CLAVE**
 
@@ -271,16 +246,8 @@ nombre_zip = f"paquetes_contingencia/evento_{evento['id']}_recepcion_{codigo_rec
 | **invoice_xml_generator.py** | `generate_xml_invoice()` | Creación XML fiscal |
 | **contingencia_auto.py** | `finalizar_evento_si_conectado()` | Cierre normativo de contingencia |
 
----
 
 ## ✅ **CUMPLIMIENTO NORMATIVO**
 
-- ✅ **Solo 1 evento activo** por vez
-- ✅ **CUFD pre-corte** en todas las facturas offline  
-- ✅ **Código excepción = 1** para documentos NIT
-- ✅ **tipoEmision = 2** para facturas offline
-- ✅ **Nuevo CUFD antes de registrar evento** al finalizar
-- ✅ **Registro dentro de 48 horas** posterior a contingencia
-- ✅ **Compresión en paquetes** con nombres normativos
 
 **🎯 RESULTADO:** Sistema 100% conforme a normativa boliviana SIN para facturación offline.
