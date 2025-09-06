@@ -1,5 +1,4 @@
 import os
-import zipfile
 from datetime import datetime
 from data_access import (
     obtener_evento_activo_actual, 
