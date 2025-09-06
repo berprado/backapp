@@ -2,7 +2,6 @@ import os
 from datetime import datetime
 from data_access import (
     obtener_evento_activo_actual, 
-    obtener_cufd_vigente, 
     cerrar_evento_significativo
 )
 from communication_manager import communication_manager

@@ -93,7 +93,7 @@ def mostrar_estado_servicios(resultado_verificacion):
     if results:
         # Mostrar estadísticas de rendimiento
         st.subheader("📊 Estadísticas de Rendimiento")
-        
+
         # Extraer tiempos para estadísticas
         tiempos_validos = []
         for row in results:
@@ -104,7 +104,7 @@ def mostrar_estado_servicios(resultado_verificacion):
                     tiempos_validos.append(float(tiempo_limpio))
                 except:
                     continue
-        
+
         if tiempos_validos:
             col1, col2, col3, col4 = st.columns(4)
             with col1:
@@ -115,14 +115,14 @@ def mostrar_estado_servicios(resultado_verificacion):
                 st.metric("🐌 Más Lento", f"{max(tiempos_validos):.3f}s")
             with col4:
                 st.metric("📊 Servicios OK", f"{sum(1 for r in results if '✅' in r['Estado'])}/{len(results)}")
-        
+
         st.subheader("🔍 Detalle por Servicio")
         df = pd.DataFrame(results)
-        st.dataframe(df, use_container_width=True, hide_index=True)
-        
+        st.dataframe(df, width='stretch', hide_index=True)
+
         # Determinar estado general
         todos_operativos = all(row["Estado"] == "✅ Operativo" for row in results)
-        
+
         if todos_operativos:
             st.success("✅ Todos los servicios están operativos")
         else:
@@ -131,12 +131,12 @@ def mostrar_estado_servicios(resultado_verificacion):
                 if row["Estado"] != "✅ Operativo"
             ]
             st.error(f"⚠️ Hay problemas con: {', '.join(servicios_con_problemas)}")
-            
+
             # Mostrar recomendación de contingencia
             recomendacion = resultado_verificacion.get("recomendacion", "")
             if recomendacion:
                 st.warning(f"💡 **Recomendación del Sistema:** {recomendacion}")
-            
+
             st.info("""
             **Sugerencia:** Si los problemas persisten, considere activar el modo de contingencia.
             El sistema puede detectar automáticamente el tipo de contingencia apropiado.
@@ -167,21 +167,21 @@ def main():
         verificar_normal = st.button(
             "🔧 Verificación Estándar", 
             help="Usa caché si está disponible (recomendado)",
-            use_container_width=True
+            width='stretch'
         )
     
     with col2:
         verificar_forzado = st.button(
             "🔄 Verificación Forzada", 
             help="Ignora caché y ejecuta verificación nueva",
-            use_container_width=True
+            width='stretch'
         )
     
     with col3:
         diagnostico_completo = st.button(
             "🩺 Diagnóstico Completo", 
             help="Muestra interfaz avanzada de diagnóstico",
-            use_container_width=True
+            width='stretch'
         )
     
     # Mostrar estado de caché

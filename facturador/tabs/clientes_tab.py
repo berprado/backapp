@@ -80,7 +80,7 @@ def render():
             # Mostrar tabla
             st.dataframe(
                 datos_tabla,
-                use_container_width=True,
+                width='stretch',
                 hide_index=True
             )
             
