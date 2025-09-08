@@ -198,6 +198,9 @@ class FacturaCabecera(Base):
     numeroSecuencia = Column(Integer, nullable=True, comment='Número de secuencia dentro del paquete')
     estadoContingencia = Column(String(20), nullable=True, comment='Estado de contingencia: PENDIENTE, SINCRONIZADO, ERROR')
     fechaSincronizacion = Column(DateTime, nullable=True, comment='Fecha en que se sincronizó la factura de contingencia')
+    requiere_verificacion = Column(Boolean, nullable=True, default=False, comment='Indica si la factura requiere verificación post-contingencia')
+    resultado_verificacion = Column(String(255), nullable=True, comment='Resultado de la verificación de estado')
+    fecha_verificacion = Column(DateTime, nullable=True, comment='Fecha en que se verificó el estado')
 
     # Comentamos temporalmente la relación para evitar conflictos
     # evento_significativo = relationship("EventoSignificativoRegistrado", backref="facturas")
@@ -263,7 +266,10 @@ class FacturaCabecera(Base):
             'estadoPaquete': self.estadoPaquete,
             'numeroSecuencia': self.numeroSecuencia,
             'estadoContingencia': self.estadoContingencia,
-            'fechaSincronizacion': self.fechaSincronizacion.isoformat() if self.fechaSincronizacion else None
+            'fechaSincronizacion': self.fechaSincronizacion.isoformat() if self.fechaSincronizacion else None,
+            'requiere_verificacion': self.requiere_verificacion,
+            'resultado_verificacion': self.resultado_verificacion,
+            'fecha_verificacion': self.fecha_verificacion.isoformat() if self.fecha_verificacion else None
         }
 
 
