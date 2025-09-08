@@ -283,19 +283,44 @@ def _render_consultar_button():
                     logger.error(f"Datos de factura incompletos - CUF: {factura_obj.cuf}, Número factura: {factura_obj.numero_factura}")
                     return
                 
+                # Verificar si la factura fue emitida en modo offline
+                es_factura_offline = st.session_state.get('factura_emitida_offline', False)
+                
                 enlace = generate_invoice_link(
                     nit_emisor, 
                     factura_obj.cuf,
                     factura_obj.numero_factura
                 )
-                st.link_button("Consultar factura", enlace)
-                logger.info(f"Enlace de consulta de factura generado: {enlace}")
+                
+                # Contenedor para el botón y la información
+                if es_factura_offline:
+                    with st.container():
+                        st.warning("⚠️ **Factura emitida en modo offline**\n\nEl enlace estará disponible después del envío al SIN una vez restablecida la conexión.")
+                        
+                        # Botón desactivado con estilo visual claro
+                        st.button(
+                            "🔗 Consultar factura (No disponible offline)",
+                            disabled=True,
+                            help="Esta factura fue generada en modo offline. El enlace funcionará después del envío al SIN.",
+                            key="consultar_offline_disabled"
+                        )
+                else:
+                    # Botón normal para facturas online
+                    st.link_button(
+                        "🔗 Consultar factura", 
+                        enlace,
+                        help="Consultar la factura en el portal oficial del SIAT"
+                    )
+                    logger.info(f"Enlace de consulta de factura generado: {enlace}")
+                    
             except Exception as e:
                 st.error(f"Error al generar el enlace de consulta: {str(e)}")
                 logger.exception("Error al generar el enlace de consulta")
         else:
             st.error("No se encontraron los datos de la factura para la consulta.")
             logger.error("Se intentó generar enlace de consulta pero no se encontró 'factura_a_procesar' en session_state.")
+    else:
+        st.info("El botón de consulta estará disponible cuando la factura haya sido procesada.")
 
 def _handle_online_submission(invoice_config, client_data, tipos_documento, comandas_seleccionadas,
                            lineas_productos, subtotal, total, fecha_emision, fecha_emision_str,
@@ -463,13 +488,14 @@ def _handle_online_submission(invoice_config, client_data, tipos_documento, coma
                                 tipo_factura=os.getenv('DESCRIPCION_TIPO_FACTURA', 'FACTURA'),
                                 subtitulo_factura=os.getenv('SUBTITULO', '(CON DERECHO A CREDITO FISCAL)'),
                                 leyenda=factura_cabecera_data.get('leyenda', 'Ley Nro 453: ...'), # Obtener de los datos ya generados
-                                # URL para QR
-                                url_qr=f"https://pilotosiat.impuestos.gob.bo/consulta/QR?nit={nit_emisor}&cuf={cuf}&numero={numero_factura}"
+                                # URL para QR - usando función centralizada
+                                url_qr=generate_invoice_link(nit_emisor, cuf, numero_factura)
                             )
 
                             # 3. Guardar el objeto único en session_state
                             st.session_state['factura_a_procesar'] = factura_para_procesar
                             st.session_state['factura_validada'] = True # Mantenemos esta para la lógica del botón
+                            st.session_state['factura_emitida_offline'] = False  # Factura emitida online
 
                             facturacion_logger.info(f"Objeto FacturaProcesada para factura {numero_factura} creado y guardado en session_state.")
 
@@ -649,13 +675,14 @@ def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos
                 tipo_factura=os.getenv('DESCRIPCION_TIPO_FACTURA', 'FACTURA OFFLINE'),
                 subtitulo_factura=os.getenv('SUBTITULO', '(CON DERECHO A CREDITO FISCAL)'),
                 leyenda=factura_cabecera_data.get('leyenda', 'Ley Nro 453: ...'),
-                # URL para QR
-                url_qr=f"https://pilotosiat.impuestos.gob.bo/consulta/QR?nit={nit_emisor}&cuf={cuf}&numero={numero_factura}"
+                # URL para QR - usando función centralizada
+                url_qr=generate_invoice_link(nit_emisor, cuf, numero_factura)
             )
 
             # 6.3 Guardar el objeto único en session_state
             st.session_state['factura_a_procesar'] = factura_para_procesar
             st.session_state['factura_validada'] = True # Para que se muestre el botón de consulta/impresión
+            st.session_state['factura_emitida_offline'] = True  # Factura emitida en modo offline
 
             facturacion_logger.info(f"Objeto FacturaProcesada para factura offline {numero_factura} creado y guardado en session_state.")
 

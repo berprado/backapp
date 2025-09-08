@@ -66,14 +66,43 @@ def collect_product_lines(comandas, selected_id_comanda, db):
 def generate_invoice_link(nit, cuf, numero_factura):
     """
     Genera el enlace de consulta de la factura basado en el NIT, CUF y número de factura.
+    
+    IMPORTANTE: Esta función debe usarse en todo el proyecto para generar enlaces de consulta
+    de factura. No construir la URL manualmente en otros lugares para mantener consistencia.
+    
+    Args:
+        nit (str): NIT del emisor
+        cuf (str): Código Único de Facturación
+        numero_factura (str): Número de la factura
+        
+    Returns:
+        str: URL completa para consulta de factura en el portal del SIAT
     """
     enlace = f"https://pilotosiat.impuestos.gob.bo/consulta/QR?nit={nit}&cuf={cuf}&numero={numero_factura}"
     return enlace
 
 
+def generate_invoice_qr_link(nit, cuf, numero_factura, tamano=1):
+    """
+    Genera el enlace de consulta de la factura con parámetro de tamaño para QR.
+    
+    Args:
+        nit (str): NIT del emisor
+        cuf (str): Código Único de Facturación
+        numero_factura (str): Número de la factura
+        tamano (int): Tamaño del QR (por defecto 1)
+        
+    Returns:
+        str: URL completa para QR con parámetro de tamaño
+    """
+    base_url = generate_invoice_link(nit, cuf, numero_factura)
+    return f'{base_url}&t={tamano}'
+
+
 def generate_qr(nit, cuf, numero_factura, tamano=1):
     """Genera un código QR para la factura."""
-    url_qr = f'https://pilotosiat.impuestos.gob.bo/consulta/QR?nit={nit}&cuf={cuf}&numero={numero_factura}&t={tamano}'
+    # Usar la función auxiliar centralizada para QR con parámetro de tamaño
+    url_qr = generate_invoice_qr_link(nit, cuf, numero_factura, tamano)
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.ERROR_CORRECT_L,
