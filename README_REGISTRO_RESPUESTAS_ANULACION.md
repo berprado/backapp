@@ -23,10 +23,13 @@ Unificar el registro de las respuestas del SIAT en el proceso de anulación de f
    - Esto permite registrar la respuesta completa del SIAT en el log, facilitando auditoría y diagnóstico.
 
 2. **Formato unificado:**
-   - El formato del registro es idéntico al utilizado en la emisión de facturas, permitiendo búsquedas y análisis consistentes.
+   - El formato del registro es idéntico al utilizado en la emisión y reversión de facturas, permitiendo búsquedas y análisis consistentes.
 
-3. **Motivo del cambio:**
-   - Cumplir con la normativa y asegurar que todas las respuestas relevantes del SIAT queden registradas en el log.
+3. **Corrección de codificación UTF-8:**
+   - Se forzó la codificación UTF-8 en el `FileHandler` del logger para evitar caracteres extraños y asegurar la correcta visualización de acentos y símbolos especiales.
+
+4. **Motivo del cambio:**
+   - Cumplir con la normativa y asegurar que todas las respuestas relevantes del SIAT queden registradas en el log, con formato legible y correcto.
 
 ---
 

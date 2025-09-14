@@ -1,4 +1,5 @@
 import os
+import logging
 import sys
 # Agregar la ruta del directorio padre al path de Python si no está ya
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -6,11 +7,25 @@ if parent_dir not in sys.path:
     sys.path.append(parent_dir)
 
 from logger_config import get_logger, get_facturacion_logger
+def get_anulacion_logger():
+    logger = logging.getLogger('anulacion')
+    logger.setLevel(logging.DEBUG)
+    file_handler = logging.FileHandler(os.path.join(os.path.dirname(__file__), 'logs', 'anulacion.log'), encoding='utf-8')
+    console_handler = logging.StreamHandler()
+    log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    formatter = logging.Formatter(log_format)
+    file_handler.setFormatter(formatter)
+    console_handler.setFormatter(formatter)
+    if not logger.hasHandlers():
+        logger.addHandler(file_handler)
+        logger.addHandler(console_handler)
+    return logger
 import traceback  # Añadir la importación de traceback
 
 # Obtener loggers para este módulo
 logger = get_logger()
 facturacion_logger = get_facturacion_logger()
+anulacion_logger = get_anulacion_logger()
 
 import requests
 import xml.etree.ElementTree as ET
@@ -83,14 +98,29 @@ def enviar_solicitud_anulacion(cuf, cufd, codigo_motivo):
 
     solicitud_xml = construir_solicitud_anulacion(cuf, cufd, codigo_motivo)
     try:
-        response = requests.post(url, headers=headers, data=solicitud_xml, timeout=45)  # Set timeout explicitly
+        anulacion_logger.info(f"Enviando solicitud de anulación para CUF: {cuf}")
+        anulacion_logger.debug(f"URL del servicio: {url}")
+        anulacion_logger.debug(f"Cabeceras: {headers}")
+        anulacion_logger.info(f"Construyendo solicitud de anulación para CUF: {cuf}")
+        anulacion_logger.debug(f"CUFD vigente utilizado: {cufd}")
+        anulacion_logger.debug(f"Parámetros de solicitud: {{'codigoAmbiente': os.getenv('CODIGO_AMBIENTE'), 'codigoPuntoVenta': os.getenv('CODIGO_PUNTO_VENTA'), 'codigoSistema': os.getenv('CODIGO_SISTEMA'), 'codigoSucursal': os.getenv('CODIGO_SUCURSAL'), 'nit': os.getenv('NIT'), 'codigoDocumentoSector': os.getenv('CODIGO_DOCUMENTO_SECTOR'), 'codigoEmision': os.getenv('CODIGO_TIPO_EMISION'), 'codigoModalidad': os.getenv('CODIGO_MODALIDAD'), 'cufd': cufd, 'cuis': os.getenv('CUIS'), 'tipoFacturaDocumento': os.getenv('CODIGO_TIPO_FACTURA'), 'codigoMotivo': codigo_motivo, 'cuf': cuf}}")
+        anulacion_logger.debug(f"XML de solicitud (resumido): {solicitud_xml[:100]}...{solicitud_xml[-100:] if len(solicitud_xml) > 200 else ''}")
+        anulacion_logger.debug("Enviando solicitud al servicio SIAT...")
+        response = requests.post(url, headers=headers, data=solicitud_xml, timeout=45)
+        anulacion_logger.debug(f"Respuesta recibida. Código HTTP: {response.status_code}")
+        response_content = response.content.decode('utf-8') if response.content else ""
+        anulacion_logger.debug(f"Respuesta (resumida): {response_content[:100]}...{response_content[-100:] if len(response_content) > 200 else ''}")
+        anulacion_logger.info(f"[SIAT] Respuesta recibida: {response.content}")
         response.raise_for_status()
         return True, response.content
     except requests.exceptions.Timeout:
+        anulacion_logger.error("Error inesperado: Timeout al intentar conectar con el servicio de anulación.")
         return False, "Error inesperado: Timeout al intentar conectar con el servicio de anulación."
     except requests.exceptions.HTTPError as http_err:
+        anulacion_logger.error(f"HTTP error occurred: {http_err}")
         return False, f"HTTP error occurred: {http_err}"
     except Exception as e:
+        anulacion_logger.error(f"An error occurred: {e}")
         return False, f"An error occurred: {e}"
 
 def procesar_respuesta_anulacion(respuesta_xml, factura, descripcion_motivo):
