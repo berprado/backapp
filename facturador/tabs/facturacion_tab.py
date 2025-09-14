@@ -434,6 +434,11 @@ def _handle_online_submission(invoice_config, client_data, tipos_documento, coma
         else:
             try:
                 success, response_data = parse_siat_response(response.content)
+                # Registrar la respuesta SIEMPRE, tanto en éxito como en error
+                facturacion_logger.info(f"[SIAT] Respuesta recibida: {response_data}")
+                if 'xml_content' in response_data:
+                    xml_logger.info(f"[SIAT] XML enviado/recibido: {response_data['xml_content'][:500]}...")
+
                 if success:
                     transaccion_exitosa = display_siat_response(response_data, message_placeholder)
                     if transaccion_exitosa:
@@ -506,6 +511,10 @@ def _handle_online_submission(invoice_config, client_data, tipos_documento, coma
                         
                         # Guardar en base de datos
                         factura_cabecera_data['tipoEmision'] = "1"
+                        # Refactorización: almacenar codigoRecepcion y estado (codigoDescripcion) de la respuesta SIAT
+                        factura_cabecera_data['codigoRecepcion'] = response_data.get('codigoRecepcion')
+                        factura_cabecera_data['estado'] = response_data.get('codigoDescripcion', 'PENDIENTE')
+
                         is_valid, error_message = validar_factura_cabecera(factura_cabecera_data)
                         if is_valid:
                             guardar_factura_cabecera(factura_cabecera_data)
@@ -517,12 +526,11 @@ def _handle_online_submission(invoice_config, client_data, tipos_documento, coma
                                     show_message('error', error_message, message_placeholder)
                                     logger.error(f"Error al validar detalle: {error_message}")
                                     return
-                        
                         logger.info(f"Factura {numero_factura} procesada exitosamente")
                     else:
                         facturacion_logger.error(f"Error al procesar respuesta: {response_data.get('error')}")
-                        if 'xml_content' in response_data:
-                            xml_logger.error(f"Contenido XML problemático: {response_data['xml_content'][:500]}...")
+                else:
+                    facturacion_logger.error(f"[SIAT] Error al procesar respuesta: {response_data.get('error')}")
             except Exception as e:
                 show_message('error', f"❌Error al procesar la respuesta: {str(e)}", message_placeholder)
                 facturacion_logger.exception("Error inesperado al procesar respuesta")
