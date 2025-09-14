@@ -29,7 +29,7 @@ logger = get_logger()
 # =============================
 # NUEVO: función global cacheada (sin argumentos)
 # =============================
-#@st.cache_data(ttl=30)
+@st.cache_data(ttl=30)
 def _execute_full_check():
     """
     Función global (fuera de la clase) que ejecuta la verificación completa.
