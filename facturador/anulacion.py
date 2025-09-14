@@ -154,9 +154,12 @@ def anular_factura(numero_factura, descripcion_motivo):
             facturacion_logger.error(f"Error al obtener la factura: {factura}")
             return False, f"Error al recuperar la factura: {factura}"
 
-        # Verificar si la factura está revertida y bloquear una nueva anulación
-        if str(factura.estado) == "Valida" and factura.fechaValidacion is not None:
-            return False, "La factura ya fue revertida y no puede ser anulada nuevamente."
+            # Registrar la respuesta completa del SIAT en el log (formato unificado)
+            logger.info(f"[SIAT] Respuesta recibida: {respuesta_siat}")
+
+            # Verificar si la factura está revertida y bloquear una nueva anulación
+            if str(factura.estado) == "Valida" and factura.fechaValidacion is not None:
+                return False, "La factura ya fue revertida y no puede ser anulada nuevamente."
 
         # Verificar si la fecha actual supera el plazo de anulación
         if datetime.now().month > factura.fechaEmision.month + 1:

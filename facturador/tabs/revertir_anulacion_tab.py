@@ -37,9 +37,10 @@ def render():
                 logger.error(f"No se encontró CUF para la factura {numero_factura_revertir}")
             else:
                 logger.info(f"CUF encontrado para factura {numero_factura_revertir}: {cuf}")
-                exito, respuesta = enviar_solicitud_reversion(cuf)
+                exito, respuesta_siat = enviar_solicitud_reversion(cuf)
+                logger.info(f"[SIAT] Respuesta recibida: {respuesta_siat}")
                 if exito:
-                    exito_reversion, mensaje_reversion = procesar_respuesta_reversion(respuesta, factura)
+                    exito_reversion, mensaje_reversion = procesar_respuesta_reversion(respuesta_siat, factura)
                     if exito_reversion:
                         show_message('success', mensaje_reversion, message_placeholder)
                         logger.info(f"Reversión exitosa para factura {numero_factura_revertir}: {mensaje_reversion}")
@@ -47,5 +48,5 @@ def render():
                         show_message('error', mensaje_reversion, message_placeholder)
                         logger.error(f"Error al procesar reversión de factura {numero_factura_revertir}: {mensaje_reversion}")
                 else:
-                    show_message('error', respuesta, message_placeholder)
-                    logger.error(f"Error en solicitud de reversión para factura {numero_factura_revertir}: {respuesta}")
+                    show_message('error', respuesta_siat, message_placeholder)
+                    logger.error(f"Error en solicitud de reversión para factura {numero_factura_revertir}: {respuesta_siat}")
