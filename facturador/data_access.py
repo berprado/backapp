@@ -892,36 +892,38 @@ def obtener_factura_completa(numero_factura):
 # FUNCIONES PARA ACTUALIZACIÓN DE PAQUETES POST-CONTINGENCIA
 # ==============================================================================
 
-def actualizar_estado_paquete(evento_id, codigo_recepcion, estado_paquete):
+def actualizar_estado_paquete(evento_id, codigo_recepcion_paquete, estado_paquete):
     """
-    Actualiza el estado de un paquete de contingencia en la tabla de eventos significativos.
-    
-    Args:
-        evento_id (int): ID del evento significativo
-        codigo_recepcion (str): Código de recepción del paquete del SIN
-        estado_paquete (str): Estado del paquete (VALIDADO, OBSERVADO, PENDIENTE)
+    Actualiza el estado del paquete de contingencia en factura_cabecera,
+    sin sobrescribir el codigo_recepcion del evento significativo.
     """
     from sqlalchemy import text
-    
     session = SessionLocal()
     try:
+        # Actualizar SOLO las facturas relacionadas al evento
         session.execute(
             text("""
-                UPDATE eventos_significativos_registrados
-                SET codigo_recepcion = :codigo_recepcion,
-                    fecha_fin = NOW()
-                WHERE id = :evento_id
+                UPDATE factura_cabecera
+                SET codigoRecepcion = :codigo_recepcion_paquete,
+                    estadoContingencia = :estado_paquete,
+                    fechaSincronizacion = NOW()
+                WHERE codigoEvento = :evento_id
             """),
-            {"codigo_recepcion": codigo_recepcion, "evento_id": evento_id}
+            {
+                "codigo_recepcion_paquete": codigo_recepcion_paquete,
+                "estado_paquete": estado_paquete,
+                "evento_id": evento_id
+            }
         )
         session.commit()
-        logger.info(f"[✅] Estado del evento #{evento_id} actualizado con código de recepción: {codigo_recepcion}")
+        logger.info(f"[✅] Facturas del evento #{evento_id} actualizadas con código de recepción del paquete: {codigo_recepcion_paquete}")
     except Exception as e:
-        logger.error(f"[❌] Error al actualizar estado del evento #{evento_id}: {e}")
+        logger.error(f"[❌] Error al actualizar estado del paquete para el evento #{evento_id}: {e}")
         session.rollback()
         raise
     finally:
         session.close()
+
 
 
 def actualizar_estado_facturas(batch_numbers, codigo_recepcion, estado_paquete):
