@@ -8,7 +8,7 @@ from data_access import (
     obtener_cufd_vigente
 )
 from contingencia_auto import finalizar_evento_si_conectado
-from soap_services import verificar_comunicacion
+from facturador.communication_manager import communication_manager
 
 
 # --- Configuración de la página ---
@@ -16,8 +16,12 @@ st.set_page_config(page_title="Eventos Significativos", layout="centered")
 st.title("📌 Gestión de Eventos Significativos (Planificados)")
 
 
-# --- Paso 1: Verificar comunicación con SIN ---
-mensaje, estado, _ = verificar_comunicacion()
+# --- Paso 1: Verificar comunicación con SIN usando el gestor centralizado ---
+resultado_completo = communication_manager.verificar_comunicacion_completa()
+principal = resultado_completo.get("verificacion_principal", {})
+estado = principal.get("conectado", False)
+mensaje = principal.get("mensaje", "No se pudo obtener el estado de comunicación.")
+
 if not estado:
     st.warning("⚠️ El sistema no tiene comunicación con el SIN. "
                "Solo puede cerrar un evento si ya se restauró la conexión.")
