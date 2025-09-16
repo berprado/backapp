@@ -947,7 +947,13 @@ def actualizar_estado_facturas(batch_numbers, codigo_recepcion, estado_paquete):
             text("""
                 UPDATE factura_cabecera
                 SET codigoRecepcion = :codigo_recepcion,
-                    estadoContingencia = :estado_paquete,
+                    estadoPaquete = :estado_paquete,
+                    estado = CASE
+                        WHEN :estado_paquete = 'VALIDADO' THEN 'VALIDADA'
+                        WHEN :estado_paquete = 'OBSERVADO' THEN 'OBSERVADA'
+                        WHEN :estado_paquete = 'PENDIENTE' THEN 'PENDIENTE_ENVIO'
+                        ELSE estado
+                    END,
                     fechaSincronizacion = NOW()
                 WHERE numeroFactura IN :facturas
             """),
