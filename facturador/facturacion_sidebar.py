@@ -44,11 +44,19 @@ def load_base_data():
 
 def render_sidebar_client_data(tipos_documento, message_placeholder):
     """Renderiza la sección de datos del cliente en la sidebar."""
-    numero_documento = st.sidebar.text_input(
-        "Número de Documento:", 
-        key="numero_documento", 
-        help="Ingresa el número de documento del cliente."
-    )
+    if st.session_state.pop('reset_cliente', False):
+        numero_documento = st.sidebar.text_input(
+            "Número de Documento:",
+            key="numero_documento",
+            help="Ingresa el número de documento del cliente."
+        )
+    else:
+        numero_documento = st.sidebar.text_input(
+            "Número de Documento:",
+            key="numero_documento",
+            value=st.session_state.get('numero_documento', ''),
+            help="Ingresa el número de documento del cliente."
+        )
     
     # Inicializar variables por defecto
     nit_valido = False
@@ -312,3 +320,4 @@ def reset_sidebar_fields():
 
     # Limpiar selección de comandas pendiente para el multiselect
     st.session_state['selected_comandas_pending_cleanup'] = []
+    st.session_state['reset_cliente'] = True

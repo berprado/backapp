@@ -235,6 +235,8 @@ def _mark_comandas_as_processed(comanda_ids):
         st.session_state['selected_comandas_pending_cleanup'] = []
 
 
+
+
 def _render_facturar_button(is_online, invoice_config, client_data, tipos_documento, comandas_seleccionadas,
                            lineas_productos, subtotal, total, fecha_emision, fecha_emision_str,
                            fecha_emision_display, message_placeholder, evento_activo=None):
@@ -247,7 +249,7 @@ def _render_facturar_button(is_online, invoice_config, client_data, tipos_docume
     if st.button(button_label, key="generar_xml", help=button_help,
                  disabled=not invoice_config['selected_id_comanda']):
 
-        # Limpiar banderas previas de éxito
+        # Limpiar cualquier éxito pendiente de ejecuciones previas
         st.session_state.pop('last_submission_success', None)
 
         if (invoice_config['metodo_pago_seleccionado'] and
@@ -255,7 +257,6 @@ def _render_facturar_button(is_online, invoice_config, client_data, tipos_docume
             client_data['numero_documento'] and
             invoice_config['selected_id_comanda']):
 
-            # Ejecutar el flujo correspondiente según el modo de operación
             if is_online:
                 _handle_online_submission(
                     invoice_config, client_data, tipos_documento, comandas_seleccionadas,
@@ -276,7 +277,10 @@ def _render_facturar_button(is_online, invoice_config, client_data, tipos_docume
             if payload:
                 _mark_comandas_as_processed(payload.get('comandas', []))
                 reset_sidebar_fields()
-                st.session_state['flash_message'] = ('success', payload.get('message', 'Factura procesada exitosamente.'))
+                st.session_state['flash_message'] = (
+                    'success',
+                    payload.get('message', 'Factura procesada exitosamente.')
+                )
                 success = True
         else:
             show_message('error', "❌Por favor, complete todos los campos requeridos.", message_placeholder)
@@ -284,6 +288,7 @@ def _render_facturar_button(is_online, invoice_config, client_data, tipos_docume
 
     if success:
         st.rerun()
+
 
 def _render_print_button():
     """Renderiza el botón de impresión usando el sistema de cola de tareas."""
@@ -369,21 +374,21 @@ def _render_consultar_button():
     else:
         st.info("El botón de consulta estará disponible cuando la factura haya sido procesada.")
 
+
+
 def _handle_online_submission(invoice_config, client_data, tipos_documento, comandas_seleccionadas,
                            lineas_productos, subtotal, total, fecha_emision, fecha_emision_str,
                            fecha_emision_display, message_placeholder):
     """Maneja la lógica para generar y enviar una factura en modo online."""
     try:
         logger.info("Iniciando proceso de facturación ONLINE")
-        
-        # Configuración inicial
+
         tipo_documento_seleccionado = next(
-            (doc for doc in tipos_documento 
-                if doc["descripcion"] == client_data['seleccion_tipo_documento']), 
+            (doc for doc in tipos_documento
+             if doc["descripcion"] == client_data['seleccion_tipo_documento']),
             None
         )
-        
-        # Variables de entorno
+
         nit_emisor = int(os.getenv('NIT'))
         razon_social_emisor = os.getenv('RAZON_SOCIAL')
         municipio = os.getenv('MUNICIPIO')
@@ -392,203 +397,183 @@ def _handle_online_submission(invoice_config, client_data, tipos_documento, coma
         codigo_punto_venta = int(os.getenv('CODIGO_PUNTO_VENTA'))
         codigo_documento_sector = int(os.getenv('CODIGO_DOCUMENTO_SECTOR'))
         direccion = os.getenv('DIRECCION')
-        
-        # Obtener CUFD
+
         cufd = verificar_y_obtener_cufd(message_placeholder)
-        
-        # Reservar número de factura
         numero_factura = obtener_y_reservar_numero_factura()
         logger.info(f"Número de factura reservado: {numero_factura}")
-        
-        # Generar CUF
+
         cuf = generate_cuf(
-            nit=nit_emisor, 
-            fecha_emision=fecha_emision, 
-            codigoSucursal=codigo_sucursal, 
+            nit=nit_emisor,
+            fecha_emision=fecha_emision,
+            codigoSucursal=codigo_sucursal,
             codigoModalidad=int(os.getenv('CODIGO_MODALIDAD')),
-            tipoEmision=int(os.getenv('CODIGO_TIPO_EMISION')), 
+            tipoEmision=int(os.getenv('CODIGO_TIPO_EMISION')),
             tipoFactura=int(os.getenv('CODIGO_TIPO_FACTURA')),
-            tipoDocumentoSector=codigo_documento_sector, 
+            tipoDocumentoSector=codigo_documento_sector,
             numeroFactura=numero_factura,
             puntoVenta=codigo_punto_venta
         )
         logger.info(f"CUF generado: {cuf}")
-        
-        # Manejo de excepciones NIT
-        codigo_excepcion = 1 if tipo_documento_seleccionado and tipo_documento_seleccionado['codigoClasificador'] == '5' else None
-        
-        # Generar XML
+
+        codigo_excepcion = 1 if (tipo_documento_seleccionado and
+                                  tipo_documento_seleccionado['codigoClasificador'] == '5') else None
+
         xml_str, factura_cabecera_data, detalles_data = generate_xml_invoice(
             nit_emisor=nit_emisor,
             razon_social_emisor=razon_social_emisor,
             municipio=municipio,
             telefono=telefono_emisor,
             numero_factura=numero_factura,
-            cuf=cuf, 
-            cufd=cufd, 
-            codigo_sucursal=codigo_sucursal, 
-            direccion=direccion, 
+            cuf=cuf,
+            cufd=cufd,
+            codigo_sucursal=codigo_sucursal,
+            direccion=direccion,
             codigo_punto_venta=codigo_punto_venta,
-            fecha_emision=fecha_emision_str, 
-            nombre_razon_social=client_data['nombre_cliente'], 
+            fecha_emision=fecha_emision_str,
+            nombre_razon_social=client_data['nombre_cliente'],
             codigo_tipo_documento_identidad=tipo_documento_seleccionado['codigoClasificador'],
-            numero_documento=client_data['numero_documento'], 
-            complemento=client_data['complemento'], 
+            numero_documento=client_data['numero_documento'],
+            complemento=client_data['complemento'],
             codigo_cliente=client_data['numero_documento'],
-            codigo_metodo_pago=invoice_config['metodo_pago_seleccionado']['codigoClasificador'], 
+            codigo_metodo_pago=invoice_config['metodo_pago_seleccionado']['codigoClasificador'],
             ultimos_digitos_tarjeta=invoice_config['ultimos_digitos_tarjeta'],
-            subtotal=subtotal, 
-            total=total, 
-            codigo_moneda=1, 
-            tipo_cambio=1, 
-            monto_total_moneda=total / 1, 
-            monto_giftcard=invoice_config['monto_giftcard'], 
+            subtotal=subtotal,
+            total=total,
+            codigo_moneda=1,
+            tipo_cambio=1,
+            monto_total_moneda=total,
+            monto_giftcard=invoice_config['monto_giftcard'],
             descuento_adicional=invoice_config['descuento_adicional'],
-            usuario="don_bercho", 
-            codigo_documento_sector=codigo_documento_sector, 
+            usuario="don_bercho",
+            codigo_documento_sector=codigo_documento_sector,
             lineas_productos=lineas_productos,
-            actividad_economica=os.getenv('ACTIVIDAD_ECONOMICA'), 
+            actividad_economica=os.getenv('ACTIVIDAD_ECONOMICA'),
             codigo_producto_sin=os.getenv('CODIGO_PRODUCTO_SIN'),
             codigoExcepcion=codigo_excepcion
         )
-        
-        # Firmar XML
-        private_key_path = "xmls/llaves/private_key_ok.pem"
-        cert_path = "xmls/llaves/certificado_ok.pem"
-        signed_xml_str = sign_xml(xml_str, private_key_path, cert_path, cuf)
-        
-        # Guardar XML firmado
+
+        signed_xml_str = sign_xml(xml_str, "xmls/llaves/private_key_ok.pem", "xmls/llaves/certificado_ok.pem", cuf)
         filename = f"xmls/factura_{numero_factura}_{cuf}_.xml"
         with open(filename, "w", encoding='utf-8') as signed_xml_file:
             signed_xml_file.write(signed_xml_str)
-        
-        # Validar XML
+
         xsd_main_path = 'xmls/schemas/facturaElectronicaCompraVenta.xsd'
         if not validar_xml(filename, xsd_main_path):
             show_message('error', "❌ El XML generado no es válido contra el XSD.", message_placeholder)
             logger.error("XML no válido contra XSD")
-            return
-        
-        # Comprimir y enviar
+            return False
+
         gzip_path = comprimir_xml(filename)
-        hash_archivo = obtener_hash(gzip_path)
+        obtener_hash(gzip_path)
         response = enviar_solicitud(filename, xsd_main_path, fecha_emision_str, cufd)
-        
-        # Procesar respuesta
+
         if isinstance(response, dict) and response.get("error"):
             show_message('error', f"❌Error al enviar la factura: {response['error']}", message_placeholder)
             logger.error(f"Error al enviar factura: {response['error']}")
-        else:
-            try:
-                success, response_data = parse_siat_response(response.content)
-                # Registrar la respuesta SIEMPRE, tanto en éxito como en error
-                facturacion_logger.info(f"[SIAT] Respuesta recibida: {response_data}")
-                if 'xml_content' in response_data:
-                    xml_logger.info(f"[SIAT] XML enviado/recibido: {response_data['xml_content'][:500]}...")
+            return False
 
-                if success:
-                    transaccion_exitosa = display_siat_response(response_data, message_placeholder)
-                    if transaccion_exitosa:
-                        try:
-                            facturacion_logger.info("Ensamblando objeto FacturaProcesada.")
+        try:
+            success, response_data = parse_siat_response(response.content)
+            facturacion_logger.info(f"[SIAT] Respuesta recibida: {response_data}")
+            if 'xml_content' in response_data:
+                xml_logger.info(f"[SIAT] XML enviado/recibido: {response_data['xml_content'][:500]}...")
 
-                            # 1. Preparar el detalle de la factura
-                            detalles_factura_obj = [
-                                DetalleFactura(
-                                    codigo=p["codigo"],
-                                    nombre=p["nombre"],
-                                    unidad=p["unidad"],
-                                    cantidad=float(p["cantidad"]),
-                                    precio=float(p["precio"]),
-                                    montoDescuento=float(p.get("montoDescuento", 0.0)),
-                                    sub_total=float(p["sub_total"])
-                                ) for p in lineas_productos
-                            ]
+            if success:
+                transaccion_exitosa = display_siat_response(response_data, message_placeholder)
+                if transaccion_exitosa:
+                    try:
+                        facturacion_logger.info("Ensamblando objeto FacturaProcesada.")
+                        detalles_factura_obj = [
+                            DetalleFactura(
+                                codigo=p["codigo"],
+                                nombre=p["nombre"],
+                                unidad=p["unidad"],
+                                cantidad=float(p["cantidad"]),
+                                precio=float(p["precio"]),
+                                montoDescuento=float(p.get("montoDescuento", 0.0)),
+                                sub_total=float(p["sub_total"])
+                            ) for p in lineas_productos
+                        ]
 
-                            # 2. Ensamblar el objeto principal con todos los datos
-                            factura_para_procesar = FacturaProcesada(
-                                # Datos de la transacción
-                                cuf=cuf,
-                                numero_factura=numero_factura,
-                                fecha_emision=fecha_emision_display,
-                                # Datos del emisor
-                                nit_emisor=os.getenv('NIT'),
-                                razon_social_emisor=os.getenv('RAZON_SOCIAL'),
-                                nombre_sucursal=os.getenv('NOMBRE_SUCURSAL'),
-                                punto_venta=int(os.getenv('CODIGO_PUNTO_VENTA', 0)),
-                                direccion_emisor=os.getenv('DIRECCION'),
-                                municipio_emisor=os.getenv('MUNICIPIO'),
-                                telefono_emisor=os.getenv('TELEFONO'),
-                                # Datos del cliente
-                                nombre_cliente=client_data['nombre_cliente'],
-                                numero_documento=client_data['numero_documento'],
-                                complemento=client_data.get('complemento'),
-                                cod_cliente=client_data['numero_documento'],
-                                # Datos de la venta
-                                lineas_productos=detalles_factura_obj,
-                                # Datos de totales y pago
-                                subtotal_factura=float(subtotal),
-                                descuento_adicional=float(invoice_config['descuento_adicional']),
-                                monto_giftcard=float(invoice_config['monto_giftcard']),
-                                monto_total=float(total),
-                                monto_total_pagar=float(total - invoice_config['monto_giftcard']),
-                                monto_base_iva=float(Decimal(str(total)) * Decimal("0.87")), # Cálculo de ejemplo
-                                total_en_palabras=numero_a_palabras_con_decimales_como_fraccion(total), # Asumiendo que esta función existe
-                                metodo_pago=invoice_config['seleccion_metodo_pago'],
-                                ultimos_digitos_tarjeta=invoice_config.get('ultimos_digitos_tarjeta'),
-                                # Datos fiscales y leyendas
-                                tipo_factura=os.getenv('DESCRIPCION_TIPO_FACTURA', 'FACTURA'),
-                                subtitulo_factura=os.getenv('SUBTITULO', '(CON DERECHO A CREDITO FISCAL)'),
-                                leyenda=factura_cabecera_data.get('leyenda', 'Ley Nro 453: ...'), # Obtener de los datos ya generados
-                                # URL para QR - usando función centralizada
-                                url_qr=generate_invoice_link(nit_emisor, cuf, numero_factura)
-                            )
+                        factura_para_procesar = FacturaProcesada(
+                            cuf=cuf,
+                            numero_factura=numero_factura,
+                            fecha_emision=fecha_emision_display,
+                            nit_emisor=os.getenv('NIT'),
+                            razon_social_emisor=os.getenv('RAZON_SOCIAL'),
+                            nombre_sucursal=os.getenv('NOMBRE_SUCURSAL'),
+                            punto_venta=int(os.getenv('CODIGO_PUNTO_VENTA', 0)),
+                            direccion_emisor=os.getenv('DIRECCION'),
+                            municipio_emisor=os.getenv('MUNICIPIO'),
+                            telefono_emisor=os.getenv('TELEFONO'),
+                            nombre_cliente=client_data['nombre_cliente'],
+                            numero_documento=client_data['numero_documento'],
+                            complemento=client_data.get('complemento'),
+                            cod_cliente=client_data['numero_documento'],
+                            lineas_productos=detalles_factura_obj,
+                            subtotal_factura=float(subtotal),
+                            descuento_adicional=float(invoice_config['descuento_adicional']),
+                            monto_giftcard=float(invoice_config['monto_giftcard']),
+                            monto_total=float(total),
+                            monto_total_pagar=float(total - invoice_config['monto_giftcard']),
+                            monto_base_iva=float(Decimal(str(total)) * Decimal("0.87")),
+                            total_en_palabras=numero_a_palabras_con_decimales_como_fraccion(total),
+                            metodo_pago=invoice_config['seleccion_metodo_pago'],
+                            ultimos_digitos_tarjeta=invoice_config.get('ultimos_digitos_tarjeta'),
+                            tipo_factura=os.getenv('DESCRIPCION_TIPO_FACTURA', 'FACTURA'),
+                            subtitulo_factura=os.getenv('SUBTITULO', '(CON DERECHO A CREDITO FISCAL)'),
+                            leyenda=factura_cabecera_data.get('leyenda', 'Ley Nro 453: ...'),
+                            url_qr=generate_invoice_link(nit_emisor, cuf, numero_factura)
+                        )
 
-                            # 3. Guardar el objeto único en session_state
-                            st.session_state['factura_a_procesar'] = factura_para_procesar
-                            st.session_state['factura_validada'] = True # Mantenemos esta para la lógica del botón
-                            st.session_state['factura_emitida_offline'] = False  # Factura emitida online
+                        st.session_state['factura_a_procesar'] = factura_para_procesar
+                        st.session_state['factura_validada'] = True
+                        st.session_state['factura_emitida_offline'] = False
+                    except Exception as e:
+                        facturacion_logger.error(f"Error al ensamblar FacturaProcesada: {e}", exc_info=True)
+                        show_message('error', f"Error interno al preparar datos para impresión: {e}", message_placeholder)
+                        return False
 
-                            facturacion_logger.info(f"Objeto FacturaProcesada para factura {numero_factura} creado y guardado en session_state.")
+                    factura_cabecera_data['tipoEmision'] = "1"
+                    factura_cabecera_data['codigoRecepcion'] = response_data.get('codigoRecepcion')
+                    factura_cabecera_data['estado'] = response_data.get('codigoDescripcion', 'PENDIENTE')
 
-                        except Exception as e:
-                            facturacion_logger.error(f"Error al ensamblar FacturaProcesada: {e}", exc_info=True)
-                            show_message('error', f"Error interno al preparar datos para impresión: {e}", message_placeholder)
-                            return # Detener si hay un error aquí
-                        
-                        # Guardar en base de datos
-                        factura_cabecera_data['tipoEmision'] = "1"
-                        # Refactorización: almacenar codigoRecepcion y estado (codigoDescripcion) de la respuesta SIAT
-                        factura_cabecera_data['codigoRecepcion'] = response_data.get('codigoRecepcion')
-                        factura_cabecera_data['estado'] = response_data.get('codigoDescripcion', 'PENDIENTE')
-
-                        is_valid, error_message = validar_factura_cabecera(factura_cabecera_data)
-                        if is_valid:
-                            guardar_factura_cabecera(factura_cabecera_data)
-                            for detalle in detalles_data:
-                                is_valid, error_message = validar_factura_detalle(detalle)
-                                if is_valid:
-                                    guardar_factura_detalle(detalle)
-                                else:
-                                    show_message('error', error_message, message_placeholder)
-                                    logger.error(f"Error al validar detalle: {error_message}")
-                                    return
-                            st.session_state['last_submission_success'] = {
-                                'comandas': list(invoice_config['selected_id_comanda']),
-                                'message': f"Factura N° {numero_factura} procesada exitosamente."
-                            }
+                    is_valid, error_message = validar_factura_cabecera(factura_cabecera_data)
+                    if is_valid:
+                        guardar_factura_cabecera(factura_cabecera_data)
+                        for detalle in detalles_data:
+                            is_valid, error_message = validar_factura_detalle(detalle)
+                            if is_valid:
+                                guardar_factura_detalle(detalle)
+                            else:
+                                show_message('error', error_message, message_placeholder)
+                                logger.error(f"Error al validar detalle: {error_message}")
+                                return False
+                        st.session_state['last_submission_success'] = {
+                            'comandas': list(invoice_config['selected_id_comanda']),
+                            'message': f"Factura N° {numero_factura} procesada exitosamente."
+                        }
                         logger.info(f"Factura {numero_factura} procesada exitosamente")
+                        return True
                     else:
-                        facturacion_logger.error(f"Error al procesar respuesta: {response_data.get('error')}")
-                else:
-                    facturacion_logger.error(f"[SIAT] Error al procesar respuesta: {response_data.get('error')}")
-            except Exception as e:
-                show_message('error', f"❌Error al procesar la respuesta: {str(e)}", message_placeholder)
-                facturacion_logger.exception("Error inesperado al procesar respuesta")
-                
+                        show_message('error', error_message, message_placeholder)
+                        logger.error(f"Error al validar cabecera: {error_message}")
+                        return False
+            else:
+                facturacion_logger.error(f"[SIAT] Error al procesar respuesta: {response_data.get('error')}")
+        except Exception as e:
+            show_message('error', f"❌Error al procesar la respuesta: {str(e)}", message_placeholder)
+            facturacion_logger.exception("Error inesperado al procesar respuesta")
+            return False
+
     except Exception as e:
         show_message('error', f"❌Error en el proceso de facturación: {str(e)}", message_placeholder)
         logger.exception("Error en facturación")
+        return False
+
+    return False
+
+
 
 def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos_documento,
                              lineas_productos, subtotal, total, fecha_emision,
@@ -597,13 +582,11 @@ def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos
     try:
         logger.info("Iniciando proceso de facturación OFFLINE")
 
-        # 1. OBTENER CUFD DEL EVENTO (corrección normativa)
         cufd_evento = evento_activo.get('cufd')
         if not cufd_evento:
             show_message('error', "No se encontró un CUFD válido para el evento de contingencia.", message_placeholder)
-            return
+            return False
 
-        # 2. OBTENER NÚMERO DE FACTURA Y GENERAR CUF OFFLINE
         numero_factura = obtener_y_reservar_numero_factura()
         nit_emisor = int(os.getenv('NIT'))
         cuf = generate_cuf(
@@ -611,18 +594,19 @@ def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos
             fecha_emision=fecha_emision,
             codigoSucursal=int(os.getenv('CODIGO_SUCURSAL')),
             codigoModalidad=int(os.getenv('CODIGO_MODALIDAD')),
-            tipoEmision=2,  # <-- TIPO DE EMISIÓN OFFLINE
+            tipoEmision=2,
             tipoFactura=int(os.getenv('CODIGO_TIPO_FACTURA')),
             tipoDocumentoSector=int(os.getenv('CODIGO_DOCUMENTO_SECTOR')),
             numeroFactura=numero_factura,
             puntoVenta=int(os.getenv('CODIGO_PUNTO_VENTA'))
         )
 
-        # 3. MANEJAR EXCEPCIÓN DE NIT (verificación normativa)
-        tipo_documento_seleccionado = next((doc for doc in tipos_documento if doc["descripcion"] == client_data['seleccion_tipo_documento']), None)
+        tipo_documento_seleccionado = next(
+            (doc for doc in tipos_documento if doc["descripcion"] == client_data['seleccion_tipo_documento']),
+            None
+        )
         codigo_excepcion = 1 if tipo_documento_seleccionado and tipo_documento_seleccionado['codigoClasificador'] == '5' else None
 
-        # 4. GENERAR XML (verificar parámetros de contingencia)
         xml_str, factura_cabecera_data, detalles_data = generate_xml_invoice(
             nit_emisor=nit_emisor,
             razon_social_emisor=os.getenv('RAZON_SOCIAL'),
@@ -646,7 +630,7 @@ def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos
             total=total,
             codigo_moneda=1,
             tipo_cambio=1,
-            monto_total_moneda=total / 1,
+            monto_total_moneda=total,
             monto_giftcard=invoice_config['monto_giftcard'],
             descuento_adicional=invoice_config['descuento_adicional'],
             usuario="don_bercho",
@@ -657,36 +641,20 @@ def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos
             codigoExcepcion=codigo_excepcion
         )
 
-        # 5. FIRMAR Y VALIDAR LOCALMENTE
         signed_xml_str = sign_xml(xml_str, "xmls/llaves/private_key_ok.pem", "xmls/llaves/certificado_ok.pem", cuf)
-
-        # --- INICIO DEL CÓDIGO DE REEMPLAZO ---
-
-        evento_id = evento_activo.get('id')
-        if not evento_id:
-            show_message('error', "Error crítico: El evento de contingencia no tiene un ID. No se puede guardar la factura.", message_placeholder)
-            logger.error(f"El evento activo {evento_activo} no tiene una clave 'id'.")
-            return
-
-        # Creamos un nombre de archivo descriptivo y fácil de procesar
-        filename = f"offline_invoices/factura_offline_ev{evento_id}_n{numero_factura}.xml"
-
-        # --- FIN DEL CÓDIGO DE REEMPLAZO ---
-
+        filename = f"offline_invoices/factura_offline_ev{evento_activo.get('id')}_n{numero_factura}.xml"
         os.makedirs("offline_invoices", exist_ok=True)
         with open(filename, "w", encoding='utf-8') as f:
             f.write(signed_xml_str)
 
         if not validar_xml(filename, 'xmls/schemas/facturaElectronicaCompraVenta.xsd'):
             show_message('error', "El XML generado localmente no es válido. Revise los logs.", message_placeholder)
-            return
+            return False
 
-        # 6. CREAR OBJETO FacturaProcesada
         try:
             facturacion_logger.info("Ensamblando objeto FacturaProcesada para modo OFFLINE.")
             fecha_emision_display = fecha_emision.strftime("%d/%m/%Y %H:%M:%S")
 
-            # 6.1 Preparar el detalle de la factura
             detalles_factura_obj = [
                 DetalleFactura(
                     codigo=p["codigo"],
@@ -699,13 +667,10 @@ def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos
                 ) for p in lineas_productos
             ]
 
-            # 6.2 Ensamblar el objeto principal con todos los datos
             factura_para_procesar = FacturaProcesada(
-                # Datos de la transacción
                 cuf=cuf,
                 numero_factura=numero_factura,
                 fecha_emision=fecha_emision_display,
-                # Datos del emisor
                 nit_emisor=os.getenv('NIT'),
                 razon_social_emisor=os.getenv('RAZON_SOCIAL'),
                 nombre_sucursal=os.getenv('NOMBRE_SUCURSAL'),
@@ -713,45 +678,37 @@ def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos
                 direccion_emisor=os.getenv('DIRECCION'),
                 municipio_emisor=os.getenv('MUNICIPIO'),
                 telefono_emisor=os.getenv('TELEFONO'),
-                # Datos del cliente
                 nombre_cliente=client_data['nombre_cliente'],
                 numero_documento=client_data['numero_documento'],
                 complemento=client_data.get('complemento'),
                 cod_cliente=client_data['numero_documento'],
-                # Datos de la venta
                 lineas_productos=detalles_factura_obj,
-                # Datos de totales y pago
                 subtotal_factura=float(subtotal),
                 descuento_adicional=float(invoice_config['descuento_adicional']),
                 monto_giftcard=float(invoice_config['monto_giftcard']),
                 monto_total=float(total),
                 monto_total_pagar=float(total - invoice_config['monto_giftcard']),
-                monto_base_iva=float(Decimal(str(total)) * Decimal("0.87")), # Cálculo de ejemplo
+                monto_base_iva=float(Decimal(str(total)) * Decimal("0.87")),
                 total_en_palabras=numero_a_palabras_con_decimales_como_fraccion(total),
                 metodo_pago=invoice_config['seleccion_metodo_pago'],
                 ultimos_digitos_tarjeta=invoice_config.get('ultimos_digitos_tarjeta'),
-                # Datos fiscales y leyendas
                 tipo_factura=os.getenv('DESCRIPCION_TIPO_FACTURA', 'FACTURA OFFLINE'),
                 subtitulo_factura=os.getenv('SUBTITULO', '(CON DERECHO A CREDITO FISCAL)'),
                 leyenda=factura_cabecera_data.get('leyenda', 'Ley Nro 453: ...'),
-                # URL para QR - usando función centralizada
                 url_qr=generate_invoice_link(nit_emisor, cuf, numero_factura)
             )
 
-            # 6.3 Guardar el objeto único en session_state
             st.session_state['factura_a_procesar'] = factura_para_procesar
-            st.session_state['factura_validada'] = True # Para que se muestre el botón de consulta/impresión
-            st.session_state['factura_emitida_offline'] = True  # Factura emitida en modo offline
+            st.session_state['factura_validada'] = True
+            st.session_state['factura_emitida_offline'] = True
 
             facturacion_logger.info(f"Objeto FacturaProcesada para factura offline {numero_factura} creado y guardado en session_state.")
-
         except Exception as e:
             facturacion_logger.error(f"Error al ensamblar FacturaProcesada en modo offline: {e}", exc_info=True)
             show_message('error', f"Error interno al preparar datos para impresión/consulta: {e}", message_placeholder)
-            return # Detener si hay un error aquí
+            return False
 
-        # 7. GUARDAR EN BASE DE DATOS (confirmar estado y tipo de emisión)
-        factura_cabecera_data['tipoEmision'] = "2" # <-- TIPO DE EMISIÓN OFFLINE
+        factura_cabecera_data['tipoEmision'] = "2"
         factura_cabecera_data['estado'] = "PENDIENTE_ENVIO"
         factura_cabecera_data['codigoEvento'] = evento_activo.get('id')
 
@@ -764,10 +721,11 @@ def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos
             'message': f"Factura N° {numero_factura} generada y guardada localmente. Pendiente de envío."
         }
         show_message('success', f"✅ Factura N° {numero_factura} generada y guardada localmente. Pendiente de envío.", message_placeholder)
-
-        # Conservamos el session_state para que los botones de imprimir/consultar estén disponibles
-        # Ya no hacemos st.rerun() ni limpiamos 'factura_validada'
+        return True
 
     except Exception as e:
         show_message('error', f"❌ Error en el proceso de facturación offline: {str(e)}", message_placeholder)
         logger.exception("Error en facturación offline")
+        return False
+
+    return False
