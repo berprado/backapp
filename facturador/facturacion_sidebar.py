@@ -188,39 +188,55 @@ def render_sidebar_client_data(tipos_documento, message_placeholder):
         'codigo_cliente': codigo_cliente
     }
 
+
+
+
+
 def render_sidebar_invoice_config(comandas, metodos_pago):
     """Renderiza la configuración de facturación en la sidebar."""
+    if 'selected_comandas_pending_cleanup' in st.session_state:
+        st.session_state['selected_comandas'] = st.session_state.pop('selected_comandas_pending_cleanup')
+
     # Selección de comandas
     id_comanda_set = set(comanda["id_comanda"] for comanda in comandas)
     available_comandas = [
-        comanda for comanda in id_comanda_set 
+        comanda for comanda in id_comanda_set
         if comanda not in st.session_state.processed_comandas
     ]
 
     selected_id_comanda = st.sidebar.multiselect(
-        "Selecciona las comandas", 
-        available_comandas, 
-        key="selected_comandas", 
-        placeholder="Comandas Generadas", 
+        "Selecciona las comandas",
+        available_comandas,
+        key="selected_comandas",
+        placeholder="Comandas Generadas",
         help="Selecciona las comandas que componen la factura."
     )
 
     # Método de pago
     opciones_metodos_pago = [metodo["descripcion"] for metodo in metodos_pago]
     indice_metodo_pago_predeterminado = next(
-        (i for i, metodo in enumerate(metodos_pago) if metodo["codigoClasificador"] == 1), 
+        (i for i, metodo in enumerate(metodos_pago) if str(metodo["codigoClasificador"]) == "1"),
         0
     )
 
+    if opciones_metodos_pago:
+        metodo_pago_por_defecto = opciones_metodos_pago[indice_metodo_pago_predeterminado]
+        valor_actual_metodo = st.session_state.get('metodo_pago', metodo_pago_por_defecto)
+        if valor_actual_metodo not in opciones_metodos_pago:
+            valor_actual_metodo = metodo_pago_por_defecto
+        metodo_pago_index = opciones_metodos_pago.index(valor_actual_metodo)
+    else:
+        metodo_pago_index = 0
+
     seleccion_metodo_pago = st.sidebar.selectbox(
-        "Tipo de Pago:", 
-        opciones_metodos_pago, 
-        index=66, 
+        "Tipo de Pago:",
+        opciones_metodos_pago,
+        index=metodo_pago_index if opciones_metodos_pago else 0,
         key="metodo_pago"
     )
 
     metodo_pago_seleccionado = next(
-        (metodo for metodo in metodos_pago if metodo["descripcion"] == seleccion_metodo_pago), 
+        (metodo for metodo in metodos_pago if metodo["descripcion"] == seleccion_metodo_pago),
         None
     )
 
@@ -229,55 +245,70 @@ def render_sidebar_invoice_config(comandas, metodos_pago):
         codigo_clasificador_metodo_pago = int(metodo_pago_seleccionado["codigoClasificador"])
 
     # Dígitos de tarjeta si es necesario
-    ultimos_digitos_tarjeta = None
     if seleccion_metodo_pago == "TARJETA":
+        st.session_state.setdefault('ultimos_digitos_tarjeta', "")
         ultimos_digitos_tarjeta = st.sidebar.text_input(
-            "Ingresa los últimos 4 dígitos de la tarjeta:", 
-            max_chars=4, 
+            "Ingresa los últimos 4 dígitos de la tarjeta:",
+            max_chars=4,
             key="ultimos_digitos_tarjeta"
         )
+    else:
+        st.session_state.pop('ultimos_digitos_tarjeta', None)
+        ultimos_digitos_tarjeta = None
 
-    # Descuentos
-    on = st.sidebar.checkbox("Aplicar Descuento")
+    # Descuentos adicionales
+    st.session_state.setdefault('aplicar_descuento', False)
+    aplicar_descuento = st.sidebar.checkbox("Aplicar Descuento", key="aplicar_descuento")
     descuento_adicional = Decimal(0.00)
-    monto_giftcard = Decimal(0.00)
-
-    if on:
-        descuento_adicional = st.sidebar.number_input(
-            "Descuento Adicional:", 
-            min_value=0, 
-            step=5, 
+    if aplicar_descuento:
+        st.session_state.setdefault('descuento_adicional', 0)
+        descuento_valor = st.sidebar.number_input(
+            "Descuento Adicional:",
+            min_value=0,
+            step=5,
             key="descuento_adicional"
         )
-        if descuento_adicional is None:
-            descuento_adicional = Decimal(0.00)
-        else:
-            descuento_adicional = Decimal(descuento_adicional)
+        descuento_adicional = Decimal(descuento_valor or 0)
+    else:
+        st.session_state.pop('descuento_adicional', None)
 
     # Gift card si el método de pago lo permite
-    if codigo_clasificador_metodo_pago is not None:
-        if codigo_clasificador_metodo_pago in GIFT_CARD_CODES:
-            monto_giftcard = st.sidebar.number_input(
-                "Gift Card:", 
-                min_value=0, 
-                step=5, 
-                key="monto_giftcard"
-            )
-            if monto_giftcard is None:
-                monto_giftcard = Decimal(0.00)
-            else:
-                monto_giftcard = Decimal(monto_giftcard)
-        else:
-            monto_giftcard = Decimal(0.00)
+    monto_giftcard = Decimal(0.00)
+    if codigo_clasificador_metodo_pago is not None and codigo_clasificador_metodo_pago in GIFT_CARD_CODES:
+        st.session_state.setdefault('monto_giftcard', 0)
+        giftcard_valor = st.sidebar.number_input(
+            "Gift Card:",
+            min_value=0,
+            step=5,
+            key="monto_giftcard"
+        )
+        monto_giftcard = Decimal(giftcard_valor or 0)
     else:
-        monto_giftcard = Decimal(0.00)
+        st.session_state.pop('monto_giftcard', None)
 
     return {
         'selected_id_comanda': selected_id_comanda,
         'seleccion_metodo_pago': seleccion_metodo_pago,
         'metodo_pago_seleccionado': metodo_pago_seleccionado,
         'codigo_clasificador_metodo_pago': codigo_clasificador_metodo_pago,
-        'ultimos_digitos_tarjeta': ultimos_digitos_tarjeta,
+        'ultimos_digitos_tarjeta': st.session_state.get('ultimos_digitos_tarjeta'),
         'descuento_adicional': descuento_adicional,
         'monto_giftcard': monto_giftcard
     }
+
+def reset_sidebar_fields():
+    """Reinicia los campos del sidebar a sus valores por defecto tras una facturación."""
+    keys_to_clear = [
+        'numero_documento',
+        'metodo_pago',
+        'ultimos_digitos_tarjeta',
+        'aplicar_descuento',
+        'descuento_adicional',
+        'monto_giftcard'
+    ]
+
+    for key in keys_to_clear:
+        st.session_state.pop(key, None)
+
+    # Limpiar selección de comandas pendiente para el multiselect
+    st.session_state['selected_comandas_pending_cleanup'] = []

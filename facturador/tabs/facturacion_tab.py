@@ -26,7 +26,12 @@ from invoice_manager import obtener_y_reservar_numero_factura
 from print_manager import initialize_print_state, solicitar_impresion
 
 # Módulos locales
-from facturacion_sidebar import load_base_data, render_sidebar_client_data, render_sidebar_invoice_config
+from facturacion_sidebar import (
+    load_base_data,
+    render_sidebar_client_data,
+    render_sidebar_invoice_config,
+    reset_sidebar_fields
+)
 from ui_utils import show_message
 from logger_config import get_logger, get_facturacion_logger, get_xml_logger, get_printer_logger
 
@@ -102,6 +107,10 @@ def render(is_online: bool, evento_activo: dict = None):
     
     # Placeholder para mensajes
     message_placeholder = st.empty()
+    flash = st.session_state.pop('flash_message', None)
+    if flash:
+        level, text_msg = flash
+        show_message(level, text_msg, message_placeholder)
     
     # Cargar datos base
     comandas, metodos_pago, tipos_documento, error = load_base_data()
@@ -203,21 +212,49 @@ def render(is_online: bool, evento_activo: dict = None):
     with col3:
         _render_consultar_button()
 
+
+
+def _mark_comandas_as_processed(comanda_ids):
+    """Marca las comandas facturadas para que no vuelvan a mostrarse en la UI."""
+    if not comanda_ids:
+        return
+
+    processed = st.session_state.get('processed_comandas')
+    processed_list = list(processed) if processed is not None else []
+    processed_set = set(processed_list)
+
+    updated = False
+    for comanda_id in comanda_ids:
+        if comanda_id not in processed_set:
+            processed_list.append(comanda_id)
+            processed_set.add(comanda_id)
+            updated = True
+
+    if updated:
+        st.session_state['processed_comandas'] = processed_list
+        st.session_state['selected_comandas_pending_cleanup'] = []
+
+
 def _render_facturar_button(is_online, invoice_config, client_data, tipos_documento, comandas_seleccionadas,
                            lineas_productos, subtotal, total, fecha_emision, fecha_emision_str,
                            fecha_emision_display, message_placeholder, evento_activo=None):
     """Renderiza el botón de facturar y maneja la lógica de facturación."""
     button_label = "Facturar y Enviar al SIN" if is_online else "Generar y Guardar Factura Offline"
     button_help = "Se conectará con el SIN para validar la factura." if is_online else "Guardará la factura localmente. NO se enviará al SIN."
-    
-    if st.button(button_label, key="generar_xml", help=button_help, 
-                disabled=not invoice_config['selected_id_comanda']):
-        
-        if (invoice_config['metodo_pago_seleccionado'] and 
-            client_data['seleccion_tipo_documento'] and 
-            client_data['numero_documento'] and 
+
+    success = False
+
+    if st.button(button_label, key="generar_xml", help=button_help,
+                 disabled=not invoice_config['selected_id_comanda']):
+
+        # Limpiar banderas previas de éxito
+        st.session_state.pop('last_submission_success', None)
+
+        if (invoice_config['metodo_pago_seleccionado'] and
+            client_data['seleccion_tipo_documento'] and
+            client_data['numero_documento'] and
             invoice_config['selected_id_comanda']):
-            
+
             # Ejecutar el flujo correspondiente según el modo de operación
             if is_online:
                 _handle_online_submission(
@@ -234,9 +271,19 @@ def _render_facturar_button(is_online, invoice_config, client_data, tipos_docume
                     )
                 else:
                     show_message('error', "No se puede facturar en modo offline sin un evento de contingencia activo.", message_placeholder)
+
+            payload = st.session_state.pop('last_submission_success', None)
+            if payload:
+                _mark_comandas_as_processed(payload.get('comandas', []))
+                reset_sidebar_fields()
+                st.session_state['flash_message'] = ('success', payload.get('message', 'Factura procesada exitosamente.'))
+                success = True
         else:
             show_message('error', "❌Por favor, complete todos los campos requeridos.", message_placeholder)
             logger.warning("Intento de facturación con campos incompletos")
+
+    if success:
+        st.rerun()
 
 def _render_print_button():
     """Renderiza el botón de impresión usando el sistema de cola de tareas."""
@@ -526,6 +573,10 @@ def _handle_online_submission(invoice_config, client_data, tipos_documento, coma
                                     show_message('error', error_message, message_placeholder)
                                     logger.error(f"Error al validar detalle: {error_message}")
                                     return
+                            st.session_state['last_submission_success'] = {
+                                'comandas': list(invoice_config['selected_id_comanda']),
+                                'message': f"Factura N° {numero_factura} procesada exitosamente."
+                            }
                         logger.info(f"Factura {numero_factura} procesada exitosamente")
                     else:
                         facturacion_logger.error(f"Error al procesar respuesta: {response_data.get('error')}")
@@ -708,6 +759,10 @@ def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos
         for detalle in detalles_data:
             guardar_factura_detalle(detalle)
 
+        st.session_state['last_submission_success'] = {
+            'comandas': list(invoice_config['selected_id_comanda']),
+            'message': f"Factura N° {numero_factura} generada y guardada localmente. Pendiente de envío."
+        }
         show_message('success', f"✅ Factura N° {numero_factura} generada y guardada localmente. Pendiente de envío.", message_placeholder)
 
         # Conservamos el session_state para que los botones de imprimir/consultar estén disponibles
