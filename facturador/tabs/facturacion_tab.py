@@ -1,5 +1,5 @@
-"""
-Módulo para la pestaña principal de facturación.
+﻿"""
+MÃ³dulo para la pestaÃ±a principal de facturaciÃ³n.
 """
 import os
 import logging
@@ -8,7 +8,7 @@ import streamlit.components.v1 as components
 from datetime import datetime
 from decimal import Decimal
 
-# Imports de la aplicación
+# Imports de la aplicaciÃ³n
 from database import SessionLocal
 from data_models import FacturaProcesada, DetalleFactura
 from data_access import fetch_tipos_documento, obtener_cufd_de_evento_activo
@@ -25,7 +25,7 @@ from data_access import guardar_factura_cabecera, guardar_factura_detalle
 from invoice_manager import obtener_y_reservar_numero_factura
 from print_manager import initialize_print_state, solicitar_impresion
 
-# Módulos locales
+# MÃ³dulos locales
 from facturacion_sidebar import (
     load_base_data,
     render_sidebar_client_data,
@@ -41,7 +41,7 @@ xml_logger = get_xml_logger()
 printer_logger = get_printer_logger()
 
 def get_cufd():
-    """Obtiene el CUFD válido de la base de datos."""
+    """Obtiene el CUFD vÃ¡lido de la base de datos."""
     from database import SessionLocal
     from models import Cufd
     
@@ -51,14 +51,14 @@ def get_cufd():
         if cufd_record:
             return cufd_record.codigo
         else:
-            raise ValueError("❌CUFD no encontrado en la base de datos.")
+            raise ValueError("âŒCUFD no encontrado en la base de datos.")
     except Exception as e:
-        raise ValueError(f"❌Error al obtener el CUFD: {e}")
+        raise ValueError(f"âŒError al obtener el CUFD: {e}")
     finally:
         session.close()
 
 def verificar_y_obtener_cufd(message_placeholder):
-    """Verifica y obtiene un CUFD válido, renovándolo si es necesario."""
+    """Verifica y obtiene un CUFD vÃ¡lido, renovÃ¡ndolo si es necesario."""
     from database import SessionLocal
     from models import Cufd
     
@@ -73,7 +73,7 @@ def verificar_y_obtener_cufd(message_placeholder):
             logger.info("CUFD renovado exitosamente")
             return nuevo_cufd
     except Exception as e:
-        show_message('error', f"❌Error al verificar o solicitar CUFD: {e}", message_placeholder)
+        show_message('error', f"âŒError al verificar o solicitar CUFD: {e}", message_placeholder)
         logger.error(f"Error al verificar o solicitar CUFD: {e}")
         raise ValueError(f"Error al verificar o solicitar CUFD: {e}")
     finally:
@@ -81,29 +81,29 @@ def verificar_y_obtener_cufd(message_placeholder):
 
 def render(is_online: bool, evento_activo: dict = None):
     """
-    Renderiza la pestaña principal de facturación.
+    Renderiza la pestaÃ±a principal de facturaciÃ³n.
     
     Args:
-        is_online: Booleano que indica si el sistema está online.
-        evento_activo: Diccionario con la información del evento de contingencia activo, si existe.
+        is_online: Booleano que indica si el sistema estÃ¡ online.
+        evento_activo: Diccionario con la informaciÃ³n del evento de contingencia activo, si existe.
     """
-    logger.info(f"Renderizando pestaña de facturación en modo {'ONLINE' if is_online else 'OFFLINE'}")
+    logger.info(f"Renderizando pestaÃ±a de facturaciÃ³n en modo {'ONLINE' if is_online else 'OFFLINE'}")
 
     if not is_online:
         if evento_activo:
             st.warning(
                 f"""
-                ⚠️ **MODO DE CONTINGENCIA ACTIVADO** ⚠️\n
+                âš ï¸ **MODO DE CONTINGENCIA ACTIVADO** âš ï¸\n
                 **Evento:** {evento_activo.get('descripcion', 'N/A')} (ID: {evento_activo.get('id')})\n
                 **CUFD del Evento:** `{evento_activo.get('cufd')}`\n
-                *Las facturas se generarán y guardarán localmente para su envío posterior.*
+                *Las facturas se generarÃ¡n y guardarÃ¡n localmente para su envÃ­o posterior.*
                 """,
-                icon="📡"
+                icon="ðŸ“¡"
             )
         else:
-            # Este caso no debería ocurrir si main.py funciona bien, pero es una buena salvaguarda
-            st.error("Error crítico: Modo offline pero no se encontró un evento de contingencia activo.")
-            return # Detener la renderización de la pestaña si no hay evento
+            # Este caso no deberÃ­a ocurrir si main.py funciona bien, pero es una buena salvaguarda
+            st.error("Error crÃ­tico: Modo offline pero no se encontrÃ³ un evento de contingencia activo.")
+            return # Detener la renderizaciÃ³n de la pestaÃ±a si no hay evento
     
     # Placeholder para mensajes
     message_placeholder = st.empty()
@@ -117,19 +117,19 @@ def render(is_online: bool, evento_activo: dict = None):
     if error:
         # Si el mensaje contiene 'Advertencia', es que estamos usando datos simulados
         if error.startswith("Advertencia:"):
-            st.warning(f"⚠️ {error}")
+            st.warning(f"âš ï¸ {error}")
         else:
             st.error(f"Error al cargar datos base: {error}")
         
-        # Si el error está relacionado solo con las comandas pero tenemos los tipos de documento y métodos de pago, 
-        # podemos continuar con los datos que tenemos (sean simulados o vacíos)
+        # Si el error estÃ¡ relacionado solo con las comandas pero tenemos los tipos de documento y mÃ©todos de pago, 
+        # podemos continuar con los datos que tenemos (sean simulados o vacÃ­os)
         if metodos_pago and tipos_documento:
             if not comandas:
-                st.info("ℹ️ Puede continuar la facturación de forma manual seleccionando productos.")
+                st.info("â„¹ï¸ Puede continuar la facturaciÃ³n de forma manual seleccionando productos.")
         else:
-            # Error crítico, no podemos continuar
-            st.error("❌ Error crítico: No se pudieron cargar los datos esenciales para la facturación.")
-            st.info("📌 Sugerencia: Intente ejecutar el diagnóstico con `python diagnostico_api.py` para identificar el problema.")
+            # Error crÃ­tico, no podemos continuar
+            st.error("âŒ Error crÃ­tico: No se pudieron cargar los datos esenciales para la facturaciÃ³n.")
+            st.info("ðŸ“Œ Sugerencia: Intente ejecutar el diagnÃ³stico con `python diagnostico_api.py` para identificar el problema.")
             return
     
     # Renderizar sidebar
@@ -167,12 +167,12 @@ def render(is_online: bool, evento_activo: dict = None):
     fecha_emision_display = fecha_emision.strftime("%d/%m/%Y %H:%M:%S")
     
     # Vista previa de la factura
-    numero_factura_preview = '(se asignará al emitir)'
+    numero_factura_preview = '(se asignarÃ¡ al emitir)'
     
     # Obtener el NIT del emisor para la vista previa
     nit_emisor = os.getenv('NIT')
     
-    # Usar la función legacy para la vista previa
+    # Usar la funciÃ³n legacy para la vista previa
     html_invoice = generate_html_invoice_legacy(
         subtotal, 
         invoice_config['descuento_adicional'], 
@@ -196,7 +196,7 @@ def render(is_online: bool, evento_activo: dict = None):
     
     components.html(html_invoice, height=700, scrolling=True)
 
-    # Botones de acción
+    # Botones de acciÃ³n
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -240,16 +240,16 @@ def _mark_comandas_as_processed(comanda_ids):
 def _render_facturar_button(is_online, invoice_config, client_data, tipos_documento, comandas_seleccionadas,
                            lineas_productos, subtotal, total, fecha_emision, fecha_emision_str,
                            fecha_emision_display, message_placeholder, evento_activo=None):
-    """Renderiza el botón de facturar y maneja la lógica de facturación."""
+    """Renderiza el botÃ³n de facturar y maneja la lÃ³gica de facturaciÃ³n."""
     button_label = "Facturar y Enviar al SIN" if is_online else "Generar y Guardar Factura Offline"
-    button_help = "Se conectará con el SIN para validar la factura." if is_online else "Guardará la factura localmente. NO se enviará al SIN."
+    button_help = "Se conectarÃ¡ con el SIN para validar la factura." if is_online else "GuardarÃ¡ la factura localmente. NO se enviarÃ¡ al SIN."
 
     success = False
 
     if st.button(button_label, key="generar_xml", help=button_help,
                  disabled=not invoice_config['selected_id_comanda']):
 
-        # Limpiar cualquier éxito pendiente de ejecuciones previas
+        # Limpiar cualquier Ã©xito pendiente de ejecuciones previas
         st.session_state.pop('last_submission_success', None)
 
         if (invoice_config['metodo_pago_seleccionado'] and
@@ -283,47 +283,65 @@ def _render_facturar_button(is_online, invoice_config, client_data, tipos_docume
                 )
                 success = True
         else:
-            show_message('error', "❌Por favor, complete todos los campos requeridos.", message_placeholder)
-            logger.warning("Intento de facturación con campos incompletos")
+            show_message('error', "âŒPor favor, complete todos los campos requeridos.", message_placeholder)
+            logger.warning("Intento de facturaciÃ³n con campos incompletos")
 
     if success:
         st.rerun()
 
 
 def _render_print_button():
-    """Renderiza el botón de impresión usando el sistema de cola de tareas."""
+    """Renderiza la impresion automatica despues de validar."""
     initialize_print_state()
-    
-    # Mostrar el estado actual del servicio de impresión
-    print_status = st.session_state.get('print_status', 'Sistema de impresión listo.')
-    if "✅" in print_status:
-        st.success(f"🖨️ {print_status}")
-    elif any(icon in print_status for icon in ["⚠️", "❌", "🚨"]):
-        st.error(f"🖨️ {print_status}")
+
+    print_status = st.session_state.get('print_status', 'Sistema de impresion listo.')
+    worker_status = st.session_state.get('printer_worker_status', 'desconocido')
+    worker_heartbeat = st.session_state.get('printer_worker_last_heartbeat')
+    st.session_state.setdefault('auto_print_last_id', None)
+
+    lower_status = print_status.lower()
+    if any(token in lower_status for token in ['error', 'critico']):
+        st.error(print_status)
+    elif 'impresa' in lower_status or 'ok' in lower_status:
+        st.success(print_status)
     else:
-        st.info(f"🖨️ {print_status}")
+        st.info(print_status)
+
+    if worker_heartbeat:
+        try:
+            last_seen = datetime.fromtimestamp(worker_heartbeat).strftime('%H:%M:%S')
+            st.caption(f"Worker: {worker_status} - ultima senal {last_seen}")
+        except Exception:
+            st.caption(f"Worker: {worker_status}")
+    else:
+        st.caption(f"Worker: {worker_status}")
 
     if st.session_state.get('factura_validada'):
         factura_obj = st.session_state.get('factura_a_procesar')
-        
-        if st.button("🖨️ Imprimir Factura", key="imprimir_factura_final", disabled=not factura_obj):
-            if factura_obj:
-                try:
-                    logger.info(f"Solicitando impresión para factura {factura_obj.numero_factura}.")
-                    solicitar_impresion(factura_obj)
-                    st.rerun() # Actualiza la UI para mostrar el estado "enviado a la cola"
-                except Exception as e:
-                    st.error(f"❌ Error al solicitar la impresión: {str(e)}")
-                    logger.exception("Error en la llamada a solicitar_impresion")
+        if factura_obj:
+            identifier = getattr(factura_obj, 'cuf', None) or f"numero:{getattr(factura_obj, 'numero_factura', 'N/D')}"
+            last_identifier = st.session_state.get('auto_print_last_id')
+            if identifier and identifier != last_identifier:
+                st.session_state['auto_print_last_id'] = identifier
+                _trigger_print_job(factura_obj, source='auto', rerun=False)
+                st.rerun()
             else:
-                st.error("No se encontraron los datos de la factura para imprimir.")
+                if any(token in lower_status for token in ['ok', 'advertencia', 'error']):
+                    st.session_state['impresion_en_progreso'] = False
+                    if 'ok' in lower_status:
+                        st.session_state['impresion_finalizada'] = True
+                st.info('La factura validada se enviara automaticamente a impresion.')
+        else:
+            st.error('No se encontraron los datos de la factura para imprimir automaticamente.')
     else:
-        st.info("El botón de impresión solo estará disponible cuando la factura haya sido validada exitosamente por el SIN.")
+        st.info('La impresion automatica se activara cuando la factura sea validada por el SIN.')
+
+
 
 def _render_consultar_button():
-    """Renderiza el botón de consultar factura."""
+    """Renderiza el botÃ³n de consultar factura."""
     if st.session_state.get('factura_validada'):
-        # Obtener la información desde el objeto factura_a_procesar
+        # Obtener la informaciÃ³n desde el objeto factura_a_procesar
         factura_obj = st.session_state.get('factura_a_procesar')
         if factura_obj:
             try:
@@ -331,8 +349,8 @@ def _render_consultar_button():
                 
                 # Verificar que los valores necesarios no sean None
                 if factura_obj.cuf is None or factura_obj.numero_factura is None:
-                    st.error("Datos incompletos: CUF o número de factura no disponibles.")
-                    logger.error(f"Datos de factura incompletos - CUF: {factura_obj.cuf}, Número factura: {factura_obj.numero_factura}")
+                    st.error("Datos incompletos: CUF o nÃºmero de factura no disponibles.")
+                    logger.error(f"Datos de factura incompletos - CUF: {factura_obj.cuf}, NÃºmero factura: {factura_obj.numero_factura}")
                     return
                 
                 # Verificar si la factura fue emitida en modo offline
@@ -344,22 +362,22 @@ def _render_consultar_button():
                     factura_obj.numero_factura
                 )
                 
-                # Contenedor para el botón y la información
+                # Contenedor para el botÃ³n y la informaciÃ³n
                 if es_factura_offline:
                     with st.container():
-                        st.warning("⚠️ **Factura emitida en modo offline**\n\nEl enlace estará disponible después del envío al SIN una vez restablecida la conexión.")
+                        st.warning("âš ï¸ **Factura emitida en modo offline**\n\nEl enlace estarÃ¡ disponible despuÃ©s del envÃ­o al SIN una vez restablecida la conexiÃ³n.")
                         
-                        # Botón desactivado con estilo visual claro
+                        # BotÃ³n desactivado con estilo visual claro
                         st.button(
-                            "🔗 Consultar factura (No disponible offline)",
+                            "ðŸ”— Consultar factura (No disponible offline)",
                             disabled=True,
-                            help="Esta factura fue generada en modo offline. El enlace funcionará después del envío al SIN.",
+                            help="Esta factura fue generada en modo offline. El enlace funcionarÃ¡ despuÃ©s del envÃ­o al SIN.",
                             key="consultar_offline_disabled"
                         )
                 else:
-                    # Botón normal para facturas online
+                    # BotÃ³n normal para facturas online
                     st.link_button(
-                        "🔗 Consultar factura", 
+                        "ðŸ”— Consultar factura", 
                         enlace,
                         help="Consultar la factura en el portal oficial del SIAT"
                     )
@@ -370,18 +388,18 @@ def _render_consultar_button():
                 logger.exception("Error al generar el enlace de consulta")
         else:
             st.error("No se encontraron los datos de la factura para la consulta.")
-            logger.error("Se intentó generar enlace de consulta pero no se encontró 'factura_a_procesar' en session_state.")
+            logger.error("Se intentÃ³ generar enlace de consulta pero no se encontrÃ³ 'factura_a_procesar' en session_state.")
     else:
-        st.info("El botón de consulta estará disponible cuando la factura haya sido procesada.")
+        st.info("El botÃ³n de consulta estarÃ¡ disponible cuando la factura haya sido procesada.")
 
 
 
 def _handle_online_submission(invoice_config, client_data, tipos_documento, comandas_seleccionadas,
                            lineas_productos, subtotal, total, fecha_emision, fecha_emision_str,
                            fecha_emision_display, message_placeholder):
-    """Maneja la lógica para generar y enviar una factura en modo online."""
+    """Maneja la lÃ³gica para generar y enviar una factura en modo online."""
     try:
-        logger.info("Iniciando proceso de facturación ONLINE")
+        logger.info("Iniciando proceso de facturaciÃ³n ONLINE")
 
         tipo_documento_seleccionado = next(
             (doc for doc in tipos_documento
@@ -400,7 +418,7 @@ def _handle_online_submission(invoice_config, client_data, tipos_documento, coma
 
         cufd = verificar_y_obtener_cufd(message_placeholder)
         numero_factura = obtener_y_reservar_numero_factura()
-        logger.info(f"Número de factura reservado: {numero_factura}")
+        logger.info(f"NÃºmero de factura reservado: {numero_factura}")
 
         cuf = generate_cuf(
             nit=nit_emisor,
@@ -459,8 +477,8 @@ def _handle_online_submission(invoice_config, client_data, tipos_documento, coma
 
         xsd_main_path = 'xmls/schemas/facturaElectronicaCompraVenta.xsd'
         if not validar_xml(filename, xsd_main_path):
-            show_message('error', "❌ El XML generado no es válido contra el XSD.", message_placeholder)
-            logger.error("XML no válido contra XSD")
+            show_message('error', "âŒ El XML generado no es vÃ¡lido contra el XSD.", message_placeholder)
+            logger.error("XML no vÃ¡lido contra XSD")
             return False
 
         gzip_path = comprimir_xml(filename)
@@ -468,7 +486,7 @@ def _handle_online_submission(invoice_config, client_data, tipos_documento, coma
         response = enviar_solicitud(filename, xsd_main_path, fecha_emision_str, cufd)
 
         if isinstance(response, dict) and response.get("error"):
-            show_message('error', f"❌Error al enviar la factura: {response['error']}", message_placeholder)
+            show_message('error', f"âŒError al enviar la factura: {response['error']}", message_placeholder)
             logger.error(f"Error al enviar factura: {response['error']}")
             return False
 
@@ -531,7 +549,7 @@ def _handle_online_submission(invoice_config, client_data, tipos_documento, coma
                         st.session_state['factura_emitida_offline'] = False
                     except Exception as e:
                         facturacion_logger.error(f"Error al ensamblar FacturaProcesada: {e}", exc_info=True)
-                        show_message('error', f"Error interno al preparar datos para impresión: {e}", message_placeholder)
+                        show_message('error', f"Error interno al preparar datos para impresiÃ³n: {e}", message_placeholder)
                         return False
 
                     factura_cabecera_data['tipoEmision'] = "1"
@@ -551,7 +569,7 @@ def _handle_online_submission(invoice_config, client_data, tipos_documento, coma
                                 return False
                         st.session_state['last_submission_success'] = {
                             'comandas': list(invoice_config['selected_id_comanda']),
-                            'message': f"Factura N° {numero_factura} procesada exitosamente."
+                            'message': f"Factura NÂ° {numero_factura} procesada exitosamente."
                         }
                         logger.info(f"Factura {numero_factura} procesada exitosamente")
                         return True
@@ -562,13 +580,13 @@ def _handle_online_submission(invoice_config, client_data, tipos_documento, coma
             else:
                 facturacion_logger.error(f"[SIAT] Error al procesar respuesta: {response_data.get('error')}")
         except Exception as e:
-            show_message('error', f"❌Error al procesar la respuesta: {str(e)}", message_placeholder)
+            show_message('error', f"âŒError al procesar la respuesta: {str(e)}", message_placeholder)
             facturacion_logger.exception("Error inesperado al procesar respuesta")
             return False
 
     except Exception as e:
-        show_message('error', f"❌Error en el proceso de facturación: {str(e)}", message_placeholder)
-        logger.exception("Error en facturación")
+        show_message('error', f"âŒError en el proceso de facturaciÃ³n: {str(e)}", message_placeholder)
+        logger.exception("Error en facturaciÃ³n")
         return False
 
     return False
@@ -578,13 +596,13 @@ def _handle_online_submission(invoice_config, client_data, tipos_documento, coma
 def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos_documento,
                              lineas_productos, subtotal, total, fecha_emision,
                              fecha_emision_str, message_placeholder):
-    """Maneja la lógica para generar y guardar una factura en modo offline."""
+    """Maneja la lÃ³gica para generar y guardar una factura en modo offline."""
     try:
-        logger.info("Iniciando proceso de facturación OFFLINE")
+        logger.info("Iniciando proceso de facturaciÃ³n OFFLINE")
 
         cufd_evento = evento_activo.get('cufd')
         if not cufd_evento:
-            show_message('error', "No se encontró un CUFD válido para el evento de contingencia.", message_placeholder)
+            show_message('error', "No se encontrÃ³ un CUFD vÃ¡lido para el evento de contingencia.", message_placeholder)
             return False
 
         numero_factura = obtener_y_reservar_numero_factura()
@@ -648,7 +666,7 @@ def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos
             f.write(signed_xml_str)
 
         if not validar_xml(filename, 'xmls/schemas/facturaElectronicaCompraVenta.xsd'):
-            show_message('error', "El XML generado localmente no es válido. Revise los logs.", message_placeholder)
+            show_message('error', "El XML generado localmente no es vÃ¡lido. Revise los logs.", message_placeholder)
             return False
 
         try:
@@ -705,7 +723,7 @@ def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos
             facturacion_logger.info(f"Objeto FacturaProcesada para factura offline {numero_factura} creado y guardado en session_state.")
         except Exception as e:
             facturacion_logger.error(f"Error al ensamblar FacturaProcesada en modo offline: {e}", exc_info=True)
-            show_message('error', f"Error interno al preparar datos para impresión/consulta: {e}", message_placeholder)
+            show_message('error', f"Error interno al preparar datos para impresiÃ³n/consulta: {e}", message_placeholder)
             return False
 
         factura_cabecera_data['tipoEmision'] = "2"
@@ -718,14 +736,32 @@ def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos
 
         st.session_state['last_submission_success'] = {
             'comandas': list(invoice_config['selected_id_comanda']),
-            'message': f"Factura N° {numero_factura} generada y guardada localmente. Pendiente de envío."
+            'message': f"Factura NÂ° {numero_factura} generada y guardada localmente. Pendiente de envÃ­o."
         }
-        show_message('success', f"✅ Factura N° {numero_factura} generada y guardada localmente. Pendiente de envío.", message_placeholder)
+        show_message('success', f"âœ… Factura NÂ° {numero_factura} generada y guardada localmente. Pendiente de envÃ­o.", message_placeholder)
         return True
 
     except Exception as e:
-        show_message('error', f"❌ Error en el proceso de facturación offline: {str(e)}", message_placeholder)
-        logger.exception("Error en facturación offline")
+        show_message('error', f"âŒ Error en el proceso de facturaciÃ³n offline: {str(e)}", message_placeholder)
+        logger.exception("Error en facturaciÃ³n offline")
         return False
 
     return False
+
+def _trigger_print_job(factura_obj, source: str, rerun: bool = True):
+    """Envía la factura a impresión y controla errores."""
+    if not factura_obj:
+        st.error("No se encontraron los datos de la factura para imprimir.")
+        return False
+
+    try:
+        logger.info("Solicitando impresión (%s) para factura %s.", source, getattr(factura_obj, 'numero_factura', 'N/D'))
+        solicitar_impresion(factura_obj)
+        if rerun:
+            st.rerun()
+        return True
+    except Exception as exc:
+        st.error(f"Error al solicitar la impresión: {exc}")
+        logger.exception("Error al solicitar impresión (%s)", source)
+        return False
+
