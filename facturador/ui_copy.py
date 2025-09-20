@@ -1,4 +1,5 @@
-﻿import os
+# -*- coding: utf-8 -*-
+import os
 import sys
 import logging
 from datetime import datetime
@@ -7,16 +8,24 @@ import time
 # Streamlit
 import streamlit as st
 
-# LibrerÃ­as externas
+# Asegurar que la salida estándar use UTF-8 para mostrar correctamente acentos y emojis
+try:
+    # Disponible en Python 3.7+; puede fallar en entornos más antiguos
+    sys.stdout.reconfigure(encoding='utf-8')  # type: ignore[attr-defined]
+except Exception:
+    # Ignorar cualquier error silenciosamente para no interrumpir la ejecución
+    pass
+
+# Librerías externas
 from dotenv import load_dotenv
 
-# MÃ³dulos de impresiÃ³n
+# Módulos de impresión
 from print_manager import initialize_print_state
 
-# ConfiguraciÃ³n de loggers
+# Configuración de loggers
 from logger_config import get_logger
 
-# Importar mÃ³dulos de pestaÃ±as
+# Importar módulos de pestañas
 from tabs import (
     facturacion_tab, 
     facturas_tab, 
@@ -29,7 +38,7 @@ from tabs import (
     diagnostico_tab
 )
 
-# Importar verificador de session_state para diagnÃ³stico de impresiÃ³n
+# Importar verificador de session_state para diagnóstico de impresión
 from verificador_session_state import ejecutar_diagnostico_completo
 
 def mostrar_boton_diagnostico_rapido():
@@ -126,11 +135,11 @@ def verificar_estado_sistema():
     return estado
 
 
-# Importar cliente para verificar conectividad (solo para el botÃ³n de reconexiÃ³n)
+# Importar cliente para verificar conectividad (solo para el botón de reconexión)
 from api_clients import reset_soap_client
 
 # Configurar loggers
-ui_logger = get_logger('ui')  # Logger especÃ­fico para la interfaz de usuario
+ui_logger = get_logger('ui')  # Logger específico para la interfaz de usuario
 
 load_dotenv()
 
@@ -146,10 +155,10 @@ try:
 except Exception as e:
     ui_logger.error(f"Error al verificar permisos: {str(e)}", exc_info=True)
 
-# La inicializaciÃ³n del cliente SOAP se ha movido a api_clients.py
-# para mantener la separaciÃ³n de responsabilidades
+# La inicialización del cliente SOAP se ha movido a api_clients.py
+# para mantener la separación de responsabilidades
 
-# GestiÃ³n de pestaÃ±as con logs
+# Gestión de pestañas con logs
 def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict = None, reconectar_callback=None):
     """Renderiza la interfaz principal sin comprobaciones adicionales."""
     ui_logger.info("Renderizando la interfaz principal...")
@@ -255,7 +264,7 @@ if __name__ == "__main__":
     """
     try:
         initialize_print_state()
-        # Modo de respaldo - funcionalidad bÃ¡sica sin verificaciÃ³n completa
+        # Modo de respaldo - funcionalidad básica sin verificación completa
         dummy_connectivity = {
             "estado_general": "RESPALDO",
             "recomendacion": "Ejecutando en modo de respaldo. Use main.py para funcionalidad completa.",
@@ -263,7 +272,7 @@ if __name__ == "__main__":
         }
         render_full_ui(is_online=False, connectivity_info=dummy_connectivity)
     except Exception as e:
-        ui_logger.error(f"Error en la ejecuciÃ³n principal: {str(e)}", exc_info=True)
+        ui_logger.error(f"Error en la ejecución principal: {str(e)}", exc_info=True)
         st.error(f"Ha ocurrido un error: {str(e)}")
 
 

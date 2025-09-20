@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import logging
 from logging.handlers import RotatingFileHandler
@@ -22,6 +23,15 @@ def setup_logger(name='root', log_file=None, level=logging.DEBUG, max_size=10*10
     if log_file and not os.path.exists(os.path.dirname(os.path.abspath(log_file))):
         os.makedirs(os.path.dirname(os.path.abspath(log_file)))
     
+    # Intentar asegurar que la salida estándar use codificación UTF-8
+    # Esto ayuda a que los mensajes con acentos y emojis se muestren correctamente en la consola.
+    try:
+        # Disponible en Python 3.7+; puede fallar en versiones anteriores o entornos limitados
+        sys.stdout.reconfigure(encoding='utf-8')  # type: ignore[attr-defined]
+    except Exception:
+        # Si no es posible reconfigurar, continuar sin interrumpir la funcionalidad
+        pass
+
     # Obtener o crear el logger
     if name == 'root':
         logger = logging.getLogger()  # Root logger
@@ -49,10 +59,12 @@ def setup_logger(name='root', log_file=None, level=logging.DEBUG, max_size=10*10
     # Handler para archivo con rotación si se especifica
     if log_file:
         # Usar RotatingFileHandler en lugar de FileHandler
+        # Especificar la codificación UTF-8 para soportar caracteres especiales
         file_handler = RotatingFileHandler(
             log_file, 
             maxBytes=max_size,  
-            backupCount=backup_count
+            backupCount=backup_count,
+            encoding='utf-8'
         )
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
