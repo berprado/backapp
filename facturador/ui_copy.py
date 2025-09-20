@@ -21,6 +21,7 @@ from dotenv import load_dotenv
 
 # Módulos de impresión
 from print_manager import initialize_print_state
+from print_status import infer_status_from_message
 
 # Configuración de loggers
 from logger_config import get_logger
@@ -44,17 +45,23 @@ from verificador_session_state import ejecutar_diagnostico_completo
 def mostrar_boton_diagnostico_rapido():
     """Muestra un enlace rapido al diagnostico de impresion."""
     impresion_en_progreso = st.session_state.get('impresion_en_progreso', False)
+    status_info = st.session_state.get('print_status_info') or {}
     print_status = st.session_state.get('print_status', '') or ''
     worker_status = st.session_state.get('printer_worker_status', 'desconocido')
 
-    error_en_status = any(token in print_status.lower() for token in ['error', 'fall', 'reinicie'])
-    worker_alerta = worker_status not in ('running', 'desconocido')
+    severity = (status_info.get('severity') or '').lower()
+    if not severity and print_status:
+        severity = infer_status_from_message(print_status).severity.value
 
-    if impresion_en_progreso or error_en_status or worker_alerta:
+    worker_alerta = worker_status not in ('running', 'desconocido')
+    estado_con_alerta = severity in {'error', 'warning'}
+
+    if impresion_en_progreso or estado_con_alerta or worker_alerta:
         st.warning('Se detectaron posibles problemas de impresion')
         if st.button('Abrir diagnostico rapido de impresion', help='Abre el panel de diagnostico completo', key='diagnostico_rapido_impresion'):
             with st.expander('Diagnostico de sistema de impresion', expanded=True):
                 ejecutar_diagnostico_completo('automatico')
+
 
 
 

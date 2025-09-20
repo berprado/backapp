@@ -1,18 +1,27 @@
-﻿# print_manager.py
-import os
-import threading
+from __future__ import annotations
+
 import queue
+import threading
 import time
 from datetime import datetime
-from typing import Optional
+from typing import Dict, Optional
 
 import streamlit as st
 
-from siat_pdf import html_to_pdf
-from thermal_printer import ThermalPrinter
-from logger_config import get_printer_logger
 from data_models import FacturaProcesada
-from invoice_templates import generate_html_invoice as generate_html_for_pdf
+from logger_config import get_printer_logger
+from print_services import (
+    PdfGenerationError,
+    PdfGenerator,
+    PrinterJobError,
+    ThermalPrintService,
+)
+from print_status import (
+    PrintStatusCode,
+    PrintStatusPayload,
+    build_status,
+    infer_status_from_message,
+)
 
 printer_logger = get_printer_logger()
 
@@ -21,7 +30,7 @@ class PrinterRuntime:
     """Administra la cola, el hilo y el estado del servicio de impresion."""
 
     def __init__(self) -> None:
-        self.queue: queue.Queue = queue.Queue()
+        self.queue: "queue.Queue[Optional[Dict]]" = queue.Queue()
         self.thread: Optional[threading.Thread] = None
         self.lock = threading.Lock()
         self.last_heartbeat: Optional[float] = None
@@ -47,7 +56,7 @@ class PrinterRuntime:
                 target=printer_worker,
                 args=(self,),
                 daemon=True,
-                name="PrinterWorkerThread"
+                name="PrinterWorkerThread",
             )
             self.thread.start()
             self.start_count += 1
@@ -64,42 +73,60 @@ def get_printer_runtime() -> PrinterRuntime:
 
 
 def _ensure_print_session_keys() -> None:
-    defaults = {
-        "print_status": "Sistema de impresion listo.",
-        "impresion_en_progreso": False,
-        "impresion_finalizada": False,
-        "ultimo_trabajo_impresion": None,
-        "printer_worker_status": "desconocido",
-        "printer_worker_last_heartbeat": None,
-    }
-    for key, value in defaults.items():
-        st.session_state.setdefault(key, value)
+    if "print_status" not in st.session_state or "print_status_info" not in st.session_state:
+        payload = build_status(PrintStatusCode.READY)
+        st.session_state.setdefault("print_status", payload.message)
+        st.session_state.setdefault("print_status_info", payload.to_dict())
+    st.session_state.setdefault("impresion_en_progreso", False)
+    st.session_state.setdefault("impresion_finalizada", False)
+    st.session_state.setdefault("ultimo_trabajo_impresion", None)
+    st.session_state.setdefault("printer_worker_status", "desconocido")
+    st.session_state.setdefault("printer_worker_last_heartbeat", None)
 
 
 def _update_print_session(
     status: Optional[str] = None,
+    *,
+    status_payload: Optional[PrintStatusPayload] = None,
     en_progreso: Optional[bool] = None,
     finalizada: Optional[bool] = None,
-    ultimo_trabajo: Optional[dict] = None,
+    ultimo_trabajo: Optional[Dict] = None,
     worker_status: Optional[str] = None,
     worker_heartbeat: Optional[float] = None,
 ) -> None:
     _ensure_print_session_keys()
-    if status is not None:
-        st.session_state["print_status"] = status
+
+    payload = status_payload
+    if payload is None and status is not None:
+        payload = infer_status_from_message(status)
+
+    if payload is not None:
+        st.session_state["print_status"] = payload.message
+        st.session_state["print_status_info"] = payload.to_dict()
+
     if en_progreso is not None:
         st.session_state["impresion_en_progreso"] = en_progreso
     if finalizada is not None:
         st.session_state["impresion_finalizada"] = finalizada
+
     if ultimo_trabajo is not None:
-        st.session_state["ultimo_trabajo_impresion"] = ultimo_trabajo
+        job_snapshot = dict(ultimo_trabajo)
+        if payload is not None:
+            job_snapshot.setdefault("timestamp", payload.timestamp)
+            job_snapshot["status_code"] = payload.code.value
+            job_snapshot["status_severity"] = payload.severity.value
+            job_snapshot["status_message"] = payload.message
+            if payload.detail:
+                job_snapshot["status_detail"] = payload.detail
+        st.session_state["ultimo_trabajo_impresion"] = job_snapshot
+
     if worker_status is not None:
         st.session_state["printer_worker_status"] = worker_status
     if worker_heartbeat is not None:
         st.session_state["printer_worker_last_heartbeat"] = worker_heartbeat
 
 
-def get_printer_queue() -> queue.Queue:
+def get_printer_queue() -> "queue.Queue[Optional[Dict]]":
     runtime = get_printer_runtime()
     runtime.ensure_worker()
     return runtime.queue
@@ -110,23 +137,43 @@ def printer_worker(runtime: PrinterRuntime) -> None:
     printer_logger.info("WORKER: hilo de impresion iniciado.")
     runtime.mark_heartbeat()
 
-    printer = ThermalPrinter()
+    pdf_generator = PdfGenerator()
+    print_service = ThermalPrintService()
 
     while True:
+        factura_data = q.get()
+        should_break = factura_data is None
+        pdf_path: Optional[str] = None
+
         try:
-            factura_data = q.get()
             runtime.mark_heartbeat()
 
-            if factura_data is None:
+            if should_break:
+                printer_logger.info("WORKER: se recibio senal de apagado.")
                 break
 
             if not isinstance(factura_data, dict):
                 printer_logger.error(
                     "WORKER: se esperaba un diccionario, se recibio %s. Se descarta la tarea.",
-                    type(factura_data)
+                    type(factura_data),
                 )
-                q.task_done()
+                payload = build_status(
+                    PrintStatusCode.DATA_ERROR,
+                    message="Los datos de impresion no tienen el formato esperado.",
+                    detail=str(type(factura_data)),
+                )
+                _update_print_session(
+                    status_payload=payload,
+                    en_progreso=False,
+                    finalizada=False,
+                    ultimo_trabajo={"timestamp": datetime.utcnow().isoformat()},
+                )
                 continue
+
+            job_meta: Dict[str, Optional[str]] = {
+                "numero_factura": factura_data.get("numero_factura"),
+                "timestamp": datetime.utcnow().isoformat(),
+            }
 
             try:
                 factura_obj = FacturaProcesada(**factura_data)
@@ -135,16 +182,27 @@ def printer_worker(runtime: PrinterRuntime) -> None:
                     "WORKER: no se pudo reconstruir FacturaProcesada: %s. Datos: %s",
                     exc,
                     factura_data,
+                    exc_info=True,
                 )
-                q.task_done()
+                payload = build_status(
+                    PrintStatusCode.DATA_ERROR,
+                    message="Los datos de la factura no son validos para impresion.",
+                    detail=str(exc),
+                )
+                _update_print_session(
+                    status_payload=payload,
+                    en_progreso=False,
+                    finalizada=False,
+                    ultimo_trabajo=job_meta,
+                )
                 continue
 
-            job_meta = {
-                "numero_factura": factura_obj.numero_factura,
-                "timestamp": datetime.utcnow().isoformat(),
-            }
+            processing_payload = build_status(
+                PrintStatusCode.PROCESSING,
+                message=f"[EN PROCESO] Procesando factura No. {factura_obj.numero_factura}...",
+            )
             _update_print_session(
-                status=f"[EN PROCESO] Procesando factura No. {factura_obj.numero_factura}...",
+                status_payload=processing_payload,
                 en_progreso=True,
                 finalizada=False,
                 ultimo_trabajo=job_meta,
@@ -152,76 +210,91 @@ def printer_worker(runtime: PrinterRuntime) -> None:
             printer_logger.info("WORKER: nueva tarea para factura No. %s", factura_obj.numero_factura)
 
             try:
-                html_content_pdf = generate_html_for_pdf(factura_obj)
-                pdfs_dir = os.path.join(os.getcwd(), "pdfs")
-                os.makedirs(pdfs_dir, exist_ok=True)
-                output_pdf_path = os.path.join(pdfs_dir, f"factura_{factura_obj.numero_factura}.pdf")
-                pdf_result = html_to_pdf(html_content_pdf, output_pdf_path)
-                if not pdf_result:
-                    raise RuntimeError("html_to_pdf retorno False")
-                printer_logger.info("WORKER: PDF generado en %s", output_pdf_path)
-            except Exception as exc:
+                pdf_path = str(pdf_generator.generate(factura_obj))
+            except PdfGenerationError as exc:
                 printer_logger.error(
                     "WORKER: error al generar PDF para la factura %s: %s",
                     factura_obj.numero_factura,
                     exc,
                     exc_info=True,
                 )
+                payload = build_status(
+                    PrintStatusCode.PDF_ERROR,
+                    message=f"No se genero el PDF de la factura {factura_obj.numero_factura}.",
+                    detail=str(exc),
+                )
                 _update_print_session(
-                    status=f"[ERROR] No se genero el PDF de la factura {factura_obj.numero_factura}.",
+                    status_payload=payload,
                     en_progreso=False,
                     finalizada=False,
+                    ultimo_trabajo=job_meta,
                 )
-                q.task_done()
                 continue
 
             try:
                 runtime.mark_heartbeat()
-                printer.connect()
-                success = printer.print_invoice(factura_obj)
-                if not success:
-                    raise RuntimeError("print_invoice retorno False")
-                printer_logger.info(
-                    "WORKER: impresion termica completada para la factura %s",
-                    factura_obj.numero_factura,
-                )
-                _update_print_session(
-                    status=f"[OK] Factura No. {factura_obj.numero_factura} impresa exitosamente.",
-                    en_progreso=False,
-                    finalizada=True,
-                )
-            except Exception as exc:
+                print_service.print_factura(factura_obj)
+            except PrinterJobError as exc:
                 printer_logger.error(
                     "WORKER: error de impresora en factura %s: %s",
                     factura_obj.numero_factura,
                     exc,
                     exc_info=True,
                 )
+                code = (
+                    PrintStatusCode.PRINTER_WARNING
+                    if exc.code in {"job_failed", "job_exception"}
+                    else PrintStatusCode.PRINTER_ERROR
+                )
+                payload = build_status(
+                    code,
+                    message=f"El PDF de la factura {factura_obj.numero_factura} se genero, pero la impresora fallo.",
+                    detail=str(exc),
+                )
                 _update_print_session(
-                    status=f"[ADVERTENCIA] El PDF de la factura {factura_obj.numero_factura} se genero, pero la impresora fallo.",
+                    status_payload=payload,
                     en_progreso=False,
                     finalizada=False,
+                    ultimo_trabajo={**job_meta, "pdf_generado": pdf_path},
                 )
-                printer.disconnect()
+                continue
 
-            q.task_done()
-            runtime.mark_heartbeat()
+            payload = build_status(
+                PrintStatusCode.PRINTER_SUCCESS,
+                message=f"Factura No. {factura_obj.numero_factura} impresa exitosamente.",
+            )
+            _update_print_session(
+                status_payload=payload,
+                en_progreso=False,
+                finalizada=True,
+                ultimo_trabajo={**job_meta, "pdf_generado": pdf_path},
+            )
 
-        except Exception as exc:
+        except Exception as exc:  # pragma: no cover - protecci?n general
             printer_logger.critical(
                 "WORKER: error critico en el hilo trabajador: %s",
                 exc,
                 exc_info=True,
             )
+            payload = build_status(
+                PrintStatusCode.CRITICAL_ERROR,
+                message="[ERROR CRITICO] Servicio de impresion detenido. Reinicie la aplicacion.",
+                detail=str(exc),
+            )
             _update_print_session(
-                status="[ERROR CRITICO] Servicio de impresion detenido. Reinicie la aplicacion.",
+                status_payload=payload,
                 en_progreso=False,
                 finalizada=False,
             )
             time.sleep(5)
+        finally:
+            q.task_done()
             runtime.mark_heartbeat()
 
-    printer.disconnect()
+        if should_break:
+            break
+
+    print_service.shutdown()
     runtime.mark_stopped()
     printer_logger.info("WORKER: hilo de impresion finalizado.")
 
@@ -251,8 +324,12 @@ def solicitar_impresion(factura_obj: FacturaProcesada) -> None:
         "numero_factura": factura_obj.numero_factura,
         "timestamp": datetime.utcnow().isoformat(),
     }
+    payload = build_status(
+        PrintStatusCode.QUEUED,
+        message=f"Factura No. {factura_obj.numero_factura} enviada a la cola de impresion.",
+    )
     _update_print_session(
-        status="[ENVIADO] Factura enviada a la cola de impresion.",
+        status_payload=payload,
         en_progreso=True,
         finalizada=False,
         ultimo_trabajo=job_meta,

@@ -24,6 +24,7 @@ from response_handler import parse_siat_response, display_siat_response
 from data_access import guardar_factura_cabecera, guardar_factura_detalle
 from invoice_manager import obtener_y_reservar_numero_factura
 from print_manager import initialize_print_state, solicitar_impresion
+from print_status import infer_status_from_message
 
 # Módulos locales
 from facturacion_sidebar import (
@@ -292,18 +293,27 @@ def _render_facturar_button(is_online, invoice_config, client_data, tipos_docume
 
 
 def _render_print_button():
-    """Renderiza la impresión automática después de validar."""
+    """Renderiza la impresion automatica despues de validar."""
     initialize_print_state()
 
-    print_status = st.session_state.get('print_status', 'Sistema de impresión listo.')
+    status_info = st.session_state.get('print_status_info') or {}
+    print_status = st.session_state.get('print_status', 'Sistema de impresion listo.')
     worker_status = st.session_state.get('printer_worker_status', 'desconocido')
     worker_heartbeat = st.session_state.get('printer_worker_last_heartbeat')
     st.session_state.setdefault('auto_print_last_id', None)
 
-    lower_status = print_status.lower()
-    if any(token in lower_status for token in ['error', 'critico', 'crítico']):
+    severity = (status_info.get('severity') or '').lower()
+    code = status_info.get('code')
+    if not severity:
+        inferred = infer_status_from_message(print_status)
+        severity = inferred.severity.value
+        code = inferred.code.value
+
+    if severity == 'error':
         st.error(print_status)
-    elif 'impresa' in lower_status or 'ok' in lower_status:
+    elif severity == 'warning':
+        st.warning(print_status)
+    elif severity == 'success':
         st.success(print_status)
     else:
         st.info(print_status)
@@ -311,7 +321,7 @@ def _render_print_button():
     if worker_heartbeat:
         try:
             last_seen = datetime.fromtimestamp(worker_heartbeat).strftime('%H:%M:%S')
-            st.caption(f"Worker: {worker_status} - última señal {last_seen}")
+            st.caption(f"Worker: {worker_status} - ultima senal {last_seen}")
         except Exception:
             st.caption(f"Worker: {worker_status}")
     else:
@@ -327,16 +337,23 @@ def _render_print_button():
                 _trigger_print_job(factura_obj, source='auto', rerun=False)
                 st.rerun()
             else:
-                if any(token in lower_status for token in ['ok', 'advertencia', 'error']):
+                terminal_codes = {
+                    'printer_success',
+                    'printer_warning',
+                    'printer_error',
+                    'pdf_error',
+                    'data_error',
+                    'critical_error',
+                }
+                if code in terminal_codes:
                     st.session_state['impresion_en_progreso'] = False
-                    if 'ok' in lower_status:
+                    if code == 'printer_success':
                         st.session_state['impresion_finalizada'] = True
-                st.info('La factura validada se enviará automáticamente a impresión.')
+                st.info('La factura validada se enviara automaticamente a impresion.')
         else:
-            st.error('No se encontraron los datos de la factura para imprimir automáticamente.')
+            st.error('No se encontraron los datos de la factura para imprimir automaticamente.')
     else:
-        st.info('La impresión automática se activará cuando la factura sea validada por el SIN.')
-
+        st.info('La impresion automatica se activara cuando la factura sea validada por el SIN.')
 
 
 def _render_consultar_button():
