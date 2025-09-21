@@ -592,6 +592,27 @@ def mostrar_resumen_diagnostico(prefix_key="resumen"):
             nivel_alerta = 'warning'
             mensaje_estado = 'Estado de impresion con advertencia'
 
+    queued_stuck = False
+    if status_info.get('code') == 'queued' and impresion_en_progreso:
+        ts_candidates = [status_info.get('timestamp')]
+        ultimo_job = st.session_state.get('ultimo_trabajo_impresion') or {}
+        ts_candidates.append(ultimo_job.get('timestamp'))
+        ts_value = next((ts for ts in ts_candidates if ts), None)
+        if ts_value:
+            try:
+                age = datetime.now() - datetime.fromisoformat(ts_value)
+                queued_stuck = age.total_seconds() > 60
+            except Exception:
+                queued_stuck = True
+        else:
+            queued_stuck = True
+
+    if queued_stuck:
+        problemas_detectados.append('⚠️ Factura en cola sin completar (>60s)')
+        if nivel_alerta != 'error':
+            nivel_alerta = 'warning'
+            mensaje_estado = 'Factura en cola requiere intervención'
+
     if impresion_en_progreso and not impresion_finalizada:
         # Hay un proceso de impresión en curso
         problemas_detectados.append('🚨 Proceso de impresión en curso')

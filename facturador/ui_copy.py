@@ -42,6 +42,18 @@ from tabs import (
 # Importar verificador de session_state para diagnóstico de impresión
 from verificador_session_state import ejecutar_diagnostico_completo
 
+
+def _schedule_auto_refresh():
+    """Dispara rerun periodico mientras hay impresion pendiente."""
+    if not st.session_state.get('impresion_en_progreso'):
+        st.session_state.pop('_print_auto_refresh_active', None)
+        return
+    interval = st.session_state.get('_print_auto_refresh_interval', 1.5)
+    st.session_state['_print_auto_refresh_active'] = True
+    time.sleep(interval)
+    st.rerun()
+
+
 def mostrar_boton_diagnostico_rapido():
     """Muestra un enlace rapido al diagnostico de impresion."""
     impresion_en_progreso = st.session_state.get('impresion_en_progreso', False)
@@ -50,14 +62,34 @@ def mostrar_boton_diagnostico_rapido():
     worker_status = st.session_state.get('printer_worker_status', 'desconocido')
 
     severity = (status_info.get('severity') or '').lower()
+    code = status_info.get('code')
     if not severity and print_status:
-        severity = infer_status_from_message(print_status).severity.value
+        inferred = infer_status_from_message(print_status)
+        severity = inferred.severity.value
+        code = inferred.code.value
+
+    stuck_in_queue = False
+    if code == 'queued' and impresion_en_progreso:
+        timestamp_str = status_info.get('timestamp')
+        if not timestamp_str:
+            ultimo = st.session_state.get('ultimo_trabajo_impresion') or {}
+            timestamp_str = ultimo.get('timestamp')
+        if timestamp_str:
+            try:
+                age_seconds = (datetime.now() - datetime.fromisoformat(timestamp_str)).total_seconds()
+                stuck_in_queue = age_seconds > 60
+            except Exception:
+                stuck_in_queue = True
+        else:
+            stuck_in_queue = True
 
     worker_alerta = worker_status not in ('running', 'desconocido')
-    estado_con_alerta = severity in {'error', 'warning'}
+    estado_con_alerta = severity in {'error', 'warning'} or stuck_in_queue
 
     if impresion_en_progreso or estado_con_alerta or worker_alerta:
         st.warning('Se detectaron posibles problemas de impresion')
+        if stuck_in_queue:
+            st.caption('La ultima factura permanece en cola durante mas de 60 segundos.')
         if st.button('Abrir diagnostico rapido de impresion', help='Abre el panel de diagnostico completo', key='diagnostico_rapido_impresion'):
             with st.expander('Diagnostico de sistema de impresion', expanded=True):
                 ejecutar_diagnostico_completo('automatico')

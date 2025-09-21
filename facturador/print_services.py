@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -60,21 +61,33 @@ class ThermalPrintService:
         if self.printer is None:
             self.printer = ThermalPrinter()
 
-    def print_factura(self, factura_obj) -> None:
+    def print_factura(self, factura_obj) -> bool:
         assert self.printer is not None
+        printer_logger.debug("PRINT_SERVICE: iniciando impresion de factura %s", getattr(factura_obj, 'numero_factura', 'N/D'))
         try:
             self.printer.connect()
         except Exception as exc:
             raise PrinterJobError("No se pudo conectar con la impresora USB.", "connection_failed") from exc
 
+        start_time = time.monotonic()
         try:
             success = self.printer.print_invoice(factura_obj)
         except Exception as exc:  # printer.print_invoice ya desconecta en caso de error
             raise PrinterJobError("Error inesperado al imprimir.", "job_exception") from exc
+        finally:
+            elapsed = time.monotonic() - start_time
+            printer_logger.debug("PRINT_SERVICE: impresion finalizada para factura %s en %.3fs", getattr(factura_obj, 'numero_factura', 'N/D'), elapsed)
+            self.shutdown()
 
         if not success:
             raise PrinterJobError("La impresora reporto un fallo en la impresion.", "job_failed")
+        return True
 
     def shutdown(self) -> None:
         if self.printer is not None:
-            self.printer.disconnect()
+            try:
+                self.printer.disconnect()
+            except Exception as exc:
+                printer_logger.warning("PRINT_SERVICE: error al desconectar la impresora: %s", exc)
+            finally:
+                self.printer = ThermalPrinter()

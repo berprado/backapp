@@ -7,6 +7,10 @@ from datetime import datetime
 from typing import Dict, Optional
 
 import streamlit as st
+try:
+    from streamlit.runtime.scriptrunner import add_script_run_ctx, get_script_run_ctx
+except ModuleNotFoundError:
+    from streamlit.runtime.scriptrun_context import add_script_run_ctx, get_script_run_ctx  # type: ignore
 
 from data_models import FacturaProcesada
 from logger_config import get_printer_logger
@@ -58,6 +62,9 @@ class PrinterRuntime:
                 daemon=True,
                 name="PrinterWorkerThread",
             )
+            ctx = get_script_run_ctx()
+            if ctx is not None:
+                add_script_run_ctx(self.thread, ctx)
             self.thread.start()
             self.start_count += 1
             _update_print_session(worker_status="running", worker_heartbeat=time.time())
@@ -82,6 +89,9 @@ def _ensure_print_session_keys() -> None:
     st.session_state.setdefault("ultimo_trabajo_impresion", None)
     st.session_state.setdefault("printer_worker_status", "desconocido")
     st.session_state.setdefault("printer_worker_last_heartbeat", None)
+    st.session_state.setdefault("print_state_version", 0)
+    st.session_state.setdefault("print_state_last_updated", None)
+    st.session_state.setdefault("_print_auto_refresh_interval", 1.5)
 
 
 def _update_print_session(
@@ -100,13 +110,23 @@ def _update_print_session(
     if payload is None and status is not None:
         payload = infer_status_from_message(status)
 
+    state_changed = False
+
     if payload is not None:
         st.session_state["print_status"] = payload.message
         st.session_state["print_status_info"] = payload.to_dict()
+        state_changed = True
 
     if en_progreso is not None:
+        previous = st.session_state.get("impresion_en_progreso")
+        if previous != en_progreso:
+            state_changed = True
         st.session_state["impresion_en_progreso"] = en_progreso
+
     if finalizada is not None:
+        previous = st.session_state.get("impresion_finalizada")
+        if previous != finalizada:
+            state_changed = True
         st.session_state["impresion_finalizada"] = finalizada
 
     if ultimo_trabajo is not None:
@@ -119,11 +139,17 @@ def _update_print_session(
             if payload.detail:
                 job_snapshot["status_detail"] = payload.detail
         st.session_state["ultimo_trabajo_impresion"] = job_snapshot
+        state_changed = True
 
     if worker_status is not None:
         st.session_state["printer_worker_status"] = worker_status
+
     if worker_heartbeat is not None:
         st.session_state["printer_worker_last_heartbeat"] = worker_heartbeat
+
+    if state_changed:
+        st.session_state["print_state_version"] = st.session_state.get("print_state_version", 0) + 1
+        st.session_state["print_state_last_updated"] = time.time()
 
 
 def get_printer_queue() -> "queue.Queue[Optional[Dict]]":
@@ -231,13 +257,18 @@ def printer_worker(runtime: PrinterRuntime) -> None:
                 )
                 continue
 
+            runtime.mark_heartbeat()
+            start_print = time.monotonic()
             try:
-                runtime.mark_heartbeat()
                 print_service.print_factura(factura_obj)
+                duration = time.monotonic() - start_print
+                printer_logger.info("WORKER: impresion termica completada para la factura %s en %.3fs", factura_obj.numero_factura, duration)
             except PrinterJobError as exc:
+                duration = time.monotonic() - start_print
                 printer_logger.error(
-                    "WORKER: error de impresora en factura %s: %s",
+                    "WORKER: error de impresora en factura %s tras %.3fs: %s",
                     factura_obj.numero_factura,
+                    duration,
                     exc,
                     exc_info=True,
                 )
@@ -255,19 +286,20 @@ def printer_worker(runtime: PrinterRuntime) -> None:
                     status_payload=payload,
                     en_progreso=False,
                     finalizada=False,
-                    ultimo_trabajo={**job_meta, "pdf_generado": pdf_path},
+                    ultimo_trabajo={**job_meta, "pdf_generado": pdf_path, "duracion_impresion": duration},
                 )
                 continue
 
             payload = build_status(
                 PrintStatusCode.PRINTER_SUCCESS,
                 message=f"Factura No. {factura_obj.numero_factura} impresa exitosamente.",
+                detail=f"Duracion de impresion: {duration:.3f}s",
             )
             _update_print_session(
                 status_payload=payload,
                 en_progreso=False,
                 finalizada=True,
-                ultimo_trabajo={**job_meta, "pdf_generado": pdf_path},
+                ultimo_trabajo={**job_meta, "pdf_generado": pdf_path, "duracion_impresion": duration},
             )
 
         except Exception as exc:  # pragma: no cover - protecci?n general
