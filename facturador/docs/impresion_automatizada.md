@@ -35,6 +35,7 @@ Este documento resume los ajustes aplicados al flujo de impresion de BACKINVOICE
 ## 5. UI principal (`ui_copy.py`)
 - El banner rapido usa `print_status_info.severity` para distinguir entre errores y advertencias reales, evitando falsos positivos por coincidencias de texto.
 - El diagnostico rapido se activa cuando hay progreso pendiente, una severidad de alerta o el worker reporta un estado distinto de `running`.
+- La vista principal muestra solo el mensaje de estado relevante (enviado, procesando, impresa o error) y remite al diagnostico rapido solo cuando es necesario; los detalles tecnicos quedan en los logs y el panel de diagnostico.
 
 ## 6. Verificador (`verificador_session_state.py`)
 - Amplia las claves revisadas (`printer_worker_status`, `printer_worker_last_heartbeat`, `print_status_info`, `ultimo_trabajo_impresion`, `auto_print_last_id`).

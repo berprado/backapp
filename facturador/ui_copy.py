@@ -54,123 +54,89 @@ def _schedule_auto_refresh():
     st.rerun()
 
 
-def mostrar_boton_diagnostico_rapido():
-    """Muestra un enlace rapido al diagnostico de impresion."""
-    impresion_en_progreso = st.session_state.get('impresion_en_progreso', False)
+def _get_print_state_summary():
+    initialize_print_state()
     status_info = st.session_state.get('print_status_info') or {}
-    print_status = st.session_state.get('print_status', '') or ''
-    worker_status = st.session_state.get('printer_worker_status', 'desconocido')
-
+    print_status = st.session_state.get('print_status', 'Sistema de impresion listo.')
     severity = (status_info.get('severity') or '').lower()
-    code = status_info.get('code')
     if not severity and print_status:
-        inferred = infer_status_from_message(print_status)
-        severity = inferred.severity.value
-        code = inferred.code.value
+        severity = infer_status_from_message(print_status).severity.value
+    severity = severity if severity in {'success', 'warning', 'error'} else 'info'
+    code = status_info.get('code')
+    impresion_en_progreso = st.session_state.get('impresion_en_progreso', False)
+    version = st.session_state.get('print_state_version', 0)
+    updated_at = st.session_state.get('print_state_last_updated')
 
-    stuck_in_queue = False
+    message = status_info.get('message') or print_status
     if code == 'queued' and impresion_en_progreso:
-        timestamp_str = status_info.get('timestamp')
-        if not timestamp_str:
-            ultimo = st.session_state.get('ultimo_trabajo_impresion') or {}
-            timestamp_str = ultimo.get('timestamp')
-        if timestamp_str:
-            try:
-                age_seconds = (datetime.now() - datetime.fromisoformat(timestamp_str)).total_seconds()
-                stuck_in_queue = age_seconds > 60
-            except Exception:
-                stuck_in_queue = True
-        else:
-            stuck_in_queue = True
+        message = status_info.get('message') or 'Factura enviada a la cola de impresion. Procesando...'
+        severity = 'info'
+    elif code == 'printer_success':
+        message = status_info.get('message') or 'Factura impresa exitosamente.'
+        severity = 'success'
+    elif code == 'printer_warning':
+        severity = 'warning'
+    elif code in {'printer_error', 'pdf_error', 'data_error', 'critical_error'}:
+        severity = 'error'
 
-    worker_alerta = worker_status not in ('running', 'desconocido')
-    estado_con_alerta = severity in {'error', 'warning'} or stuck_in_queue
+    show_diag = severity in {'warning', 'error'}
 
-    if impresion_en_progreso or estado_con_alerta or worker_alerta:
-        st.warning('Se detectaron posibles problemas de impresion')
-        if stuck_in_queue:
-            st.caption('La ultima factura permanece en cola durante mas de 60 segundos.')
-        if st.button('Abrir diagnostico rapido de impresion', help='Abre el panel de diagnostico completo', key='diagnostico_rapido_impresion'):
-            with st.expander('Diagnostico de sistema de impresion', expanded=True):
-                ejecutar_diagnostico_completo('automatico')
+    return {
+        'severity': severity,
+        'message': message,
+        'show_diagnostic': show_diag,
+        'status_info': status_info,
+        'impresion_en_progreso': impresion_en_progreso,
+        'version': version,
+        'updated_at': updated_at,
+    }
+
+
+def _show_status_toast(summary):
+    version = summary.get('version')
+    if version is None:
+        return
+    last_version = st.session_state.get('_last_toast_version', -1)
+    if version <= last_version:
+        return
+    st.session_state['_last_toast_version'] = version
+    message = summary.get('message') or 'Estado de impresion actualizado.'
+    severity = summary.get('severity', 'info')
+    icon_map = {
+        'success': '✅',
+        'warning': '⚠️',
+        'error': '❌',
+        'info': 'ℹ️',
+    }
+    icon = icon_map.get(severity, 'ℹ️')
+    try:
+        st.toast(message, icon=icon)
+    except Exception:
+        pass
+
+
+def mostrar_boton_diagnostico_rapido(summary=None):
+    """Muestra un acceso directo al diagnostico tecnico cuando es necesario."""
+    summary = summary or _get_print_state_summary()
+    if not (summary.get('show_diagnostic') or summary.get('impresion_en_progreso')):
+        return
+    if st.button('Ver diagnostico de impresion', help='Abrir diagnostico completo con informacion tecnica', key='diagnostico_rapido_impresion'):
+        with st.expander('Diagnostico de sistema de impresion', expanded=True):
+            ejecutar_diagnostico_completo('automatico')
 
 
 
 
 def verificar_estado_sistema():
-    """Verifica el estado del sistema de impresion."""
+    """Obtiene un resumen simplificado del estado de impresion."""
+    summary = _get_print_state_summary()
     estado = {
         'problemas_detectados': [],
-        'nivel_alerta': 'normal',
-        'mensaje_estado': 'Sistema funcionando correctamente'
+        'nivel_alerta': summary['severity'],
+        'mensaje_estado': summary['message'],
+        'show_diagnostic': summary['show_diagnostic'],
+        'summary': summary,
     }
-
-    impresion_en_progreso = st.session_state.get('impresion_en_progreso', False)
-    impresion_finalizada = st.session_state.get('impresion_finalizada', False)
-    worker_status = st.session_state.get('printer_worker_status', 'desconocido')
-    worker_heartbeat = st.session_state.get('printer_worker_last_heartbeat')
-    ultimo_trabajo = st.session_state.get('ultimo_trabajo_impresion')
-
-    if impresion_en_progreso and not impresion_finalizada:
-        estado['problemas_detectados'].append('Impresion en curso')
-        estado['nivel_alerta'] = 'warning'
-        estado['mensaje_estado'] = 'Impresion en curso'
-
-        if ultimo_trabajo and ultimo_trabajo.get('timestamp'):
-            try:
-                inicio = datetime.fromisoformat(ultimo_trabajo['timestamp'])
-                if time.time() - inicio.timestamp() > 180:
-                    estado['problemas_detectados'].append('Proceso de impresion bloqueado (>180s)')
-                    estado['nivel_alerta'] = 'error'
-                    estado['mensaje_estado'] = 'Proceso de impresion bloqueado'
-            except Exception:
-                pass
-    elif impresion_finalizada:
-        estado['mensaje_estado'] = 'Ultima impresion completada'
-
-    if worker_status not in ('running', 'desconocido'):
-        estado['problemas_detectados'].append(f'Servicio de impresion en estado {worker_status}')
-        if worker_status == 'stopped':
-            estado['nivel_alerta'] = 'error'
-            estado['mensaje_estado'] = 'Servicio de impresion detenido'
-        elif estado['nivel_alerta'] != 'error':
-            estado['nivel_alerta'] = 'warning'
-            estado['mensaje_estado'] = 'Revisar estado del servicio de impresion'
-
-    if worker_heartbeat:
-        retraso = time.time() - worker_heartbeat
-        if retraso > 120:
-            estado['problemas_detectados'].append('Sin senal del worker de impresion (>120s)')
-            estado['nivel_alerta'] = 'error'
-            estado['mensaje_estado'] = 'Sin senal del servicio de impresion'
-        elif retraso > 60 and estado['nivel_alerta'] != 'error':
-            estado['problemas_detectados'].append('Senal del worker antigua (>60s)')
-            if estado['nivel_alerta'] == 'normal':
-                estado['nivel_alerta'] = 'warning'
-                estado['mensaje_estado'] = 'Worker de impresion sin actividad reciente'
-
-    try:
-        import glob
-        signal_files = glob.glob('debug/*.signal')
-        if len(signal_files) > 5:
-            estado['problemas_detectados'].append(f'{len(signal_files)} archivos de senal acumulados')
-            if estado['nivel_alerta'] == 'normal':
-                estado['nivel_alerta'] = 'warning'
-                estado['mensaje_estado'] = 'Mantenimiento recomendado'
-    except Exception:
-        pass
-
-    try:
-        import threading
-        hilos_impresion = [h for h in threading.enumerate() if 'print' in h.name.lower()]
-        if len(hilos_impresion) > 1:
-            estado['problemas_detectados'].append(f'{len(hilos_impresion)} hilos de impresion activos')
-            if estado['nivel_alerta'] == 'normal':
-                estado['nivel_alerta'] = 'warning'
-                estado['mensaje_estado'] = 'Hilos de impresion activos detectados'
-    except Exception:
-        pass
-
     return estado
 
 
@@ -220,17 +186,24 @@ def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict
 
     with col2:
         estado_sistema = verificar_estado_sistema()
-        if estado_sistema['nivel_alerta'] == 'error':
-            st.error(estado_sistema['mensaje_estado'])
-        elif estado_sistema['nivel_alerta'] == 'warning':
-            st.warning(estado_sistema['mensaje_estado'])
+        summary = estado_sistema['summary']
+        severity = summary['severity']
+        message = summary['message']
+        if severity == 'error':
+            st.error(message)
+        elif severity == 'warning':
+            st.warning(message)
+        elif severity == 'success':
+            st.success(message)
         else:
-            st.success('Sistema de impresion sin alertas')
+            st.info(message)
 
     with col3:
         if not is_online and reconectar_callback:
             if st.button('Reconectar', help='Intentar reconectarse a los servicios del SIN'):
                 reconectar_callback()
+
+    _show_status_toast(summary)
 
     current_time = datetime.now().strftime('%H:%M:%S')
 
@@ -245,7 +218,7 @@ def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict
     with st.expander(f'Detalles de conectividad (ultimo chequeo: {last_check})', expanded=False):
         st.json(connectivity_info)
 
-    mostrar_boton_diagnostico_rapido()
+    mostrar_boton_diagnostico_rapido(summary)
     st.divider()
 
     tabs_config = {

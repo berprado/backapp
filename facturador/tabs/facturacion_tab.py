@@ -309,23 +309,26 @@ def _render_print_button():
         severity = inferred.severity.value
         code = inferred.code.value
 
-    if severity == 'error':
-        st.error(print_status)
-    elif severity == 'warning':
-        st.warning(print_status)
-    elif severity == 'success':
-        st.success(print_status)
-    else:
-        st.info(print_status)
+    display_message = status_info.get('message') or print_status or 'Sistema de impresion listo.'
+    if code == 'queued' and st.session_state.get('impresion_en_progreso'):
+        display_message = status_info.get('message') or 'Factura enviada a la cola de impresion. Procesando...'
+        severity = 'info' if not severity else severity
+    elif code == 'printer_success':
+        display_message = status_info.get('message') or 'Factura impresa exitosamente.'
+        severity = 'success'
+    elif code == 'printer_warning':
+        severity = 'warning'
+    elif code in {'printer_error', 'pdf_error', 'data_error', 'critical_error'}:
+        severity = 'error'
 
-    if worker_heartbeat:
-        try:
-            last_seen = datetime.fromtimestamp(worker_heartbeat).strftime('%H:%M:%S')
-            st.caption(f"Worker: {worker_status} - ultima senal {last_seen}")
-        except Exception:
-            st.caption(f"Worker: {worker_status}")
+    if severity == 'error':
+        st.error(display_message)
+    elif severity == 'warning':
+        st.warning(display_message)
+    elif severity == 'success':
+        st.success(display_message)
     else:
-        st.caption(f"Worker: {worker_status}")
+        st.info(display_message)
 
     if st.session_state.get('factura_validada'):
         factura_obj = st.session_state.get('factura_a_procesar')

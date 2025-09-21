@@ -148,6 +148,8 @@ def _update_print_session(
         st.session_state["printer_worker_last_heartbeat"] = worker_heartbeat
 
     if state_changed:
+        status_snapshot = st.session_state.get("print_status_info", {})
+        printer_logger.info("UI_STATUS: %s - %s", status_snapshot.get("code", "unknown"), status_snapshot.get("message", st.session_state.get("print_status", "")))
         st.session_state["print_state_version"] = st.session_state.get("print_state_version", 0) + 1
         st.session_state["print_state_last_updated"] = time.time()
 
