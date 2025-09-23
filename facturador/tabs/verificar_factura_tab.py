@@ -28,7 +28,11 @@ verificacion_logger = get_verificacion_logger()
 def render():
     """Renderiza la pestaña de verificación de facturas."""
     st.header("Verificar Factura")
-    verificacion_logger.info("Usuario accedió a la pestaña 'Verificar Factura'")
+
+    log_enabled = st.session_state.get("main_active_tab_name") == "Verificar Factura"
+
+    if log_enabled:
+        verificacion_logger.info("Usuario accedió a la pestaña 'Verificar Factura'")
     
     numero_factura = st.text_input("Ingrese el número de la factura:")
     

@@ -254,19 +254,33 @@ def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict
         'Gestionar CUIS': {'is_online': is_online, 'connectivity_info': connectivity_info},
     }
 
-    rendered_tabs = st.tabs(tabs_to_render)
+    previous_selection = st.session_state.get("main_tabs_control")
+    if previous_selection not in tabs_to_render:
+        previous_selection = tabs_to_render[0]
 
-    for tab, tab_name in zip(rendered_tabs, tabs_to_render):
-        with tab:
-            ui_logger.debug(f'Renderizando pestana: {tab_name}')
-            try:
-                render_function = tabs_config[tab_name]
-                args = tab_args.get(tab_name, {})
-                render_function(**args)
-            except Exception as exc:
-                ui_logger.error(f'Error al renderizar pestana {tab_name}: {exc}', exc_info=True)
-                st.error(f'Error al cargar esta pestana: {exc}')
-                st.exception(exc)
+    selected_tab = st.segmented_control(
+        "Secciones principales",
+        options=tabs_to_render,
+        default=previous_selection,
+        key="main_tabs_control",
+        label_visibility="collapsed",
+        width="stretch",
+    )
+
+    if selected_tab is None:
+        selected_tab = tabs_to_render[0]
+
+    st.session_state["main_active_tab_name"] = selected_tab
+
+    ui_logger.debug(f'Renderizando pestana: {selected_tab}')
+    try:
+        render_function = tabs_config[selected_tab]
+        args = tab_args.get(selected_tab, {})
+        render_function(**args)
+    except Exception as exc:
+        ui_logger.error(f'Error al renderizar pestana {selected_tab}: {exc}', exc_info=True)
+        st.error(f'Error al cargar esta pestana: {exc}')
+        st.exception(exc)
 
 
 if __name__ == "__main__":

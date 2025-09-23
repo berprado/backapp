@@ -11,7 +11,11 @@ logger = get_logger()
 def render(is_online: bool, connectivity_info: dict = None):
     """Renderiza la pestaña de gestión de CUIS con diagnóstico centralizado."""
     st.header("🔑 Gestionar CUIS")
-    logger.info("Usuario accedió a la pestaña 'Gestionar CUIS'")
+
+    log_enabled = st.session_state.get("main_active_tab_name") == "Gestionar CUIS"
+
+    if log_enabled:
+        logger.info("Usuario accedió a la pestaña 'Gestionar CUIS'")
 
     st.markdown("""
     **CUIS (Código Único de Inicio de Sistemas)** es un código único que autoriza al sistema 

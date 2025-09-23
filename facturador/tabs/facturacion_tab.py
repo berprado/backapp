@@ -88,7 +88,10 @@ def render(is_online: bool, evento_activo: dict = None):
         is_online: Booleano que indica si el sistema está online.
         evento_activo: Diccionario con la información del evento de contingencia activo, si existe.
     """
-    logger.info(f"Renderizando pestaña de facturación en modo {'ONLINE' if is_online else 'OFFLINE'}")
+    log_enabled = st.session_state.get("main_active_tab_name") == "Facturar"
+
+    if log_enabled:
+        logger.info(f"Renderizando pestaña de facturación en modo {'ONLINE' if is_online else 'OFFLINE'}")
 
     if not is_online:
         if evento_activo:

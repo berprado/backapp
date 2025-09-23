@@ -10,7 +10,11 @@ logger = get_logger()
 def render():
     """Renderiza la pestaña de diagnóstico avanzado."""
     st.header("🔧 Diagnóstico Avanzado de Comunicación")
-    logger.info("Usuario accedió a la pestaña 'Diagnóstico'")
+
+    log_enabled = st.session_state.get("main_active_tab_name") == "Diagnostico"
+
+    if log_enabled:
+        logger.info("Usuario accedió a la pestaña 'Diagnóstico'")
     
     st.markdown("""
     Esta pestaña utiliza un **servicio mejorado** que combina todas las verificaciones existentes

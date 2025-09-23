@@ -12,7 +12,10 @@ logger = get_logger()
 def render():
     """Renderiza la pestaña de anulación de facturas."""
     st.header("Anular Factura")
-    logger.info("Usuario accedió a la pestaña 'Anular Factura'")
+
+    log_enabled = st.session_state.get("main_active_tab_name") == "Anular o Revertir"
+    if log_enabled:
+        logger.info("Usuario accedió a la pestaña 'Anular Factura'")
     
     # Placeholder para mensajes
     message_placeholder = st.empty()
