@@ -4,7 +4,7 @@ import queue
 import threading
 import time
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 
 import streamlit as st
 try:
@@ -152,6 +152,49 @@ def _update_print_session(
         printer_logger.info("UI_STATUS: %s - %s", status_snapshot.get("code", "unknown"), status_snapshot.get("message", st.session_state.get("print_status", "")))
         st.session_state["print_state_version"] = st.session_state.get("print_state_version", 0) + 1
         st.session_state["print_state_last_updated"] = time.time()
+
+
+def get_print_state_summary() -> Dict[str, Any]:
+    """Devuelve un resumen normalizado del estado de impresion actual."""
+    initialize_print_state()
+
+    status_info = st.session_state.get("print_status_info") or {}
+    ready_message = build_status(PrintStatusCode.READY).message
+    print_status = st.session_state.get("print_status", ready_message)
+
+    raw_code = status_info.get("code") or ""
+    severity = (status_info.get("severity") or "").lower()
+
+    if not raw_code or not severity:
+        inferred = infer_status_from_message(print_status)
+        if not raw_code:
+            raw_code = inferred.code.value
+        if not severity:
+            severity = inferred.severity.value
+
+    if severity not in {"success", "warning", "error"}:
+        severity = "info"
+
+    message = status_info.get("message") or print_status or ready_message
+    impresion_en_progreso = st.session_state.get("impresion_en_progreso", False)
+    finalizada = st.session_state.get("impresion_finalizada", False)
+    version = st.session_state.get("print_state_version", 0)
+    updated_at = st.session_state.get("print_state_last_updated")
+    ultimo_trabajo = st.session_state.get("ultimo_trabajo_impresion") or {}
+    show_diag = severity in {"warning", "error"}
+
+    return {
+        "code": raw_code,
+        "severity": severity,
+        "message": message,
+        "show_diagnostic": show_diag,
+        "status_info": status_info,
+        "impresion_en_progreso": impresion_en_progreso,
+        "impresion_finalizada": finalizada,
+        "version": version,
+        "updated_at": updated_at,
+        "ultimo_trabajo": ultimo_trabajo,
+    }
 
 
 def get_printer_queue() -> "queue.Queue[Optional[Dict]]":

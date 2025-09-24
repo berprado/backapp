@@ -23,8 +23,7 @@ from zeeper import validar_xml, comprimir_xml, obtener_hash, enviar_solicitud
 from response_handler import parse_siat_response, display_siat_response
 from data_access import guardar_factura_cabecera, guardar_factura_detalle
 from invoice_manager import obtener_y_reservar_numero_factura
-from print_manager import initialize_print_state, solicitar_impresion
-from print_status import infer_status_from_message
+from print_manager import initialize_print_state, solicitar_impresion, get_print_state_summary
 
 # Módulos locales
 from facturacion_sidebar import (
@@ -299,67 +298,82 @@ def _render_print_button():
     """Renderiza la impresion automatica despues de validar."""
     initialize_print_state()
 
-    status_info = st.session_state.get('print_status_info') or {}
-    print_status = st.session_state.get('print_status', 'Sistema de impresion listo.')
-    worker_status = st.session_state.get('printer_worker_status', 'desconocido')
-    worker_heartbeat = st.session_state.get('printer_worker_last_heartbeat')
+    summary = get_print_state_summary()
+    status_info = summary.get('status_info') or {}
+    code = (summary.get('code') or '').lower()
+    message = summary.get('message', 'Sistema de impresion listo.')
+    impresion_en_progreso = summary.get('impresion_en_progreso', False)
+    ultimo_trabajo = summary.get('ultimo_trabajo') or {}
+
     st.session_state.setdefault('auto_print_last_id', None)
 
-    severity = (status_info.get('severity') or '').lower()
-    code = status_info.get('code')
-    if not severity:
-        inferred = infer_status_from_message(print_status)
-        severity = inferred.severity.value
-        code = inferred.code.value
+    factura_label = ultimo_trabajo.get('numero_factura') or status_info.get('numero_factura')
 
-    display_message = status_info.get('message') or print_status or 'Sistema de impresion listo.'
-    if code == 'queued' and st.session_state.get('impresion_en_progreso'):
-        display_message = status_info.get('message') or 'Factura enviada a la cola de impresion. Procesando...'
-        severity = 'info' if not severity else severity
+    error_codes = {'printer_error', 'pdf_error', 'data_error', 'critical_error'}
+    warning_codes = {'printer_warning'}
+    processing_codes = {'processing'}
+    queued_codes = {'queued'}
+
+    if code in error_codes:
+        st.error(message)
+    elif code in warning_codes:
+        st.warning(message)
+    elif impresion_en_progreso or code in processing_codes:
+        etiqueta = factura_label or 'N/D'
+        if code in queued_codes:
+            st.info(f'Factura {etiqueta} en cola de impresion...')
+        else:
+            st.info(f'Imprimiendo factura {etiqueta}...')
+    elif code in queued_codes:
+        etiqueta = factura_label or 'N/D'
+        st.caption(f'Factura {etiqueta} en cola de impresion.')
     elif code == 'printer_success':
-        display_message = status_info.get('message') or 'Factura impresa exitosamente.'
-        severity = 'success'
-    elif code == 'printer_warning':
-        severity = 'warning'
-    elif code in {'printer_error', 'pdf_error', 'data_error', 'critical_error'}:
-        severity = 'error'
-
-    if severity == 'error':
-        st.error(display_message)
-    elif severity == 'warning':
-        st.warning(display_message)
-    elif severity == 'success':
-        st.success(display_message)
+        etiqueta = factura_label or 'N/D'
+        detalle = status_info.get('detail') or ultimo_trabajo.get('status_detail')
+        duracion = ultimo_trabajo.get('duracion_impresion')
+        if not detalle and isinstance(duracion, (int, float)):
+            detalle = f'Duracion: {duracion:.3f}s'
+        elif not detalle and duracion:
+            detalle = f'Duracion: {duracion}'
+        extra = f' ({detalle})' if detalle else ''
+        st.caption(f'Factura {etiqueta} impresa exitosamente{extra}.')
     else:
-        st.info(display_message)
+        st.caption(message)
 
-    if st.session_state.get('factura_validada'):
-        factura_obj = st.session_state.get('factura_a_procesar')
+    factura_validada = st.session_state.get('factura_validada')
+    factura_obj = st.session_state.get('factura_a_procesar')
+
+    active_codes = processing_codes | queued_codes
+    terminal_codes = {
+        'printer_success',
+        'printer_warning',
+        'printer_error',
+        'pdf_error',
+        'data_error',
+        'critical_error',
+    }
+
+    if factura_validada:
         if factura_obj:
             identifier = getattr(factura_obj, 'cuf', None) or f"numero:{getattr(factura_obj, 'numero_factura', 'N/D')}"
             last_identifier = st.session_state.get('auto_print_last_id')
-            if identifier and identifier != last_identifier:
+            if identifier and identifier != last_identifier and code not in active_codes and not impresion_en_progreso:
                 st.session_state['auto_print_last_id'] = identifier
                 _trigger_print_job(factura_obj, source='auto', rerun=False)
                 st.rerun()
             else:
-                terminal_codes = {
-                    'printer_success',
-                    'printer_warning',
-                    'printer_error',
-                    'pdf_error',
-                    'data_error',
-                    'critical_error',
-                }
-                if code in terminal_codes:
+                if impresion_en_progreso or code in active_codes:
+                    st.caption('La factura validada se esta enviando a la impresora...')
+                elif code in terminal_codes:
                     st.session_state['impresion_en_progreso'] = False
                     if code == 'printer_success':
                         st.session_state['impresion_finalizada'] = True
-                st.info('La factura validada se enviara automaticamente a impresion.')
+                else:
+                    st.caption('La factura validada se enviara automaticamente a impresion en breve.')
         else:
             st.error('No se encontraron los datos de la factura para imprimir automaticamente.')
     else:
-        st.info('La impresion automatica se activara cuando la factura sea validada por el SIN.')
+        st.caption('La impresion automatica se activara cuando la factura sea validada por el SIN.')
 
 
 def _render_consultar_button():

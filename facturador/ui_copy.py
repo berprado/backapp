@@ -19,8 +19,7 @@ except Exception:
 from dotenv import load_dotenv
 
 # Módulos de impresión
-from print_manager import initialize_print_state
-from print_status import infer_status_from_message
+from print_manager import initialize_print_state, get_print_state_summary
 
 # Configuración de loggers
 from logger_config import get_logger
@@ -53,44 +52,6 @@ def _schedule_auto_refresh():
     st.rerun()
 
 
-def _get_print_state_summary():
-    initialize_print_state()
-    status_info = st.session_state.get('print_status_info') or {}
-    print_status = st.session_state.get('print_status', 'Sistema de impresion listo.')
-    severity = (status_info.get('severity') or '').lower()
-    if not severity and print_status:
-        severity = infer_status_from_message(print_status).severity.value
-    severity = severity if severity in {'success', 'warning', 'error'} else 'info'
-    code = status_info.get('code')
-    impresion_en_progreso = st.session_state.get('impresion_en_progreso', False)
-    version = st.session_state.get('print_state_version', 0)
-    updated_at = st.session_state.get('print_state_last_updated')
-
-    message = status_info.get('message') or print_status
-    if code == 'queued' and impresion_en_progreso:
-        message = status_info.get('message') or 'Factura enviada a la cola de impresion. Procesando...'
-        severity = 'info'
-    elif code == 'printer_success':
-        message = status_info.get('message') or 'Factura impresa exitosamente.'
-        severity = 'success'
-    elif code == 'printer_warning':
-        severity = 'warning'
-    elif code in {'printer_error', 'pdf_error', 'data_error', 'critical_error'}:
-        severity = 'error'
-
-    show_diag = severity in {'warning', 'error'}
-
-    return {
-        'severity': severity,
-        'message': message,
-        'show_diagnostic': show_diag,
-        'status_info': status_info,
-        'impresion_en_progreso': impresion_en_progreso,
-        'version': version,
-        'updated_at': updated_at,
-    }
-
-
 def _show_status_toast(summary):
     version = summary.get('version')
     if version is None:
@@ -116,7 +77,7 @@ def _show_status_toast(summary):
 
 def mostrar_boton_diagnostico_rapido(summary=None):
     """Muestra un acceso directo al diagnostico tecnico cuando es necesario."""
-    summary = summary or _get_print_state_summary()
+    summary = summary or get_print_state_summary()
     if not (summary.get('show_diagnostic') or summary.get('impresion_en_progreso')):
         return
     if st.button('Ver diagnostico de impresion', help='Abrir diagnostico completo con informacion tecnica', key='diagnostico_rapido_impresion'):
@@ -128,7 +89,7 @@ def mostrar_boton_diagnostico_rapido(summary=None):
 
 def verificar_estado_sistema():
     """Obtiene un resumen simplificado del estado de impresion."""
-    summary = _get_print_state_summary()
+    summary = get_print_state_summary()
     estado = {
         'problemas_detectados': [],
         'nivel_alerta': summary['severity'],
@@ -173,6 +134,9 @@ def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict
     status = estado_general
     status_message = recomendacion
 
+    estado_sistema = verificar_estado_sistema()
+    summary = estado_sistema['summary']
+
     col1, col2, col3 = st.columns([3, 1, 1])
 
     with col1:
@@ -184,8 +148,6 @@ def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict
             ui_logger.warning("Sistema funcionando en modo offline")
 
     with col2:
-        estado_sistema = verificar_estado_sistema()
-        summary = estado_sistema['summary']
         severity = summary['severity']
         message = summary['message']
         if severity == 'error':
@@ -218,6 +180,8 @@ def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict
         st.json(connectivity_info)
 
     mostrar_boton_diagnostico_rapido(summary)
+    if summary.get('impresion_en_progreso') or st.session_state.get('_print_auto_refresh_active'):
+        _schedule_auto_refresh()
     st.divider()
 
     tabs_config = {
