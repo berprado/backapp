@@ -8,7 +8,7 @@ import requests
 import streamlit as st
 import traceback
 from datetime import datetime
-from typing import List, Dict, Union, Optional
+from typing import List, Dict, Union, Optional, Tuple
 
 # Base de datos
 from database import SessionLocal, engine, URL_DATABASE
@@ -320,36 +320,50 @@ def obtener_evento_activo_actual():
     finally:
         session.close()
 
-def cerrar_evento_significativo(evento_id: int, codigo_recepcion: str):
-    """
-    Cierra un evento significativo estableciendo la fecha_fin y codigo_recepcion.
-    
+def cerrar_evento_significativo(evento_id: int, codigo_recepcion: str) -> Tuple[bool, str]:
+    """Cierra un evento significativo actualizando la fecha de fin y el código de recepción.
+
     Args:
-        evento_id: ID del evento a cerrar
-        codigo_recepcion: Código de recepción del SIN
-        
+        evento_id (int): ID del evento a cerrar.
+        codigo_recepcion (str): Código de recepción devuelto por el SIN.
+
     Returns:
-        bool: True si se cerró exitosamente, False si hubo error
+        Tuple[bool, str]: Par (éxito, detalle) con el resultado de la operación.
     """
     session = SessionLocal()
     try:
         evento = session.query(EventoSignificativoRegistrado)\
             .filter_by(id=evento_id).first()
-        
-        if evento and evento.fecha_fin is None:  # Verificar que esté abierto
-            evento.fecha_fin = datetime.now()     # Cerrar evento
-            evento.codigo_recepcion = codigo_recepcion
-            session.commit()
-            logger.info(f"Evento {evento_id} cerrado correctamente con código de recepción: {codigo_recepcion}")
-            return True
-        else:
-            logger.warning(f"Evento {evento_id} no encontrado o ya estaba cerrado")
-            return False
-            
+
+        if not evento:
+            detalle = f"Evento {evento_id} no encontrado en la base de datos."
+            logger.warning(detalle)
+            return False, detalle
+
+        if evento.fecha_fin is not None:
+            detalle = (
+                f"Evento {evento_id} ya tenía una fecha de cierre registrada"
+                f" (fecha_fin={evento.fecha_fin}, codigo_recepcion={evento.codigo_recepcion})."
+            )
+            logger.warning(detalle)
+            return False, detalle
+
+        evento.fecha_fin = datetime.now()
+        evento.codigo_recepcion = codigo_recepcion
+        session.commit()
+
+        detalle = (
+            f"Evento {evento_id} cerrado correctamente con código de recepción:"
+            f" {codigo_recepcion}."
+        )
+        logger.info(detalle)
+        return True, detalle
+
     except Exception as e:
-        logger.error(f"Error al cerrar evento {evento_id}: {str(e)}")
         session.rollback()
-        return False
+        detalle = f"Error al cerrar evento {evento_id}: {str(e)}"
+        logger.error(detalle)
+        return False, detalle
     finally:
         session.close()
 

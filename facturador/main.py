@@ -112,11 +112,11 @@ def main():
     # en lugar de usar un hilo separado para mayor simplicidad y control normativo
     
     # Paso previo: intentar finalizar evento abierto si hay conexión
-    resultado = finalizar_evento_si_conectado()
-    if resultado:
-        st.success("✅ Se finalizó el evento pendiente y se comprimieron las facturas (si existían).")
+    exito_cierre, detalle_cierre = finalizar_evento_si_conectado()
+    if exito_cierre:
+        st.success(f"✅ {detalle_cierre}")
     else:
-        st.warning("ℹ️ No se pudo finalizar el evento o el sistema aún está sin conexión.")
+        st.warning(f"ℹ️ {detalle_cierre}")
     st.title("🧠 Inicializando Sistema de Facturación...")
 
     # Paso 1: Verificar conexión utilizando el sistema mejorado
