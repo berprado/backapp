@@ -39,6 +39,8 @@ from communication_manager import communication_manager, EstadoComunicacion, Tip
 # from contingency_manager import handle_offline_mode, get_contingency_manager
 from logger_config import get_logger
 
+NON_OPERATIONAL_EVENT_CODES = {"5", "6", "7"}
+
 # IMPORTACIONES CLAVE PARA EL SISTEMA DE IMPRESIÓN
 from print_manager import start_printer_worker
 
@@ -124,8 +126,11 @@ def main():
     principal = resultado_completo["verificacion_principal"]
     conectado = principal["conectado"] if principal else False
     mensaje = principal["mensaje"] if principal else "Error desconocido"
-    tipo_deducido = principal.get("tipo_contingencia", "5")
-    
+    tipo_deducido = principal.get("tipo_contingencia") if principal else None
+
+    st.session_state.setdefault("evento_cafc", {})
+    evento_activo = obtener_evento_activo_actual()
+
     # Mostrar información en sidebar
     with st.sidebar:
         estado = resultado_completo["estado_general"]
@@ -145,6 +150,14 @@ def main():
                 else:
                     st.error(f"❌ {nombre}")
 
+        if evento_activo and str(evento_activo.get("codigo_evento")) in NON_OPERATIONAL_EVENT_CODES:
+            st.divider()
+            st.subheader("CAFC para eventos no operativos")
+            evento_id = evento_activo.get("id")
+            cafc_actual = st.session_state["evento_cafc"].get(evento_id, "")
+            nuevo_cafc = st.text_input("CAFC vigente para facturas manuales", value=cafc_actual, key=f"cafc_sidebar_{evento_id}")
+            st.session_state["evento_cafc"][evento_id] = nuevo_cafc.strip()
+
     if conectado:
         st.success("✅ Conexión establecida con el SIN.")
         
@@ -162,67 +175,59 @@ def main():
         render_full_ui(
             is_online=conectado, 
             connectivity_info=resultado_completo, 
+            evento_activo=evento_activo,
             reconectar_callback=handle_reconexion
         )
     else:
-        st.error("❌ No se pudo conectar al SIN. Se activará la contingencia.")
+        st.error("SIN no disponible. Se activara la contingencia.")
 
-        # Notificar si la reconexión es posible (no cambia el modo automáticamente)
+        # Notificar si la reconexion es posible (no cambia el modo automaticamente)
         notificar_reconexion_si_aplica()
 
-        # Paso 2: Verificar si ya hay un evento activo usando las funciones normativas
+        automatic_codes = {"1", "2"}
         evento_activo = obtener_evento_activo_actual()
-        
+
         if evento_activo:
-            st.info(f"ℹ️ Ya existe un evento registrado en modo contingencia: {evento_activo.get('descripcion', 'Sin descripción')}")
+            st.info(f"Evento activo detectado: {evento_activo.get('descripcion', 'Sin descripcion')}")
             logger.info(f"Usando evento activo existente con ID: {evento_activo.get('id')}")
-        else:
-            # Paso 3: Registrar nuevo evento usando la función normativa
-            st.warning("⚠️ Registrando evento significativo según normativa...")
-            
+        elif tipo_deducido in automatic_codes:
+            st.warning("Registrando evento significativo segun diagnostico automatico...")
             try:
-                # Obtener CUFD vigente antes del evento según normativa
                 cufd_actual = obtener_cufd_vigente()
                 if not cufd_actual:
-                    st.error("❌ Error: No se pudo obtener CUFD vigente para el evento.")
+                    st.error("No se pudo obtener CUFD vigente para el evento.")
                     logger.error("No se pudo obtener CUFD vigente para crear evento")
-                    evento_activo = None
                 else:
-                    # Usar la función mejorada con descripción oficial del SIN
                     evento_id = registrar_evento_local_normativo(
-                        codigo_evento=tipo_deducido,  # Tipo deducido de la verificación (1-7)
-                        # descripcion ya no es necesaria - se obtiene de la tabla parametrizada
-                        cufd=cufd_actual  # CUFD vigente pre-corte
+                        codigo_evento=tipo_deducido,
+                        cufd=cufd_actual
                     )
-                    
                     if evento_id:
-                        # Obtener el evento completo para pasarlo a la UI
                         evento_activo = obtener_evento_por_id(evento_id)
-                        st.success(f"✅ Evento registrado normativo: {evento_activo.get('descripcion') if evento_activo else 'Evento creado'}")
-                        logger.info(f"Evento de contingencia creado con ID: {evento_id} según normativa")
+                        st.success(f"Evento registrado automaticamente: {evento_activo.get('descripcion') if evento_activo else 'Evento creado'}")
+                        logger.info(f"Evento de contingencia creado automaticamente (codigo {tipo_deducido}) con ID: {evento_id}")
+                        st.rerun()
                     else:
-                        st.error("❌ Error: No se pudo registrar el evento según normativa.")
-                        logger.error("registrar_evento_local_normativo() falló")
-                        evento_activo = None
-                        
-            except Exception as e:
-                st.error(f"❌ Error al registrar evento normativo: {str(e)}")
+                        st.error("No se pudo registrar el evento automaticamente.")
+                        logger.error("registrar_evento_local_normativo() fallo")
+            except Exception as exc:
+                st.error(f"Error al registrar evento automatico: {exc}")
                 logger.exception("Error en registrar_evento_local_normativo()")
-                evento_activo = None
+        else:
+            st.warning("No existe evento activo y el diagnostico no permite registro automatico. Registra un evento manual (codigos 3-7) desde la pantalla de Eventos Significativos.")
+            logger.warning("Sin evento activo y tipo de contingencia manual. Se requiere registro manual.")
 
-        # Paso 4: Cargar la interfaz offline
-        st.warning("🛠️ Activando modo offline de facturación...")
+        # Paso 4: Cargar la interfaz offline solo si existe evento
+        st.warning("Activando modo offline de facturacion...")
 
-        # Si tenemos un evento, llamamos a la UI completa en modo offline
         if evento_activo:
             render_full_ui(
-                is_online=False, 
-                connectivity_info=resultado_completo, 
+                is_online=False,
+                connectivity_info=resultado_completo,
                 evento_activo=evento_activo,
                 reconectar_callback=handle_reconexion
             )
         else:
-            st.error("❌ Error crítico: No se pudo obtener o registrar un evento de contingencia. La facturación está deshabilitada.")
-
+            st.error("No se detecto evento de contingencia activo. La facturacion permanece deshabilitada hasta registrarlo.")
 if __name__ == "__main__":
     main()

@@ -194,7 +194,7 @@ def obtener_cufd_de_evento_activo() -> Optional[str]:
     finally:
         session.close()
 
-def registrar_evento_local_normativo(codigo_evento: str, descripcion: str = None, cufd: str = None):
+def registrar_evento_local_normativo(codigo_evento: str, descripcion: str = None, cufd: str = None, fecha_inicio: datetime = None):
     """
     Registra un evento significativo en la BD local siguiendo la normativa boliviana.
     IMPORTANTE: Solo puede existir UN evento activo a la vez.
@@ -236,11 +236,13 @@ def registrar_evento_local_normativo(codigo_evento: str, descripcion: str = None
 
         # 2. Si no hay evento abierto, crear uno nuevo
         logger.info(f"No hay eventos abiertos. Creando nuevo evento de contingencia.")
-        
+        if fecha_inicio:
+            logger.info(f"Fecha de inicio proporcionada para el evento: {fecha_inicio}")
+
         nuevo_evento = EventoSignificativoRegistrado(
             codigo_evento=codigo_evento,
             descripcion=descripcion,
-            fecha_inicio=datetime.now(),
+            fecha_inicio=fecha_inicio or datetime.now(),
             fecha_fin=None,  # NULL = evento abierto
             cufd=cufd,
             codigo_recepcion=None  # NULL = evento abierto

@@ -51,7 +51,8 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
                          subtotal: float, total: float, codigo_moneda: int, tipo_cambio: float, 
                          monto_total_moneda: float, monto_giftcard: Optional[float], descuento_adicional: Optional[float], 
                          usuario: str, codigo_documento_sector: int, lineas_productos: List[Dict[str, str]],
-                         actividad_economica: str, codigo_producto_sin: str, codigoExcepcion: Optional[int] = None) -> Tuple[str, Dict, List[Dict]]:
+                         actividad_economica: str, codigo_producto_sin: str, codigoExcepcion: Optional[int] = None,
+                         cafc: Optional[str] = None) -> Tuple[str, Dict, List[Dict]]:
 
     logger.info("Iniciando la generación del XML de la factura.")
     logger.debug("Valores recibidos: nit_emisor=%s, razon_social_emisor=%s, municipio=%s, telefono=%s, numero_factura=%s, cuf=%s, cufd=%s, codigo_sucursal=%s, direccion=%s, codigo_punto_venta=%s, fecha_emision=%s, nombre_razon_social=%s, codigo_tipo_documento_identidad=%s, numero_documento=%s, complemento=%s, codigo_cliente=%s, codigo_metodo_pago=%s, ultimos_digitos_tarjeta=%s, subtotal=%s, total=%s, codigo_moneda=%s, tipo_cambio=%s, monto_total_moneda=%s, monto_giftcard=%s, descuento_adicional=%s, usuario=%s, codigo_documento_sector=%s, lineas_productos=%s", nit_emisor, razon_social_emisor, municipio, telefono, numero_factura, cuf, cufd, codigo_sucursal, direccion, codigo_punto_venta, fecha_emision, nombre_razon_social, codigo_tipo_documento_identidad, numero_documento, complemento, codigo_cliente, codigo_metodo_pago, ultimos_digitos_tarjeta, subtotal, total, codigo_moneda, tipo_cambio, monto_total_moneda, monto_giftcard, descuento_adicional, usuario, codigo_documento_sector, lineas_productos)
@@ -138,7 +139,12 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
         ET.SubElement(cabecera, "codigoExcepcion").text = str(codigoExcepcion)
     else:
         ET.SubElement(cabecera, "codigoExcepcion", attrib={"xsi:nil": "true"})
-    ET.SubElement(cabecera, "cafc", attrib={"xsi:nil": "true"})
+
+    if cafc:
+        ET.SubElement(cabecera, "cafc").text = cafc
+    else:
+        ET.SubElement(cabecera, "cafc", attrib={"xsi:nil": "true"})
+
     ET.SubElement(cabecera, "leyenda").text = str(leyenda)
     ET.SubElement(cabecera, "usuario").text = usuario
     ET.SubElement(cabecera, "codigoDocumentoSector").text = str(codigo_documento_sector)
@@ -170,7 +176,7 @@ def generate_xml_invoice(nit_emisor: int, razon_social_emisor: str, municipio: s
         'montoGiftCard': monto_giftcard,
         'descuentoAdicional': descuento_adicional,
         'codigoExcepcion': codigoExcepcion,
-        'cafc': None,
+        'cafc': cafc,
         'leyenda': leyenda,
         'usuario': usuario,
         'codigoDocumentoSector': codigo_documento_sector

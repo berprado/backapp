@@ -193,20 +193,9 @@ class BatchSender:
             logger.error(f"[❌] Error al validar paquete {codigo_recepcion}: {e}")
             return None
     
-    def send_batch(self, xml_path, compressed_path, cufd_code, batch_numbers, codigo_evento):
-        """
-        Envía un paquete de facturas al sistema SIAT.
+    def send_batch(self, xml_path, compressed_path, cufd_code, batch_numbers, codigo_evento, cafc_override=None):
+        """Envio de paquete de facturas al SIN."""
 
-        Args:
-            xml_path (str): Ruta del archivo XML.
-            compressed_path (str): Ruta del archivo comprimido.
-            cufd_code (str): Código CUFD actual.
-            batch_numbers (list): Lista de números de factura del lote.
-            codigo_evento (int): Código del evento significativo.
-
-        Returns:
-            Response object: Respuesta del servicio o None si hay error.
-        """
         try:
             # Validate inputs
             if not os.path.exists(compressed_path):
@@ -245,6 +234,7 @@ class BatchSender:
 
 
             # Prepare the request with ALL required normative parameters
+            cafc_valor = (cafc_override or os.getenv('CAFC', '0') or '0')
             solicitud_recepcion_paquete = {
                 'codigoAmbiente': int(os.getenv('CODIGO_AMBIENTE')),
                 'codigoPuntoVenta': int(os.getenv('CODIGO_PUNTO_VENTA', 0)),
@@ -260,7 +250,7 @@ class BatchSender:
                 'archivo': base64_file,
                 'fechaEnvio': datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3],
                 'hashArchivo': sha256_hash,
-                'cafc': os.getenv('CAFC', ''),
+                'cafc': cafc_valor,
                 'cantidadFacturas': len(batch_numbers),
                 'codigoEvento': codigo_evento
             }
@@ -294,15 +284,17 @@ class BatchSender:
             logger.error(f"Exception in send_batch: {str(e)}")
             return None
     
-    def process_and_validate_batch(self, xml_path, gzip_path, cufd, batch_numbers, evento_id):
-        """
-        Orquestador completo para envío y validación de paquetes offline.
+    def process_and_validate_batch(self, xml_path, gzip_path, cufd, batch_numbers, evento_id, cafc_override=None):
+        """Orquesta el envio y la validacion de paquetes offline.
+
         Args:
             xml_path (str): Ruta del archivo XML del paquete
             gzip_path (str): Ruta del archivo comprimido
-            cufd (str): CUFD para el envío
-            batch_numbers (list): Lista de números de factura del lote
+            cufd (str): CUFD para el envio
+            batch_numbers (list): Lista de numeros de factura del lote
             evento_id (int): ID del evento significativo
+            cafc_override (str): CAFC a utilizar en el envio del paquete (eventos 5-7).
+
         Returns:
             bool: True si el proceso fue exitoso, False en caso contrario
         """
@@ -322,7 +314,7 @@ class BatchSender:
             return False
 
         # Paso 1: Enviar el paquete
-        response = self.send_batch(xml_path, gzip_path, cufd, batch_numbers, codigo_evento)
+        response = self.send_batch(xml_path, gzip_path, cufd, batch_numbers, codigo_evento, cafc_override=cafc_override)
         if not response or not getattr(response, "codigoRecepcion", None):
             logger.error("[❌] No se obtuvo codigoRecepcion en el envío del paquete.")
             return False

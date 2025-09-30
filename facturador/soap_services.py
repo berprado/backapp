@@ -74,7 +74,7 @@ def verificar_comunicacion() -> Tuple[str, bool, Optional[str]]:
         if "-1" in error_str or "codigo -1" in error_str:
             return "Código -1 detectado (normativa: activar contingencia)", False, "2"
         else:
-            return f"Error inesperado: {e} (normativa: falla de software)", False, "5"  # Falla de software
+            return f"Error inesperado: {e} (requiere clasificacion manual)", False, None  # Falla de software
 
 from typing import Dict
 
@@ -127,3 +127,4 @@ def enviar_evento_significativo(evento: Dict, fecha_fin: datetime, cufd: str) ->
         return None, False
     except Exception:
         return None, False
+

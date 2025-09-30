@@ -14,6 +14,8 @@ from data_models import FacturaProcesada, DetalleFactura
 from data_access import fetch_tipos_documento, obtener_cufd_de_evento_activo
 from business_logic import calculate_totals, collect_product_lines, generate_invoice_link
 from invoice_xml_generator import generate_xml_invoice
+NON_OPERATIONAL_EVENT_CODES = {"5", "6", "7"}
+
 from invoice_templates import generate_html_invoice, generate_html_invoice_legacy, generate_compact_html_invoice, numero_a_palabras_con_decimales_como_fraccion
 from validators import validar_factura_cabecera, validar_factura_detalle
 from xml_signer import sign_xml
@@ -264,7 +266,8 @@ def _render_facturar_button(is_online, invoice_config, client_data, tipos_docume
                 _handle_online_submission(
                     invoice_config, client_data, tipos_documento, comandas_seleccionadas,
                     lineas_productos, subtotal, total, fecha_emision, fecha_emision_str,
-                    fecha_emision_display, message_placeholder
+                    fecha_emision_display, message_placeholder,
+                    evento_activo=evento_activo
                 )
             else:
                 if evento_activo:
@@ -434,7 +437,7 @@ def _render_consultar_button():
 
 def _handle_online_submission(invoice_config, client_data, tipos_documento, comandas_seleccionadas,
                            lineas_productos, subtotal, total, fecha_emision, fecha_emision_str,
-                           fecha_emision_display, message_placeholder):
+                           fecha_emision_display, message_placeholder, evento_activo=None):
     """Maneja la lógica para generar y enviar una factura en modo online."""
     try:
         logger.info("Iniciando proceso de facturación ONLINE")
@@ -474,6 +477,13 @@ def _handle_online_submission(invoice_config, client_data, tipos_documento, coma
         codigo_excepcion = 1 if (tipo_documento_seleccionado and
                                   tipo_documento_seleccionado['codigoClasificador'] == '5') else None
 
+        cafc_para_factura = None
+        if evento_activo and str(evento_activo.get('codigo_evento')) in NON_OPERATIONAL_EVENT_CODES:
+            cafc_para_factura = (st.session_state.get('evento_cafc', {}).get(evento_activo.get('id')) or '').strip()
+            if not cafc_para_factura:
+                show_message('error', 'Debe ingresar el CAFC vigente en la barra lateral antes de emitir facturas durante este evento.', message_placeholder)
+                return False
+
         xml_str, factura_cabecera_data, detalles_data = generate_xml_invoice(
             nit_emisor=nit_emisor,
             razon_social_emisor=razon_social_emisor,
@@ -505,7 +515,8 @@ def _handle_online_submission(invoice_config, client_data, tipos_documento, coma
             lineas_productos=lineas_productos,
             actividad_economica=os.getenv('ACTIVIDAD_ECONOMICA'),
             codigo_producto_sin=os.getenv('CODIGO_PRODUCTO_SIN'),
-            codigoExcepcion=codigo_excepcion
+            codigoExcepcion=codigo_excepcion,
+            cafc=cafc_para_factura
         )
 
         signed_xml_str = sign_xml(xml_str, "xmls/llaves/private_key_ok.pem", "xmls/llaves/certificado_ok.pem", cuf)

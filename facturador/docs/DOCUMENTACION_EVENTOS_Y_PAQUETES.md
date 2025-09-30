@@ -45,9 +45,9 @@ Los eventos significativos son situaciones excepcionales que afectan la emisión
 
 ### B. Emisión y envío de Paquetes por Contingencia
 
-- **Motivo:** El sistema NO está operativo (falla grave, corte de energía, etc.).
+- **Motivo:** El sistema NO está operativo (falla grave, corte de energía, virus informatico, etc.).
 - **Facturación:** Se emiten facturas manuales o por portal web del SIN.
-- **Registro de evento:** Se registra el evento significativo, pero NO se puede usar el sistema; se emiten facturas manuales.
+- **Registro de evento:** Al no tener acceso al sistema, el evento se registra cuando el sistema vuelve a estar disponible; se emiten facturas manuales durante la contingencia.
 - **Envío de paquetes:** Cuando se recupera el sistema, se transcriben y envían las facturas manuales como paquetes de contingencia.
 - **Normativa:** Modalidad de contingencia, sistema NO operativo.
 

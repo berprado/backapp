@@ -233,7 +233,7 @@ class CommunicationManager:
         else:
             resultado_completo["estado_general"] = EstadoComunicacion.OFFLINE.value
             tipo_contingencia = principal.get("tipo_contingencia") if principal else None
-            if tipo_contingencia:
+            if tipo_contingencia and tipo_contingencia in {member.value for member in TipoContingencia}:
                 nombre_contingencia = TipoContingencia(tipo_contingencia).name
                 resultado_completo["recomendacion"] = f"Sistema offline. Activar contingencia tipo: {nombre_contingencia}"
             else:
@@ -277,9 +277,12 @@ class CommunicationManager:
                     st.success(f"✅ {principal['mensaje']}")
                 else:
                     st.error(f"❌ {principal['mensaje']}")
-                    if principal["tipo_contingencia"]:
-                        tipo_nombre = TipoContingencia(principal["tipo_contingencia"]).name
+                    tipo_codigo = principal["tipo_contingencia"]
+                    if tipo_codigo and tipo_codigo in {member.value for member in TipoContingencia}:
+                        tipo_nombre = TipoContingencia(tipo_codigo).name
                         st.caption(f"Tipo de contingencia sugerido: {tipo_nombre}")
+                    elif tipo_codigo:
+                        st.caption(f"Tipo de contingencia sugerido: {tipo_codigo}")
             
             # Verificaciones por servicio
             st.subheader("🔧 Verificaciones por Servicio (business_logic.py)")
@@ -324,3 +327,4 @@ def verificar_comunicacion_por_servicio_compatible(servicio: str):
         tuple: (conectado, mensaje) - MISMO formato que business_logic
     """
     return communication_manager.verificar_comunicacion_por_servicio(servicio)
+
