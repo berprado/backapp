@@ -42,14 +42,21 @@ from verificador_session_state import ejecutar_diagnostico_completo
 
 
 def _schedule_auto_refresh():
-    """Dispara rerun periodico mientras hay impresion pendiente."""
+    """
+    Marca que hay impresión en progreso para que la UI lo muestre.
+    
+    ⚠️ CORRECCIÓN CRÍTICA: Ya NO usa time.sleep() ni st.rerun() porque causaba
+    un bucle infinito. Ahora solo marca el estado para que la UI lo detecte.
+    
+    El estado de impresión se actualiza automáticamente desde el worker thread
+    a través de _update_print_session() en print_manager.py
+    """
     if not st.session_state.get('impresion_en_progreso'):
         st.session_state.pop('_print_auto_refresh_active', None)
         return
-    interval = st.session_state.get('_print_auto_refresh_interval', 1.5)
+    
+    # Solo marcar que está activo - NO forzar reruns
     st.session_state['_print_auto_refresh_active'] = True
-    time.sleep(interval)
-    st.rerun()
 
 
 def _show_status_toast(summary):
@@ -180,8 +187,14 @@ def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict
         st.json(connectivity_info)
 
     mostrar_boton_diagnostico_rapido(summary)
-    if summary.get('impresion_en_progreso') or st.session_state.get('_print_auto_refresh_active'):
-        _schedule_auto_refresh()
+    
+    # ⚠️ CORRECCIÓN: Solo marcar el estado, NO disparar reruns automáticos
+    # El sistema de impresión actualiza su propio estado desde el worker thread
+    if summary.get('impresion_en_progreso'):
+        st.session_state['_print_auto_refresh_active'] = True
+    else:
+        st.session_state.pop('_print_auto_refresh_active', None)
+    
     st.divider()
 
     tabs_config = {

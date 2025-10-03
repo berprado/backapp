@@ -63,8 +63,11 @@ def handle_reconexion():
         # Reiniciar el cliente SOAP
         client = reset_soap_client()
         
-        # Verificar el estado después del reinicio
-        resultado_reconexion = communication_manager.verificar_comunicacion_completa()
+        # ✅ CORRECCIÓN: Marcar flag para forzar verificación en el próximo render
+        st.session_state['_force_comm_check'] = True
+        
+        # Verificar el estado después del reinicio con verificación forzada
+        resultado_reconexion = communication_manager.verificar_comunicacion_completa(force_check=True)
         principal = resultado_reconexion["verificacion_principal"]
         conectado = principal["conectado"] if principal else False
         
@@ -121,8 +124,15 @@ def main():
         st.warning(f"ℹ️ {detalle_cierre}")
     st.title("🧠 Inicializando Sistema de Facturación...")
 
-    # Paso 1: Verificar conexión utilizando el sistema mejorado
-    resultado_completo = communication_manager.verificar_comunicacion_completa()
+    # ⚠️ CAMBIO CRÍTICO: Solo verificar si se fuerza manualmente o si el caché expiró
+    # El caché de 30 segundos ya está implementado en communication_manager
+    force_check = st.session_state.get('_force_comm_check', False)
+    if force_check:
+        st.session_state['_force_comm_check'] = False  # Resetear flag
+        logger.info("Verificación de comunicación forzada por el usuario")
+    
+    # Paso 1: Verificar conexión utilizando el sistema mejorado con caché
+    resultado_completo = communication_manager.verificar_comunicacion_completa(force_check=force_check)
     principal = resultado_completo["verificacion_principal"]
     conectado = principal["conectado"] if principal else False
     mensaje = principal["mensaje"] if principal else "Error desconocido"

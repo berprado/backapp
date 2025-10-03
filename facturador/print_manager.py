@@ -106,6 +106,12 @@ def _update_print_session(
 ) -> None:
     _ensure_print_session_keys()
 
+    # ✅ CORRECCIÓN: Rate-limiting para evitar actualizaciones excesivas
+    # Máximo 2 actualizaciones por segundo para reducir carga en Streamlit
+    last_update = st.session_state.get("print_state_last_updated")
+    if last_update and (time.time() - last_update) < 0.5:
+        return  # Ignorar actualizaciones demasiado frecuentes
+
     payload = status_payload
     if payload is None and status is not None:
         payload = infer_status_from_message(status)
