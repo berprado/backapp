@@ -6,6 +6,7 @@
 
 ## 🚀 Inicio Rápido
 
+- **[RESUMEN_EJECUTIVO_DOCUMENTACION_TABS.md](RESUMEN_EJECUTIVO_DOCUMENTACION_TABS.md)** - 🆕 Resumen de documentación de pestañas (Oct 2025)
 - **[RESUMEN_CORRECCION_BUCLE.md](RESUMEN_CORRECCION_BUCLE.md)** - 🆕 Resumen ejecutivo de la última corrección de rendimiento
 - **[README_OFFLINE.md](README_OFFLINE.md)** - Flujo de facturación en modo online
 - **[README_RECUPERACION_CONEXION.md](README_RECUPERACION_CONEXION.md)** - Cómo recuperar conexión después de contingencia
@@ -26,6 +27,11 @@
 - **[CHECKLIST_VERIFICACION_BUCLE.md](CHECKLIST_VERIFICACION_BUCLE.md)** - 🆕 Lista de verificación para testing
 - **[GUIA_DESPLIEGUE_CORRECCION.md](GUIA_DESPLIEGUE_CORRECCION.md)** - 🆕 Procedimiento de despliegue
 - **[GIT_COMMIT_MESSAGE.md](GIT_COMMIT_MESSAGE.md)** - 🆕 Mensaje de commit y comandos Git
+- **[INFOGRAFIA_CORRECCION.md](INFOGRAFIA_CORRECCION.md)** - 🆕 Infografía visual del problema y solución
+- **[DOCUMENTACION_ARQUITECTURA_TABS.md](DOCUMENTACION_ARQUITECTURA_TABS.md)** - 🆕 Documentación de arquitectura de pestañas (Oct 2025)
+  - Patrón de verificación centralizada explicado
+  - Mejoras en docstrings de tabs/validar_nit_tab.py, tabs/cuis_tab.py, tabs/facturacion_tab.py
+  - Educación sobre caché de 30 segundos para futuros desarrolladores
 
 - **[REDUCIR_OUTPUT_TERMINAL.md](REDUCIR_OUTPUT_TERMINAL.md)** - Reducción de logs verbosos en terminal
 
