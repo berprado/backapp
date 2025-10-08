@@ -125,6 +125,11 @@ def setup_application_loggers(log_dir='logs'):
             log_file=f"{log_dir}/siat_{date_str}.log",
             level=logging.DEBUG
         ),
+        'sincronizacion': setup_logger(
+            name='facturador.sincronizacion',
+            log_file=f"{log_dir}/sincronizacion_{date_str}.log",
+            level=logging.DEBUG
+        ),
         'zeeper': setup_logger(
             name='zeeper',
             log_file=f"{log_dir}/zeeper_{date_str}.log",
@@ -211,6 +216,15 @@ def get_siat_logger():
         Logger: Logger de SIAT
     """
     return get_logger('siat')
+
+def get_sincronizacion_logger():
+    """
+    Obtiene el logger dedicado a la sincronización de catálogos.
+
+    Returns:
+        Logger: Logger de sincronización.
+    """
+    return get_logger('facturador.sincronizacion')
 
 def get_zeeper_logger():
     """

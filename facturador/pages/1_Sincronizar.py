@@ -1,4 +1,4 @@
-import os
+﻿import os
 import sys
 import logging
 import traceback
@@ -6,16 +6,71 @@ import streamlit as st
 from zeep import Client
 import requests
 from dotenv import load_dotenv
-from sqlalchemy import func, Text
+from sqlalchemy import func, Text, String
 from datetime import datetime, timezone, timedelta
 import pytz
 import tzlocal
 
-
 # Agregar rutas a sys.path para acceder a los módulos del proyecto
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 facturador_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.extend([root_dir, facturador_dir])
+if facturador_dir not in sys.path:
+    sys.path.append(facturador_dir)
+if root_dir not in sys.path:
+    sys.path.append(root_dir)
+
+# Importar el logger central de la aplicación.  Este módulo
+# configura y expone todos los loggers necesarios para la app.
+# Al utilizarlo evitamos duplicar handlers y aseguramos una
+# codificación consistente y rotación de archivos.
+from facturador.logger_config import get_sincronizacion_logger
+
+# Instancia global del logger de sincronización para este módulo.
+# Todos los mensajes relacionados con sincronización deben
+# registrarse a través de este objeto para que queden en los
+# ficheros de log centralizados configurados por ``logger_config.py``.
+logger = get_sincronizacion_logger()
+
+def registrar_y_mostrar(tipo: str, mensaje: str) -> None:
+    """Envía un mensaje tanto a la interfaz de Streamlit como al
+    sistema de logs centralizado.
+
+    Este helper recibe el tipo de mensaje (``info``, ``success``,
+    ``warning`` o ``error``) y lo publica tanto en la interfaz
+    interactiva como en el archivo de log correspondiente.  Para
+    mensajes más detallados o de depuración, utilice ``logger.debug``
+    directamente.
+
+    Args:
+        tipo (str): Tipo de mensaje. Debe ser uno de
+            ``info``, ``success``, ``warning`` o ``error``.
+        mensaje (str): Texto del mensaje a mostrar y registrar.
+    """
+    tipo = (tipo or '').lower().strip()
+    try:
+        if tipo == 'success':
+            st.success(mensaje)
+            logger.info(mensaje)
+        elif tipo == 'warning':
+            st.warning(mensaje)
+            logger.warning(mensaje)
+        elif tipo == 'error':
+            st.error(mensaje)
+            logger.error(mensaje)
+        else:
+            st.info(mensaje)
+            logger.info(mensaje)
+    except Exception:
+        # En entornos no interactivos, es posible que ``st`` no esté
+        # disponible. En tal caso, registrar conservando la severidad.
+        if tipo == 'success':
+            logger.info(mensaje)
+        elif tipo == 'warning':
+            logger.warning(mensaje)
+        elif tipo == 'error':
+            logger.error(mensaje)
+        else:
+            logger.info(mensaje)
 
 # Importar desde database.py en el directorio facturador
 from database import get_db, Base
@@ -45,36 +100,9 @@ from models import (
 # Cargar variables de entorno desde el directorio raíz
 load_dotenv(os.path.join(root_dir, '.env'))
 
-# Configuración de logging con codificación UTF-8
-# Verificar si ya existe un handler para evitar duplicados
-log_dir = os.path.join(os.getcwd(), 'logs')
-os.makedirs(log_dir, exist_ok=True)
-
-# Reiniciar los handlers del logger root para evitar duplicados
-root_logger = logging.getLogger()
-if root_logger.handlers:
-    for handler in root_logger.handlers:
-        root_logger.removeHandler(handler)
-
-# Crear un nuevo logger específico para esta aplicación en lugar de usar el root logger
-logger = logging.getLogger('facturador.sincronizacion')
-logger.setLevel(logging.DEBUG)
-
-# Asegurarse de que no tenga handlers previos
-if logger.handlers:
-    for handler in logger.handlers:
-        logger.removeHandler(handler)
-
-# Crear un handler para archivo con codificación UTF-8
-file_handler = logging.FileHandler(
-    os.path.join(log_dir, 'sincronizacion_detallada.log'),
-    encoding='utf-8'  # Codificación UTF-8 para soportar emojis
-)
-file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(funcName)s - %(message)s'))
-logger.addHandler(file_handler)
-
-# Asegurar que los logs no se propaguen al logger padre para evitar duplicados
-logger.propagate = False
+# --- Eliminada configuración local de logging ---
+# Esta sección ha sido reemplazada por el uso de ``logger_config.py``.
+# Todas las configuraciones de log se manejan de forma centralizada.
 
 # Configuración del cliente SOAP (fuera de la función para reutilizarlo)
 wsdl_url = os.getenv("WSDL_URL_SYNC")
@@ -205,7 +233,7 @@ def calcular_diferencia_horaria(remote_time, local_time):
 def sincronizar_fecha_hora():
     global remote_time, local_time, time_difference
     
-    st.text("Iniciando sincronización de Fecha y Hora")
+    registrar_y_mostrar('info', "Iniciando sincronización de Fecha y Hora")
     SolicitudSincronizacion = client.get_type('ns0:solicitudSincronizacion')
     solicitud = SolicitudSincronizacion(
         codigoAmbiente=int(os.getenv("CODIGO_AMBIENTE")),
@@ -225,8 +253,7 @@ def sincronizar_fecha_hora():
         
         if not response.transaccion:
             error_msg = "Error en la transacción SOAP para sincronizarFechaHora"
-            st.error(error_msg)
-            logger.error(error_msg)
+            registrar_y_mostrar('error', error_msg)
             return False
         
         # Zona horaria del servidor remoto (Bolivia)
@@ -241,7 +268,7 @@ def sincronizar_fecha_hora():
                 remote_time = remote_time.astimezone(bolivia_tz)
         except Exception as e:
             logger.error(f"Error al convertir la fecha remota: {e}")
-            st.error("Error al obtener la fecha del servidor. Sincronización fallida.")
+            registrar_y_mostrar('error', "Error al obtener la fecha del servidor. Sincronización fallida.")
             return False
         
         # Obtener la hora local actual con su zona horaria
@@ -259,21 +286,19 @@ def sincronizar_fecha_hora():
         
         if diferencia_absoluta <= tiempo_razonable:
             mensaje_tiempo = f"La diferencia de tiempo está en un rango razonable ({diferencia_absoluta:.2f} segundos)"
-            st.success(f"✅ {mensaje_tiempo}")
-            logger.info(mensaje_tiempo)
+            registrar_y_mostrar('success', f"✅ {mensaje_tiempo}")
         else:
             mensaje_tiempo = f"La diferencia de tiempo NO está en un rango razonable ({diferencia_absoluta:.2f} segundos)"
-            st.warning(mensaje_tiempo)
-            logger.warning(mensaje_tiempo)
+            registrar_y_mostrar('warning', mensaje_tiempo)
 
         if diferencia_absoluta > 86400:  # Más de 24 horas
             logger.warning(f"Diferencia de tiempo anormal: {time_difference}. Verifique la zona horaria.")
-            st.warning(f"Diferencia de tiempo anormal detectada: {time_difference}. ¿Desea corregirla?")
+            registrar_y_mostrar('warning', f"Diferencia de tiempo anormal detectada: {time_difference}. ¿Desea corregirla?")
             
             if st.button("Corregir diferencia horaria"):
                 time_difference = timedelta(seconds=0)
                 diferencia_segundos = 0
-                st.success("✅ Diferencia horaria corregida manualmente.")
+                registrar_y_mostrar('success', "✅ Diferencia horaria corregida manualmente.")
 
         logger.debug(f"Diferencia de tiempo calculada: {time_difference}")
 
@@ -307,20 +332,19 @@ def sincronizar_fecha_hora():
             st.session_state['local_time'] = local_time
             st.session_state['time_difference'] = time_difference
             
-        st.success("✅ Sincronización de Fecha y Hora completada.")
+        registrar_y_mostrar('success', "✅ Sincronización de Fecha y Hora completada.")
         mostrar_informacion_sincronizacion()
         return True
 
     except Exception as e:
         error_msg = f"Error al sincronizar Fecha y Hora: {str(e)}"
-        st.error(error_msg)
-        logger.error(error_msg)
+        registrar_y_mostrar('error', error_msg)
         logger.error(traceback.format_exc())
         return False
 
 def mostrar_informacion_sincronizacion():
     if remote_time and local_time and time_difference is not None:
-        st.info("Información de sincronización:")
+        registrar_y_mostrar('info', "Información de sincronización:")
         col1, col2 = st.columns(2)
         with col1:
             st.write("Hora del servidor remoto (Bolivia):")
@@ -335,7 +359,7 @@ def mostrar_informacion_sincronizacion():
         
         # Si es cerca de 24 horas, mostrar una advertencia
         if abs(diferencia_segundos) > 86000 and abs(diferencia_segundos) < 86400:
-            st.warning("⚠️ La diferencia parece ser de aproximadamente 24 horas, lo que sugiere un problema con la zona horaria.")
+            registrar_y_mostrar('warning', "⚠️ La diferencia parece ser de aproximadamente 24 horas, lo que sugiere un problema con la zona horaria.")
         
         # Mostrar la diferencia en un formato más amigable
         minutos, segundos = divmod(abs(diferencia_segundos), 60)
@@ -354,7 +378,7 @@ def mostrar_informacion_sincronizacion():
         # También mostrar en segundos para mayor claridad
         st.write(f"Total en segundos: {signo}{abs(diferencia_segundos):.3f} segundos")
     else:
-        st.warning("No hay información de sincronización disponible.")
+        registrar_y_mostrar('warning', "No hay información de sincronización disponible.")
 
 def crear_solicitud_sincronizacion():
     """Crear una solicitud de sincronización estándar."""
@@ -373,7 +397,7 @@ def sincronizar_parametrica(service_name, model_class):
     """
     Sincroniza datos paramétricos desde el servicio SOAP.
     """
-    st.text(f"Iniciando sincronización de {service_name}")
+    registrar_y_mostrar('info', f"Iniciando sincronización de {service_name}")
     
     # Crear solicitud de sincronización
     solicitud = crear_solicitud_sincronizacion()
@@ -383,8 +407,7 @@ def sincronizar_parametrica(service_name, model_class):
         response = getattr(client.service, service_name)(solicitud)
         
         if not response.transaccion:
-            st.error(f"Error en la transacción SOAP para {service_name}: {response.mensajesList}")
-            logger.error(f"Error en la transacción SOAP para {service_name}: {response.mensajesList}")
+            registrar_y_mostrar('error', f"Error en la transacción SOAP para {service_name}: {response.mensajesList}")
             return False
         
         # Obtener nombre de la lista según el mapeo correcto
@@ -408,8 +431,7 @@ def sincronizar_parametrica(service_name, model_class):
                     if getattr(response, candidato):
                         lista_nombre = candidato
                         # Actualizar el mapeo para futuras llamadas
-                        st.info(f"Detectado nombre de lista '{lista_nombre}' para {service_name}")
-                        logger.info(f"Se ha detectado el nombre de lista '{lista_nombre}' para {service_name}")
+                        registrar_y_mostrar('info', f"Se ha detectado el nombre de lista '{lista_nombre}' para {service_name}")
                         # Actualizar el mapeo para futuras referencias
                         service_list_map[service_name] = lista_nombre
                         break
@@ -417,8 +439,8 @@ def sincronizar_parametrica(service_name, model_class):
                     lista_nombre = listas_candidatas[0]
                     logger.warning(f"Usando lista candidata '{lista_nombre}' para {service_name}, podría estar vacía")
             else:
-                st.warning(f"No se pudo identificar una lista en la respuesta para {service_name}")
-                logger.warning(f"No se pudo identificar una lista en la respuesta. Atributos disponibles: {atributos_posibles}")
+                registrar_y_mostrar('warning', f"No se pudo identificar una lista en la respuesta para {service_name}")
+                logger.warning(f"Atributos disponibles en la respuesta: {atributos_posibles}")
                 return False
         
         # Obtener la lista de items
@@ -426,7 +448,7 @@ def sincronizar_parametrica(service_name, model_class):
         
         # Si la lista está vacía, terminar
         if not lista_items:
-            st.info(f"No hay datos para sincronizar en {service_name} (lista: {lista_nombre})")
+            registrar_y_mostrar('info', f"No hay datos para sincronizar en {service_name} (lista: {lista_nombre})")
             return True
         
         # Analizar el primer ítem para identificar nombres de campos reales
@@ -467,6 +489,10 @@ def sincronizar_parametrica(service_name, model_class):
             nuevos = 0
             actualizados = 0
             omitidos = 0
+            duplicados_respuesta = 0
+
+            # Cache de elementos creados en esta sesion para evitar duplicados cuando autoflush esta desactivado
+            items_creados = {}
             
             # Preparar mapeo entre nombres de campos SOAP y nombres de campos SQL
             campo_soap_a_sql = {
@@ -550,7 +576,30 @@ def sincronizar_parametrica(service_name, model_class):
                 
                 # Filtrar el diccionario para incluir solo campos existentes en el modelo
                 item_dict_filtrado = {k: v for k, v in item_dict.items() if k in campos_modelo}
-                
+
+                # Normalizar valores de columnas de texto y preparar una clave identificadora
+                for clave, valor in list(item_dict_filtrado.items()):
+                    columna = model_class.__table__.columns.get(clave)
+                    if columna is not None and isinstance(columna.type, (String, Text)) and valor is not None:
+                        item_dict_filtrado[clave] = str(valor)
+
+                clave_actual = None
+                if campos_clave:
+                    if isinstance(campos_clave, list):
+                        valores_clave = []
+                        for campo in campos_clave:
+                            valor_campo = item_dict_filtrado.get(campo)
+                            if valor_campo is None:
+                                valores_clave = []
+                                break
+                            valores_clave.append(str(valor_campo))
+                        if valores_clave:
+                            clave_actual = tuple(valores_clave)
+                    else:
+                        valor_campo = item_dict_filtrado.get(campos_clave)
+                        if valor_campo is not None:
+                            clave_actual = str(valor_campo)
+
                 # Construir el filtro según el tipo de campo clave
                 db_item = None
                 if isinstance(campos_clave, list):
@@ -566,7 +615,7 @@ def sincronizar_parametrica(service_name, model_class):
                     # Manejo de clave simple
                     if campos_clave in item_dict_filtrado and item_dict_filtrado[campos_clave] is not None:
                         db_item = db.query(model_class).filter(getattr(model_class, campos_clave) == item_dict_filtrado[campos_clave]).first()
-                
+
                 # Si ya existe, actualizar
                 if db_item:
                     for key, value in item_dict_filtrado.items():
@@ -576,6 +625,14 @@ def sincronizar_parametrica(service_name, model_class):
                     db_item.estado_sincronizacion = 'Exitoso'
                     actualizados += 1
                 else:
+                    if clave_actual and clave_actual in items_creados:
+                        duplicados_respuesta += 1
+                        objeto_existente = items_creados[clave_actual]
+                        for key, value in item_dict_filtrado.items():
+                            if hasattr(objeto_existente, key):
+                                setattr(objeto_existente, key, value)
+                        logger.warning(f"Elemento duplicado detectado en respuesta de {service_name} para clave {clave_actual}; se actualizo el registro ya agregado en esta sesion.")
+                        continue
                     try:
                         # Crear nuevo item
                         new_item = model_class()
@@ -585,6 +642,8 @@ def sincronizar_parametrica(service_name, model_class):
                         new_item.fecha_sincronizacion = func.now()
                         new_item.estado_sincronizacion = 'Exitoso'
                         db.add(new_item)
+                        if clave_actual:
+                            items_creados[clave_actual] = new_item
                         nuevos += 1
                     except Exception as e:
                         logger.error(f"Error al crear nuevo item en {service_name}: {e}")
@@ -592,26 +651,27 @@ def sincronizar_parametrica(service_name, model_class):
                         omitidos += 1
             
             db.commit()
-            mensaje_resumen = f"Sincronización de {service_name} completada: {nuevos} nuevos, {actualizados} actualizados"
+            mensaje_resumen = f"Sincronizacion de {service_name} completada: {nuevos} nuevos, {actualizados} actualizados"
             if omitidos > 0:
-                mensaje_resumen += f", {omitidos} omitidos por datos inválidos"
+                mensaje_resumen += f", {omitidos} omitidos por datos invalidos"
+            if duplicados_respuesta > 0:
+                mensaje_resumen += f", {duplicados_respuesta} duplicados en la respuesta ignorados"
             
-            # Usar texto plano en lugar de emojis para evitar problemas de codificación
-            st.success(f"✅ {mensaje_resumen}")
-            logger.info(mensaje_resumen)  # Sin emoji para evitar problemas de codificación
+            # Informar el resumen tanto en la UI como en el log
+            registrar_y_mostrar('success', f"✔ {mensaje_resumen}")
             return True
             
         except Exception as e:
             db.rollback()
-            st.error(f"Error al procesar datos de {service_name}: {str(e)}")
-            logger.error(f"Error al procesar datos de {service_name}: {traceback.format_exc()}")
+            registrar_y_mostrar('error', f"Error al procesar datos de {service_name}: {str(e)}")
+            logger.error(traceback.format_exc())
             return False
         finally:
             db.close()
             
     except Exception as e:
-        st.error(f"Error al sincronizar {service_name}: {str(e)}")
-        logger.error(f"Error al sincronizar {service_name}: {traceback.format_exc()}")
+        registrar_y_mostrar('error', f"Error al sincronizar {service_name}: {str(e)}")
+        logger.error(traceback.format_exc())
         return False
 
 def main():
@@ -622,8 +682,8 @@ def main():
     
     # Verificar comunicación antes de mostrar opciones de sincronización
     exito, mensaje = verificar_comunicacion()
-    if (exito):
-        st.success(f"✅ Conexión exitosa con el servidor remoto.")
+    if exito:
+        registrar_y_mostrar('success', "✅ Conexión exitosa con el servidor remoto.")
         
         if st.button('Sincronizar Todo'):
             sincronizar_fecha_hora()
@@ -637,9 +697,11 @@ def main():
                 st.subheader("Resumen de sincronización")
                 for service_name, exito in resultados:
                     icon = "✅" if exito else "❌"
+                    # Mostrar un resumen en la interfaz y registrar en el log
                     st.text(f"{icon} {service_name}")
+                    logger.info(f"Resultado sincronización {service_name}: {'Exitoso' if exito else 'Fallido'}")
                     
-                st.success("Todas las sincronizaciones completadas.")
+                registrar_y_mostrar('success', "Todas las sincronizaciones completadas.")
         
         # Opción para sincronizar servicios individuales
         selected_service = st.selectbox(
@@ -654,13 +716,13 @@ def main():
                 with st.spinner(f"Sincronizando {selected_service}..."):
                     resultado = sincronizar_parametrica(selected_service, service_model_map[selected_service])
                     if resultado:
-                        st.success(f"✅ Sincronización de {selected_service} completada.")
+                        registrar_y_mostrar('success', f"✅ Sincronización de {selected_service} completada.")
         
         if st.button('Mostrar información de sincronización'):
             mostrar_informacion_sincronizacion()
     else:
-        st.error(f"Error de comunicación con el servidor remoto: {mensaje}")
-        st.warning("No se pueden realizar sincronizaciones debido a problemas de comunicación.")
+        registrar_y_mostrar('error', f"Error de comunicación con el servidor remoto: {mensaje}")
+        registrar_y_mostrar('warning', "No se pueden realizar sincronizaciones debido a problemas de comunicación.")
 
 if __name__ == "__main__":
     main()
