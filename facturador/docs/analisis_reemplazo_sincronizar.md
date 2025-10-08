@@ -29,3 +29,4 @@ Se analizo el modulo actual `facturador/pages/1_Sincronizar.py` y la propuesta `
 - Se agrego el logger dedicado de sincronizacion en `facturador/logger_config.py`, garantizando rotacion diaria y preservando un archivo especifico para este proceso (`logs/sincronizacion_YYYYMMDD.log`).
 - El helper `registrar_y_mostrar` ahora conserva la severidad del mensaje aun cuando Streamlit no este disponible, evitando degradacion a `info`.
 - Se normalizan las claves compuestas y se cachean registros nuevos durante la sesion de sincronizacion para descartar duplicados enviados por el servicio cuando `autoflush` esta deshabilitado, evitando errores `IntegrityError`.
+- Se maneja el modo offline capturando fallos al inicializar el cliente SOAP y presentando mensajes guiados en la interfaz cuando no hay conexion a Internet o faltan credenciales.

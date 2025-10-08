@@ -4,6 +4,7 @@ import logging
 import traceback
 import streamlit as st
 from zeep import Client
+from zeep.transports import Transport
 import requests
 from dotenv import load_dotenv
 from sqlalchemy import func, Text, String
@@ -107,15 +108,48 @@ load_dotenv(os.path.join(root_dir, '.env'))
 # Configuración del cliente SOAP (fuera de la función para reutilizarlo)
 wsdl_url = os.getenv("WSDL_URL_SYNC")
 api_key = os.getenv("API_KEY")
-client = Client(wsdl_url)
-session = requests.Session()
-session.headers.update({"apikey": api_key})
-client.transport.session = session
+client = None
+client_error_message = None
+client_error_details = None
+
+if not wsdl_url:
+    client_error_message = "No se configuró la URL del servicio de sincronización (WSDL_URL_SYNC)."
+    logger.error(client_error_message)
+elif not api_key:
+    client_error_message = "No se configuró la clave de acceso (API_KEY) para el servicio de sincronización."
+    logger.error(client_error_message)
+else:
+    try:
+        session = requests.Session()
+        session.headers.update({"apikey": api_key})
+        transport = Transport(session=session)
+        client = Client(wsdl_url, transport=transport)
+    except requests.exceptions.RequestException as exc:
+        client_error_message = (
+            "No se pudo conectar con el servicio de sincronización SIAT. "
+            "El sistema parece estar sin conexión a Internet."
+        )
+        client_error_details = str(exc)
+        logger.error("Error de conexión al inicializar el cliente SIAT: %s", exc, exc_info=True)
+        client = None
+    except Exception as exc:
+        client_error_message = "Error al inicializar el cliente de sincronización SIAT."
+        client_error_details = str(exc)
+        logger.error("Error general al inicializar el cliente SIAT: %s", exc, exc_info=True)
+        client = None
 
 # Variables globales para sincronización de fecha y hora
 remote_time = None
 local_time = None
 time_difference = None
+
+
+def estado_cliente_siat():
+    """Retorna una tupla (disponible, mensaje, detalle) con el estado del cliente SOAP."""
+    if client is None:
+        mensaje = client_error_message or "El cliente de sincronización SIAT no está disponible."
+        return False, mensaje, client_error_details
+    return True, "", None
 
 # Actualizar diccionario que mapea nombres de servicios a clases de modelo con referencia completa
 service_model_map = {
@@ -182,6 +216,10 @@ service_list_map = {
 
 def verificar_comunicacion():
     url = os.getenv("WSDL_URL_SYNC")
+    disponible, mensaje_cliente, _ = estado_cliente_siat()
+    if not disponible:
+        return False, mensaje_cliente
+
     headers = {
         "Content-Type": "text/xml;charset=UTF-8",
         "SOAPAction": "",
@@ -233,6 +271,11 @@ def calcular_diferencia_horaria(remote_time, local_time):
 def sincronizar_fecha_hora():
     global remote_time, local_time, time_difference
     
+    disponible, mensaje_cliente, _ = estado_cliente_siat()
+    if not disponible:
+        registrar_y_mostrar('warning', mensaje_cliente)
+        return False
+
     registrar_y_mostrar('info', "Iniciando sincronización de Fecha y Hora")
     SolicitudSincronizacion = client.get_type('ns0:solicitudSincronizacion')
     solicitud = SolicitudSincronizacion(
@@ -382,6 +425,10 @@ def mostrar_informacion_sincronizacion():
 
 def crear_solicitud_sincronizacion():
     """Crear una solicitud de sincronización estándar."""
+    disponible, mensaje_cliente, _ = estado_cliente_siat()
+    if not disponible:
+        raise RuntimeError(mensaje_cliente)
+
     SolicitudSincronizacion = client.get_type('ns0:solicitudSincronizacion')
     solicitud = SolicitudSincronizacion(
         codigoAmbiente=int(os.getenv("CODIGO_AMBIENTE")),
@@ -397,6 +444,13 @@ def sincronizar_parametrica(service_name, model_class):
     """
     Sincroniza datos paramétricos desde el servicio SOAP.
     """
+    disponible, mensaje_cliente, detalle = estado_cliente_siat()
+    if not disponible:
+        registrar_y_mostrar('warning', mensaje_cliente)
+        if detalle:
+            logger.debug("Detalle técnico cliente SIAT: %s", detalle)
+        return False
+
     registrar_y_mostrar('info', f"Iniciando sincronización de {service_name}")
     
     # Crear solicitud de sincronización
@@ -658,7 +712,7 @@ def sincronizar_parametrica(service_name, model_class):
                 mensaje_resumen += f", {duplicados_respuesta} duplicados en la respuesta ignorados"
             
             # Informar el resumen tanto en la UI como en el log
-            registrar_y_mostrar('success', f"✔ {mensaje_resumen}")
+            registrar_y_mostrar('success', f"[OK] {mensaje_resumen}")
             return True
             
         except Exception as e:
@@ -676,39 +730,52 @@ def sincronizar_parametrica(service_name, model_class):
 
 def main():
     st.title("Sincronizar Datos")
-    
-    # Asegurarse de que las variables globales estén inicializadas
+
+    # Asegurarse de que las variables globales esten inicializadas
     global remote_time, local_time, time_difference
-    
-    # Verificar comunicación antes de mostrar opciones de sincronización
+
+    disponible, mensaje_cliente, detalle = estado_cliente_siat()
+    if not disponible:
+        registrar_y_mostrar('warning', mensaje_cliente)
+        st.info("El sistema se encuentra en modo offline; no es posible sincronizar sin conexion a Internet.")
+        st.markdown(
+            "- Verifique su conexion de red.\n"
+            "- Intente nuevamente cuando el enlace a SIAT este disponible.\n"
+            "- Si el problema persiste estando en linea, revise la configuracion de variables de entorno."
+        )
+        if detalle:
+            st.caption(f"Detalle tecnico: {detalle}")
+        st.stop()
+
+    # Verificar comunicacion antes de mostrar opciones de sincronizacion
     exito, mensaje = verificar_comunicacion()
     if exito:
-        registrar_y_mostrar('success', "✅ Conexión exitosa con el servidor remoto.")
-        
+        registrar_y_mostrar('success', "[OK] Conexion exitosa con el servidor remoto.")
+
         if st.button('Sincronizar Todo'):
             sincronizar_fecha_hora()
-            with st.spinner("Sincronizando tablas paramétricas..."):
+            with st.spinner("Sincronizando tablas parametricas..."):
                 resultados = []
                 for service_name, model_class in service_model_map.items():
                     resultado = sincronizar_parametrica(service_name, model_class)
                     resultados.append((service_name, resultado))
-                
+
                 # Mostrar resumen
-                st.subheader("Resumen de sincronización")
+                st.subheader("Resumen de sincronizacion")
                 for service_name, exito in resultados:
-                    icon = "✅" if exito else "❌"
+                    icon = "[OK]" if exito else "[ERROR]"
                     # Mostrar un resumen en la interfaz y registrar en el log
                     st.text(f"{icon} {service_name}")
-                    logger.info(f"Resultado sincronización {service_name}: {'Exitoso' if exito else 'Fallido'}")
-                    
+                    logger.info(f"Resultado sincronizacion {service_name}: {'Exitoso' if exito else 'Fallido'}")
+
                 registrar_y_mostrar('success', "Todas las sincronizaciones completadas.")
-        
-        # Opción para sincronizar servicios individuales
+
+        # Opcion para sincronizar servicios individuales
         selected_service = st.selectbox(
-            "Seleccione un servicio para sincronizar", 
+            "Seleccione un servicio para sincronizar",
             ['sincronizarFechaHora'] + list(service_model_map.keys())
         )
-        
+
         if st.button('Sincronizar Servicio Seleccionado'):
             if selected_service == 'sincronizarFechaHora':
                 sincronizar_fecha_hora()
@@ -716,13 +783,14 @@ def main():
                 with st.spinner(f"Sincronizando {selected_service}..."):
                     resultado = sincronizar_parametrica(selected_service, service_model_map[selected_service])
                     if resultado:
-                        registrar_y_mostrar('success', f"✅ Sincronización de {selected_service} completada.")
-        
-        if st.button('Mostrar información de sincronización'):
+                        registrar_y_mostrar('success', f"[OK] Sincronizacion de {selected_service} completada.")
+
+        if st.button('Mostrar informacion de sincronizacion'):
             mostrar_informacion_sincronizacion()
     else:
-        registrar_y_mostrar('error', f"Error de comunicación con el servidor remoto: {mensaje}")
-        registrar_y_mostrar('warning', "No se pueden realizar sincronizaciones debido a problemas de comunicación.")
+        registrar_y_mostrar('error', f"Error de comunicacion con el servidor remoto: {mensaje}")
+        registrar_y_mostrar('warning', "No se pueden realizar sincronizaciones debido a problemas de comunicacion.")
+
 
 if __name__ == "__main__":
     main()
