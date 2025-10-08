@@ -4,7 +4,7 @@ import queue
 import threading
 import time
 from datetime import datetime
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List
 
 import streamlit as st
 try:
@@ -91,7 +91,7 @@ def _ensure_print_session_keys() -> None:
     st.session_state.setdefault("printer_worker_last_heartbeat", None)
     st.session_state.setdefault("print_state_version", 0)
     st.session_state.setdefault("print_state_last_updated", None)
-    st.session_state.setdefault("_print_auto_refresh_interval", 1.5)
+    st.session_state.setdefault("_print_last_seen_version", None)
 
 
 def _update_print_session(
@@ -106,11 +106,9 @@ def _update_print_session(
 ) -> None:
     _ensure_print_session_keys()
 
-    # ✅ CORRECCIÓN: Rate-limiting para evitar actualizaciones excesivas
-    # Máximo 2 actualizaciones por segundo para reducir carga en Streamlit
+    # ✅ Control suave: aplicar rate-limiting solo cuando no hay cambios reales
     last_update = st.session_state.get("print_state_last_updated")
-    if last_update and (time.time() - last_update) < 0.5:
-        return  # Ignorar actualizaciones demasiado frecuentes
+    too_fast = bool(last_update and (time.time() - last_update) < 0.5)
 
     payload = status_payload
     if payload is None and status is not None:
@@ -119,6 +117,22 @@ def _update_print_session(
     state_changed = False
 
     if payload is not None:
+        current_info = st.session_state.get("print_status_info") or {}
+        same_payload = (
+            current_info.get("code") == payload.code.value
+            and current_info.get("message") == payload.message
+            and (current_info.get("detail") or None) == payload.detail
+        )
+        if (
+            too_fast
+            and same_payload
+            and en_progreso is None
+            and finalizada is None
+            and ultimo_trabajo is None
+            and worker_status is None
+            and worker_heartbeat is None
+        ):
+            return
         st.session_state["print_status"] = payload.message
         st.session_state["print_status_info"] = payload.to_dict()
         state_changed = True
@@ -160,6 +174,65 @@ def _update_print_session(
         st.session_state["print_state_last_updated"] = time.time()
 
 
+
+
+def _build_display_payload(
+    code: str,
+    severity: str,
+    message: str,
+    status_info: Dict[str, Any],
+    ultimo_trabajo: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Construye el mensaje principal y los detalles complementarios para la UI."""
+
+    primary = message or "Sistema de impresión listo."
+    details: List[str] = []
+
+    numero = ultimo_trabajo.get("numero_factura") or status_info.get("numero_factura")
+    status_detail = (
+        ultimo_trabajo.get("status_detail")
+        or status_info.get("status_detail")
+        or status_info.get("detail")
+    )
+    duration = ultimo_trabajo.get("duracion_impresion")
+
+    def _add_detail(texto: str) -> None:
+        if not texto:
+            return
+        if texto == primary:
+            return
+        if texto in details:
+            return
+        details.append(texto)
+
+    if code == "queued" and numero:
+        _add_detail(f"Factura {numero} en cola de impresión.")
+    elif code == "processing" and numero:
+        _add_detail(f"Imprimiendo factura {numero}...")
+
+    if duration is not None:
+        try:
+            duracion_float = float(duration)
+            _add_detail(f"Duración de impresión: {duracion_float:.3f}s")
+        except (TypeError, ValueError):
+            _add_detail(f"Duración de impresión: {duration}")
+
+    if status_detail:
+        lower_detail = status_detail.strip().lower()
+        if "duración de impresión" not in lower_detail:
+            _add_detail(f"Detalle técnico: {status_detail}")
+
+    if code == "printer_warning":
+        _add_detail("Revisa la impresora y reintenta la impresión cuando el estado vuelva a listo.")
+    elif code == "printer_error":
+        _add_detail("La impresión no se completó. Corrige el problema del dispositivo antes de intentar nuevamente.")
+
+    return {
+        "primary": primary,
+        "severity": severity,
+        "details": details,
+    }
+
 def get_print_state_summary() -> Dict[str, Any]:
     """Devuelve un resumen normalizado del estado de impresion actual."""
     initialize_print_state()
@@ -189,10 +262,13 @@ def get_print_state_summary() -> Dict[str, Any]:
     ultimo_trabajo = st.session_state.get("ultimo_trabajo_impresion") or {}
     show_diag = severity in {"warning", "error"}
 
+    display = _build_display_payload(raw_code, severity, message, status_info, ultimo_trabajo)
+    primary_message = display.get("primary", message)
+
     return {
         "code": raw_code,
         "severity": severity,
-        "message": message,
+        "message": primary_message,
         "show_diagnostic": show_diag,
         "status_info": status_info,
         "impresion_en_progreso": impresion_en_progreso,
@@ -200,6 +276,7 @@ def get_print_state_summary() -> Dict[str, Any]:
         "version": version,
         "updated_at": updated_at,
         "ultimo_trabajo": ultimo_trabajo,
+        "display": display,
     }
 
 

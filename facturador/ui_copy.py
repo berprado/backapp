@@ -41,34 +41,38 @@ from tabs import (
 from verificador_session_state import ejecutar_diagnostico_completo
 
 
-def _schedule_auto_refresh():
-    """
-    Marca que hay impresión en progreso para que la UI lo muestre.
-    
-    ⚠️ CORRECCIÓN CRÍTICA: Ya NO usa time.sleep() ni st.rerun() porque causaba
-    un bucle infinito. Ahora solo marca el estado para que la UI lo detecte.
-    
-    El estado de impresión se actualiza automáticamente desde el worker thread
-    a través de _update_print_session() en print_manager.py
-    """
-    if not st.session_state.get('impresion_en_progreso'):
-        st.session_state.pop('_print_auto_refresh_active', None)
+def _schedule_auto_refresh(summary: dict) -> None:
+    """Dispara un rerender controlado cuando hay un nuevo estado de impresión."""
+    version = summary.get("version")
+    if version is None:
         return
-    
-    # Solo marcar que está activo - NO forzar reruns
-    st.session_state['_print_auto_refresh_active'] = True
 
+    last_seen = st.session_state.get("_print_last_seen_version")
+    if last_seen is None:
+        st.session_state["_print_last_seen_version"] = version
+        return
 
-def _show_status_toast(summary):
+    if version > last_seen:
+        st.session_state["_print_last_seen_version"] = version
+        rerun_fn = getattr(st, "rerun", None) or getattr(st, "experimental_rerun", None)
+        if rerun_fn is not None:
+            rerun_fn()
+
+def _show_status_toast(summary: dict) -> None:
     version = summary.get('version')
     if version is None:
         return
+
     last_version = st.session_state.get('_last_toast_version', -1)
     if version <= last_version:
         return
+
     st.session_state['_last_toast_version'] = version
-    message = summary.get('message') or 'Estado de impresion actualizado.'
-    severity = summary.get('severity', 'info')
+
+    display = summary.get('display') or {}
+    message = display.get('primary') or summary.get('message') or 'Estado de impresión actualizado.'
+    severity = (display.get('severity') or summary.get('severity') or 'info').lower()
+
     icon_map = {
         'success': '✅',
         'warning': '⚠️',
@@ -95,12 +99,13 @@ def mostrar_boton_diagnostico_rapido(summary=None):
 
 
 def verificar_estado_sistema():
-    """Obtiene un resumen simplificado del estado de impresion."""
+    """Obtiene un resumen simplificado del estado de impresión."""
     summary = get_print_state_summary()
+    display = summary.get('display') or {}
     estado = {
         'problemas_detectados': [],
-        'nivel_alerta': summary['severity'],
-        'mensaje_estado': summary['message'],
+        'nivel_alerta': (display.get('severity') or summary.get('severity')).lower(),
+        'mensaje_estado': display.get('primary') or summary.get('message'),
         'show_diagnostic': summary['show_diagnostic'],
         'summary': summary,
     }
@@ -143,6 +148,7 @@ def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict
 
     estado_sistema = verificar_estado_sistema()
     summary = estado_sistema['summary']
+    display = summary.get('display') or {}
 
     col1, col2, col3 = st.columns([3, 1, 1])
 
@@ -155,8 +161,8 @@ def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict
             ui_logger.warning("Sistema funcionando en modo offline")
 
     with col2:
-        severity = summary['severity']
-        message = summary['message']
+        severity = (display.get('severity') or summary.get('severity') or 'info').lower()
+        message = display.get('primary') or summary.get('message')
         if severity == 'error':
             st.error(message)
         elif severity == 'warning':
@@ -187,14 +193,8 @@ def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict
         st.json(connectivity_info)
 
     mostrar_boton_diagnostico_rapido(summary)
-    
-    # ⚠️ CORRECCIÓN: Solo marcar el estado, NO disparar reruns automáticos
-    # El sistema de impresión actualiza su propio estado desde el worker thread
-    if summary.get('impresion_en_progreso'):
-        st.session_state['_print_auto_refresh_active'] = True
-    else:
-        st.session_state.pop('_print_auto_refresh_active', None)
-    
+    _schedule_auto_refresh(summary)
+
     st.divider()
 
     tabs_config = {

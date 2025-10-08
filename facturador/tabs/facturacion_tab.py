@@ -324,55 +324,39 @@ def _render_facturar_button(is_online, invoice_config, client_data, tipos_docume
 
 
 def _render_print_button():
-    """Renderiza la impresion automatica despues de validar."""
+    """Renderiza la impresión automática después de validar."""
     initialize_print_state()
 
     summary = get_print_state_summary()
+    display = summary.get('display') or {}
     status_info = summary.get('status_info') or {}
     code = (summary.get('code') or '').lower()
-    message = summary.get('message', 'Sistema de impresion listo.')
-    impresion_en_progreso = summary.get('impresion_en_progreso', False)
+    severity = (display.get('severity') or summary.get('severity') or 'info').lower()
+    primary_message = display.get('primary') or summary.get('message', 'Sistema de impresión listo.')
     ultimo_trabajo = summary.get('ultimo_trabajo') or {}
+    impresion_en_progreso = summary.get('impresion_en_progreso', False)
 
     st.session_state.setdefault('auto_print_last_id', None)
 
-    factura_label = ultimo_trabajo.get('numero_factura') or status_info.get('numero_factura')
+    details = display.get('details') or []
+    if not isinstance(details, list):
+        details = list(details)
 
-    error_codes = {'printer_error', 'pdf_error', 'data_error', 'critical_error'}
-    warning_codes = {'printer_warning'}
-    processing_codes = {'processing'}
-    queued_codes = {'queued'}
+    severity_map = {
+        'error': st.error,
+        'warning': st.warning,
+        'success': st.success,
+    }
+    severity_map.get(severity, st.info)(primary_message)
 
-    if code in error_codes:
-        st.error(message)
-    elif code in warning_codes:
-        st.warning(message)
-    elif impresion_en_progreso or code in processing_codes:
-        etiqueta = factura_label or 'N/D'
-        if code in queued_codes:
-            st.info(f'Factura {etiqueta} en cola de impresion...')
-        else:
-            st.info(f'Imprimiendo factura {etiqueta}...')
-    elif code in queued_codes:
-        etiqueta = factura_label or 'N/D'
-        st.caption(f'Factura {etiqueta} en cola de impresion.')
-    elif code == 'printer_success':
-        etiqueta = factura_label or 'N/D'
-        detalle = status_info.get('detail') or ultimo_trabajo.get('status_detail')
-        duracion = ultimo_trabajo.get('duracion_impresion')
-        if not detalle and isinstance(duracion, (int, float)):
-            detalle = f'Duracion: {duracion:.3f}s'
-        elif not detalle and duracion:
-            detalle = f'Duracion: {duracion}'
-        extra = f' ({detalle})' if detalle else ''
-        st.caption(f'Factura {etiqueta} impresa exitosamente{extra}.')
-    else:
-        st.caption(message)
+    for line in details:
+        st.caption(line)
 
     factura_validada = st.session_state.get('factura_validada')
     factura_obj = st.session_state.get('factura_a_procesar')
 
-    active_codes = processing_codes | queued_codes
+    numero_factura = ultimo_trabajo.get('numero_factura') or status_info.get('numero_factura')
+    active_codes = {'processing', 'queued'}
     terminal_codes = {
         'printer_success',
         'printer_warning',
@@ -392,17 +376,18 @@ def _render_print_button():
                 st.rerun()
             else:
                 if impresion_en_progreso or code in active_codes:
-                    st.caption('La factura validada se esta enviando a la impresora...')
+                    st.caption('La factura validada se está enviando a la impresora en segundo plano.')
                 elif code in terminal_codes:
                     st.session_state['impresion_en_progreso'] = False
                     if code == 'printer_success':
                         st.session_state['impresion_finalizada'] = True
                 else:
-                    st.caption('La factura validada se enviara automaticamente a impresion en breve.')
+                    st.caption('La factura validada se enviará automáticamente en cuanto el sistema quede libre.')
         else:
-            st.error('No se encontraron los datos de la factura para imprimir automaticamente.')
+            st.error('No se encontraron los datos de la factura para imprimir automáticamente.')
     else:
-        st.caption('La impresion automatica se activara cuando la factura sea validada por el SIN.')
+        st.caption('La impresión automática se activará cuando la factura sea validada por el SIN.')
+
 
 
 def _render_consultar_button():
@@ -504,11 +489,6 @@ def _handle_online_submission(invoice_config, client_data, tipos_documento, coma
                                   tipo_documento_seleccionado['codigoClasificador'] == '5') else None
 
         cafc_para_factura = None
-        if evento_activo and str(evento_activo.get('codigo_evento')) in NON_OPERATIONAL_EVENT_CODES:
-            cafc_para_factura = (st.session_state.get('evento_cafc', {}).get(evento_activo.get('id')) or '').strip()
-            if not cafc_para_factura:
-                show_message('error', 'Debe ingresar el CAFC vigente en la barra lateral antes de emitir facturas durante este evento.', message_placeholder)
-                return False
 
         xml_str, factura_cabecera_data, detalles_data = generate_xml_invoice(
             nit_emisor=nit_emisor,
@@ -682,6 +662,14 @@ def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos
 
         numero_factura = obtener_y_reservar_numero_factura()
         nit_emisor = int(os.getenv('NIT'))
+
+        cafc_para_factura = None
+        if evento_activo and str(evento_activo.get('codigo_evento')) in NON_OPERATIONAL_EVENT_CODES:
+            cafc_para_factura = (st.session_state.get('evento_cafc', {}).get(evento_activo.get('id')) or "").strip()
+            if not cafc_para_factura:
+                show_message('error', "Debe ingresar el CAFC vigente en la barra lateral antes de transcribir facturas manuales para este evento.", message_placeholder)
+                return False
+
         cuf = generate_cuf(
             nit=nit_emisor,
             fecha_emision=fecha_emision,
@@ -731,7 +719,8 @@ def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos
             lineas_productos=lineas_productos,
             actividad_economica=os.getenv('ACTIVIDAD_ECONOMICA'),
             codigo_producto_sin=os.getenv('CODIGO_PRODUCTO_SIN'),
-            codigoExcepcion=codigo_excepcion
+            codigoExcepcion=codigo_excepcion,
+            cafc=cafc_para_factura
         )
 
         signed_xml_str = sign_xml(xml_str, "xmls/llaves/private_key_ok.pem", "xmls/llaves/certificado_ok.pem", cuf)
@@ -804,6 +793,7 @@ def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos
         factura_cabecera_data['tipoEmision'] = "2"
         factura_cabecera_data['estado'] = "PENDIENTE_ENVIO"
         factura_cabecera_data['codigoEvento'] = evento_activo.get('id')
+        factura_cabecera_data['cafc'] = cafc_para_factura
 
         guardar_factura_cabecera(factura_cabecera_data)
         for detalle in detalles_data:

@@ -16,6 +16,7 @@ Este documento resume el flujo completo de impresion de facturas, los puntos don
 - `impresion_en_progreso` y `impresion_finalizada`: flags de control de flujo.
 - `ultimo_trabajo_impresion`: numero de factura, timestamp y ultimo estado almacenado.
 - `printer_worker_status` y `printer_worker_last_heartbeat`: estado del hilo y monitoreo.
+- `_print_last_seen_version`: controla rerenders incrementales cuando cambia `print_state_version`.
 - `factura_a_procesar` y `factura_validada`: habilitan la impresion automatica en la UI.
 
 ## Catalogo de `PrintStatusCode`
