@@ -1,6 +1,5 @@
-﻿import os
+import os
 import sys
-import logging
 import traceback
 import streamlit as st
 from zeep import Client
@@ -12,7 +11,7 @@ from datetime import datetime, timezone, timedelta
 import pytz
 import tzlocal
 
-# Agregar rutas a sys.path para acceder a los módulos del proyecto
+# Agregar rutas a sys.path para acceder a los modulos del proyecto
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 facturador_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if facturador_dir not in sys.path:
@@ -20,26 +19,26 @@ if facturador_dir not in sys.path:
 if root_dir not in sys.path:
     sys.path.append(root_dir)
 
-# Importar el logger central de la aplicación.  Este módulo
+# Importar el logger central de la aplicacion.  Este modulo
 # configura y expone todos los loggers necesarios para la app.
 # Al utilizarlo evitamos duplicar handlers y aseguramos una
-# codificación consistente y rotación de archivos.
+# codificacion consistente y rotacion de archivos.
 from facturador.logger_config import get_sincronizacion_logger
 
-# Instancia global del logger de sincronización para este módulo.
-# Todos los mensajes relacionados con sincronización deben
-# registrarse a través de este objeto para que queden en los
+# Instancia global del logger de sincronizacion para este modulo.
+# Todos los mensajes relacionados con sincronizacion deben
+# registrarse a traves de este objeto para que queden en los
 # ficheros de log centralizados configurados por ``logger_config.py``.
 logger = get_sincronizacion_logger()
 
 def registrar_y_mostrar(tipo: str, mensaje: str) -> None:
-    """Envía un mensaje tanto a la interfaz de Streamlit como al
+    """Envia un mensaje tanto a la interfaz de Streamlit como al
     sistema de logs centralizado.
 
     Este helper recibe el tipo de mensaje (``info``, ``success``,
     ``warning`` o ``error``) y lo publica tanto en la interfaz
     interactiva como en el archivo de log correspondiente.  Para
-    mensajes más detallados o de depuración, utilice ``logger.debug``
+    mensajes mas detallados o de depuracion, utilice ``logger.debug``
     directamente.
 
     Args:
@@ -62,7 +61,7 @@ def registrar_y_mostrar(tipo: str, mensaje: str) -> None:
             st.info(mensaje)
             logger.info(mensaje)
     except Exception:
-        # En entornos no interactivos, es posible que ``st`` no esté
+        # En entornos no interactivos, es posible que ``st`` no este
         # disponible. En tal caso, registrar conservando la severidad.
         if tipo == 'success':
             logger.info(mensaje)
@@ -98,14 +97,14 @@ from models import (
     SincronizarParametricaUnidadMedida as ModeloSincronizarParametricaUnidadMedida,
 )
 
-# Cargar variables de entorno desde el directorio raíz
+# Cargar variables de entorno desde el directorio raiz
 load_dotenv(os.path.join(root_dir, '.env'))
 
-# --- Eliminada configuración local de logging ---
-# Esta sección ha sido reemplazada por el uso de ``logger_config.py``.
+# --- Eliminada configuracion local de logging ---
+# Esta seccion ha sido reemplazada por el uso de ``logger_config.py``.
 # Todas las configuraciones de log se manejan de forma centralizada.
 
-# Configuración del cliente SOAP (fuera de la función para reutilizarlo)
+# Configuracion del cliente SOAP (fuera de la funcion para reutilizarlo)
 wsdl_url = os.getenv("WSDL_URL_SYNC")
 api_key = os.getenv("API_KEY")
 client = None
@@ -113,10 +112,10 @@ client_error_message = None
 client_error_details = None
 
 if not wsdl_url:
-    client_error_message = "No se configuró la URL del servicio de sincronización (WSDL_URL_SYNC)."
+    client_error_message = "No se configuro la URL del servicio de sincronizacion (WSDL_URL_SYNC)."
     logger.error(client_error_message)
 elif not api_key:
-    client_error_message = "No se configuró la clave de acceso (API_KEY) para el servicio de sincronización."
+    client_error_message = "No se configuro la clave de acceso (API_KEY) para el servicio de sincronizacion."
     logger.error(client_error_message)
 else:
     try:
@@ -126,19 +125,19 @@ else:
         client = Client(wsdl_url, transport=transport)
     except requests.exceptions.RequestException as exc:
         client_error_message = (
-            "No se pudo conectar con el servicio de sincronización SIAT. "
-            "El sistema parece estar sin conexión a Internet."
+            "No se pudo conectar con el servicio de sincronizacion SIAT. "
+            "El sistema parece estar sin conexion a Internet."
         )
         client_error_details = str(exc)
-        logger.error("Error de conexión al inicializar el cliente SIAT: %s", exc, exc_info=True)
+        logger.error("Error de conexion al inicializar el cliente SIAT: %s", exc, exc_info=True)
         client = None
     except Exception as exc:
-        client_error_message = "Error al inicializar el cliente de sincronización SIAT."
+        client_error_message = "Error al inicializar el cliente de sincronizacion SIAT."
         client_error_details = str(exc)
         logger.error("Error general al inicializar el cliente SIAT: %s", exc, exc_info=True)
         client = None
 
-# Variables globales para sincronización de fecha y hora
+# Variables globales para sincronizacion de fecha y hora
 remote_time = None
 local_time = None
 time_difference = None
@@ -147,7 +146,7 @@ time_difference = None
 def estado_cliente_siat():
     """Retorna una tupla (disponible, mensaje, detalle) con el estado del cliente SOAP."""
     if client is None:
-        mensaje = client_error_message or "El cliente de sincronización SIAT no está disponible."
+        mensaje = client_error_message or "El cliente de sincronizacion SIAT no esta disponible."
         return False, mensaje, client_error_details
     return True, "", None
 
@@ -172,7 +171,7 @@ service_model_map = {
     'sincronizarParametricaUnidadMedida': ModeloSincronizarParametricaUnidadMedida,
 }
 
-# Configuración de campos clave para cada modelo
+# Configuracion de campos clave para cada modelo
 model_key_fields = {
     ModeloSincronizarActividades: 'codigoCaeb',
     ModeloSincronizarListaActividadesDocumentoSector: ['codigoActividad', 'codigoDocumentoSector'],
@@ -236,18 +235,18 @@ def verificar_comunicacion():
         response = requests.post(url, data=soap_request, headers=headers)
         response.raise_for_status()
         if "<codigo>926</codigo>" in response.text:
-            return True, "Comunicación exitosa con código 926"
+            return True, "Comunicacion exitosa con codigo 926"
         else:
-            return False, "Fallo en la comunicación"
+            return False, "Fallo en la comunicacion"
     except requests.exceptions.RequestException as e:
-        return False, f"Error de comunicación: {e}"
+        return False, f"Error de comunicacion: {e}"
 
 def calcular_diferencia_horaria(remote_time, local_time):
     """
     Calcula la diferencia horaria entre dos momentos en el tiempo.
     Devuelve la diferencia en segundos y un objeto timedelta.
     """
-    # Asegurar que ambos tiempos estén en UTC para una comparación correcta
+    # Asegurar que ambos tiempos esten en UTC para una comparacion correcta
     remote_time_utc = remote_time.astimezone(pytz.utc)
     local_time_utc = local_time.astimezone(pytz.utc)
     
@@ -255,9 +254,9 @@ def calcular_diferencia_horaria(remote_time, local_time):
     diferencia_timedelta = remote_time_utc - local_time_utc
     diferencia_segundos = diferencia_timedelta.total_seconds()
     
-    # Si la diferencia es casi un día completo, podría ser un problema de zona horaria
+    # Si la diferencia es casi un dia completo, podria ser un problema de zona horaria
     if abs(diferencia_segundos) > 86000 and abs(diferencia_segundos) < 86400:
-        # Probablemente hay un problema con la interpretación de la zona horaria
+        # Probablemente hay un problema con la interpretacion de la zona horaria
         # Intentamos corregir la diferencia
         if diferencia_segundos < 0:
             diferencia_segundos += 86400  # Sumamos 24 horas
@@ -276,7 +275,7 @@ def sincronizar_fecha_hora():
         registrar_y_mostrar('warning', mensaje_cliente)
         return False
 
-    registrar_y_mostrar('info', "Iniciando sincronización de Fecha y Hora")
+    registrar_y_mostrar('info', "Iniciando sincronizacion de Fecha y Hora")
     SolicitudSincronizacion = client.get_type('ns0:solicitudSincronizacion')
     solicitud = SolicitudSincronizacion(
         codigoAmbiente=int(os.getenv("CODIGO_AMBIENTE")),
@@ -295,7 +294,7 @@ def sincronizar_fecha_hora():
         logger.debug(f"Respuesta recibida: {response}")
         
         if not response.transaccion:
-            error_msg = "Error en la transacción SOAP para sincronizarFechaHora"
+            error_msg = "Error en la transaccion SOAP para sincronizarFechaHora"
             registrar_y_mostrar('error', error_msg)
             return False
         
@@ -311,7 +310,7 @@ def sincronizar_fecha_hora():
                 remote_time = remote_time.astimezone(bolivia_tz)
         except Exception as e:
             logger.error(f"Error al convertir la fecha remota: {e}")
-            registrar_y_mostrar('error', "Error al obtener la fecha del servidor. Sincronización fallida.")
+            registrar_y_mostrar('error', "Error al obtener la fecha del servidor. Sincronizacion fallida.")
             return False
         
         # Obtener la hora local actual con su zona horaria
@@ -323,25 +322,25 @@ def sincronizar_fecha_hora():
         # Calcular la diferencia horaria correctamente - modificado
         diferencia_segundos, time_difference = calcular_diferencia_horaria(remote_time, local_time)
 
-        # Verificar si la diferencia de tiempo está en un rango razonable (5 minutos)
+        # Verificar si la diferencia de tiempo esta en un rango razonable (5 minutos)
         tiempo_razonable = 300  # 5 minutos en segundos
         diferencia_absoluta = abs(diferencia_segundos)
         
         if diferencia_absoluta <= tiempo_razonable:
-            mensaje_tiempo = f"La diferencia de tiempo está en un rango razonable ({diferencia_absoluta:.2f} segundos)"
-            registrar_y_mostrar('success', f"✅ {mensaje_tiempo}")
+            mensaje_tiempo = f"La diferencia de tiempo esta en un rango razonable ({diferencia_absoluta:.2f} segundos)"
+            registrar_y_mostrar('success', f" {mensaje_tiempo}")
         else:
-            mensaje_tiempo = f"La diferencia de tiempo NO está en un rango razonable ({diferencia_absoluta:.2f} segundos)"
+            mensaje_tiempo = f"La diferencia de tiempo NO esta en un rango razonable ({diferencia_absoluta:.2f} segundos)"
             registrar_y_mostrar('warning', mensaje_tiempo)
 
-        if diferencia_absoluta > 86400:  # Más de 24 horas
+        if diferencia_absoluta > 86400:  # Mas de 24 horas
             logger.warning(f"Diferencia de tiempo anormal: {time_difference}. Verifique la zona horaria.")
-            registrar_y_mostrar('warning', f"Diferencia de tiempo anormal detectada: {time_difference}. ¿Desea corregirla?")
+            registrar_y_mostrar('warning', f"Diferencia de tiempo anormal detectada: {time_difference}. Desea corregirla?")
             
             if st.button("Corregir diferencia horaria"):
                 time_difference = timedelta(seconds=0)
                 diferencia_segundos = 0
-                registrar_y_mostrar('success', "✅ Diferencia horaria corregida manualmente.")
+                registrar_y_mostrar('success', " Diferencia horaria corregida manualmente.")
 
         logger.debug(f"Diferencia de tiempo calculada: {time_difference}")
 
@@ -354,13 +353,13 @@ def sincronizar_fecha_hora():
                     sync_record = SincronizacionEstado()
                     db.add(sync_record)
                 
-                # Actualizar fecha de sincronización
+                # Actualizar fecha de sincronizacion
                 sync_record.ultima_sincronizacion = datetime.now(pytz.utc)
                 db.commit()
             except Exception as e:
                 db.rollback()
-                logger.error(f"Error al guardar sincronización: {e}")
-                # Guardamos la información en la sesión de Streamlit como respaldo
+                logger.error(f"Error al guardar sincronizacion: {e}")
+                # Guardamos la informacion en la sesion de Streamlit como respaldo
                 st.session_state['ultima_sincronizacion'] = datetime.now(pytz.utc)
                 st.session_state['remote_time'] = remote_time
                 st.session_state['local_time'] = local_time
@@ -369,13 +368,13 @@ def sincronizar_fecha_hora():
                 db.close()
         except Exception as e:
             logger.error(f"Error al conectar con la base de datos: {e}")
-            # Guardamos la información en la sesión de Streamlit como respaldo
+            # Guardamos la informacion en la sesion de Streamlit como respaldo
             st.session_state['ultima_sincronizacion'] = datetime.now(pytz.utc)
             st.session_state['remote_time'] = remote_time
             st.session_state['local_time'] = local_time
             st.session_state['time_difference'] = time_difference
             
-        registrar_y_mostrar('success', "✅ Sincronización de Fecha y Hora completada.")
+        registrar_y_mostrar('success', " Sincronizacion de Fecha y Hora completada.")
         mostrar_informacion_sincronizacion()
         return True
 
@@ -387,7 +386,7 @@ def sincronizar_fecha_hora():
 
 def mostrar_informacion_sincronizacion():
     if remote_time and local_time and time_difference is not None:
-        registrar_y_mostrar('info', "Información de sincronización:")
+        registrar_y_mostrar('info', "Informacion de sincronizacion:")
         col1, col2 = st.columns(2)
         with col1:
             st.write("Hora del servidor remoto (Bolivia):")
@@ -396,15 +395,15 @@ def mostrar_informacion_sincronizacion():
             st.write("Hora local:")
             st.write(local_time.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3])
         
-        # Formateamos la diferencia de tiempo de manera más clara
+        # Formateamos la diferencia de tiempo de manera mas clara
         diferencia_segundos = time_difference.total_seconds()
         st.write("Diferencia de tiempo:")
         
         # Si es cerca de 24 horas, mostrar una advertencia
         if abs(diferencia_segundos) > 86000 and abs(diferencia_segundos) < 86400:
-            registrar_y_mostrar('warning', "⚠️ La diferencia parece ser de aproximadamente 24 horas, lo que sugiere un problema con la zona horaria.")
+            registrar_y_mostrar('warning', " La diferencia parece ser de aproximadamente 24 horas, lo que sugiere un problema con la zona horaria.")
         
-        # Mostrar la diferencia en un formato más amigable
+        # Mostrar la diferencia en un formato mas amigable
         minutos, segundos = divmod(abs(diferencia_segundos), 60)
         horas, minutos = divmod(minutos, 60)
         dias, horas = divmod(horas, 24)
@@ -412,19 +411,19 @@ def mostrar_informacion_sincronizacion():
         signo = "+" if diferencia_segundos >= 0 else "-"
         
         if dias > 0:
-            st.write(f"{signo}{int(dias)} días, {int(horas):02}:{int(minutos):02}:{segundos:.3f}")
+            st.write(f"{signo}{int(dias)} dias, {int(horas):02}:{int(minutos):02}:{segundos:.3f}")
         elif horas > 0:
             st.write(f"{signo}{int(horas):02}:{int(minutos):02}:{segundos:.3f}")
         else:
             st.write(f"{signo}{int(minutos):02}:{segundos:.3f}")
             
-        # También mostrar en segundos para mayor claridad
+        # Tambien mostrar en segundos para mayor claridad
         st.write(f"Total en segundos: {signo}{abs(diferencia_segundos):.3f} segundos")
     else:
-        registrar_y_mostrar('warning', "No hay información de sincronización disponible.")
+        registrar_y_mostrar('warning', "No hay informacion de sincronizacion disponible.")
 
 def crear_solicitud_sincronizacion():
-    """Crear una solicitud de sincronización estándar."""
+    """Crear una solicitud de sincronizacion estandar."""
     disponible, mensaje_cliente, _ = estado_cliente_siat()
     if not disponible:
         raise RuntimeError(mensaje_cliente)
@@ -442,32 +441,32 @@ def crear_solicitud_sincronizacion():
 
 def sincronizar_parametrica(service_name, model_class):
     """
-    Sincroniza datos paramétricos desde el servicio SOAP.
+    Sincroniza datos parametricos desde el servicio SOAP.
     """
     disponible, mensaje_cliente, detalle = estado_cliente_siat()
     if not disponible:
         registrar_y_mostrar('warning', mensaje_cliente)
         if detalle:
-            logger.debug("Detalle técnico cliente SIAT: %s", detalle)
+            logger.debug("Detalle tecnico cliente SIAT: %s", detalle)
         return False
 
-    registrar_y_mostrar('info', f"Iniciando sincronización de {service_name}")
+    registrar_y_mostrar('info', f"Iniciando sincronizacion de {service_name}")
     
-    # Crear solicitud de sincronización
+    # Crear solicitud de sincronizacion
     solicitud = crear_solicitud_sincronizacion()
     
     try:
-        # Llamar al servicio de sincronización
+        # Llamar al servicio de sincronizacion
         response = getattr(client.service, service_name)(solicitud)
         
         if not response.transaccion:
-            registrar_y_mostrar('error', f"Error en la transacción SOAP para {service_name}: {response.mensajesList}")
+            registrar_y_mostrar('error', f"Error en la transaccion SOAP para {service_name}: {response.mensajesList}")
             return False
         
-        # Obtener nombre de la lista según el mapeo correcto
+        # Obtener nombre de la lista segun el mapeo correcto
         lista_nombre = service_list_map.get(service_name)
         
-        # Si no está en el mapeo, intentar con el formato genérico
+        # Si no esta en el mapeo, intentar con el formato generico
         if not lista_nombre:
             lista_nombre = f"lista{service_name[11:]}"
         
@@ -480,7 +479,7 @@ def sincronizar_parametrica(service_name, model_class):
                                 'codigos' in attr.lower() or attr.endswith('s')]
             
             if listas_candidatas:
-                # Usar el primer candidato viable que no esté vacío
+                # Usar el primer candidato viable que no este vacio
                 for candidato in listas_candidatas:
                     if getattr(response, candidato):
                         lista_nombre = candidato
@@ -491,7 +490,7 @@ def sincronizar_parametrica(service_name, model_class):
                         break
                 else:
                     lista_nombre = listas_candidatas[0]
-                    logger.warning(f"Usando lista candidata '{lista_nombre}' para {service_name}, podría estar vacía")
+                    logger.warning(f"Usando lista candidata '{lista_nombre}' para {service_name}, podria estar vacia")
             else:
                 registrar_y_mostrar('warning', f"No se pudo identificar una lista en la respuesta para {service_name}")
                 logger.warning(f"Atributos disponibles en la respuesta: {atributos_posibles}")
@@ -500,19 +499,19 @@ def sincronizar_parametrica(service_name, model_class):
         # Obtener la lista de items
         lista_items = getattr(response, lista_nombre, [])
         
-        # Si la lista está vacía, terminar
+        # Si la lista esta vacia, terminar
         if not lista_items:
             registrar_y_mostrar('info', f"No hay datos para sincronizar en {service_name} (lista: {lista_nombre})")
             return True
         
-        # Analizar el primer ítem para identificar nombres de campos reales
+        # Analizar el primer item para identificar nombres de campos reales
         primer_item = lista_items[0] if lista_items else None
         if primer_item:
             campos_encontrados = [key for key in dir(primer_item) if not key.startswith('_') and not callable(getattr(primer_item, key))]
             logger.info(f"Ejemplo de item para {service_name}: {primer_item}")
             logger.info(f"Campos encontrados en respuesta: {campos_encontrados}")
             
-            # Depurar datos del primer item para diagnóstico
+            # Depurar datos del primer item para diagnostico
             for campo in campos_encontrados:
                 valor = getattr(primer_item, campo)
                 logger.info(f"Campo: {campo}, Valor: {valor}, Tipo: {type(valor)}")
@@ -526,7 +525,7 @@ def sincronizar_parametrica(service_name, model_class):
                 campos_posibles = [col.name for col in model_class.__table__.columns if col.primary_key or col.unique]
                 if campos_posibles:
                     campos_clave = campos_posibles[0]
-                    logger.info(f"Campo clave determinado automáticamente para {service_name}: {campos_clave}")
+                    logger.info(f"Campo clave determinado automaticamente para {service_name}: {campos_clave}")
             
             # Definir campos requeridos basados en restricciones NOT NULL de la base de datos
             campos_requeridos = []
@@ -539,7 +538,7 @@ def sincronizar_parametrica(service_name, model_class):
             logger.info(f"Campos del modelo para {service_name}: {campos_modelo}")
             logger.info(f"Campos requeridos para {service_name}: {campos_requeridos}")
             
-            # Contador para estadísticas
+            # Contador para estadisticas
             nuevos = 0
             actualizados = 0
             omitidos = 0
@@ -554,7 +553,7 @@ def sincronizar_parametrica(service_name, model_class):
                 'codigoMensaje': 'codigoClasificador',
                 'codigoClasificador': 'codigoClasificador',
                 'descripcion': 'descripcion',
-                # Mapeos específicos para TipoPuntoVenta
+                # Mapeos especificos para TipoPuntoVenta
                 'codigoPuntoVenta': 'codigoClasificador',
                 'descripcionPuntoVenta': 'descripcion',
                 # Mapeos generales para todos los servicios
@@ -567,7 +566,7 @@ def sincronizar_parametrica(service_name, model_class):
             # Diccionario para valores por defecto para campos requeridos
             valores_por_defecto = {
                 'codigoClasificador': '0',
-                'descripcion': 'Sin descripción',
+                'descripcion': 'Sin descripcion',
             }
             
             for item in lista_items:
@@ -578,7 +577,7 @@ def sincronizar_parametrica(service_name, model_class):
                         valor = getattr(item, campo)
                         item_dict[campo] = valor
                 
-                # Debug para ver campos en el ítem actual
+                # Debug para ver campos en el item actual
                 logger.debug(f"Campos originales en item SOAP: {list(item_dict.keys())}")
                 
                 # Aplicar mapeos de nombres si es necesario
@@ -598,7 +597,7 @@ def sincronizar_parametrica(service_name, model_class):
                     
                     item_mapeado[sql_name] = value
                 
-                # Para los campos requeridos que no están presentes, usar valores por defecto
+                # Para los campos requeridos que no estan presentes, usar valores por defecto
                 for campo in campos_requeridos:
                     if campo not in item_mapeado or item_mapeado[campo] is None:
                         if campo in valores_por_defecto:
@@ -608,8 +607,8 @@ def sincronizar_parametrica(service_name, model_class):
                 # Reemplazar item_dict con los campos ya mapeados
                 item_dict = item_mapeado
                 
-                # Debug: Mostrar información del item
-                logger.debug(f"Item para {service_name} después del mapeo: {item_dict}")
+                # Debug: Mostrar informacion del item
+                logger.debug(f"Item para {service_name} despues del mapeo: {item_dict}")
                 
                 # Verificar campos requeridos
                 datos_validos = True
@@ -654,7 +653,7 @@ def sincronizar_parametrica(service_name, model_class):
                         if valor_campo is not None:
                             clave_actual = str(valor_campo)
 
-                # Construir el filtro según el tipo de campo clave
+                # Construir el filtro segun el tipo de campo clave
                 db_item = None
                 if isinstance(campos_clave, list):
                     # Manejo de claves compuestas
