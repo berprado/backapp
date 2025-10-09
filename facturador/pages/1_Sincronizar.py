@@ -72,6 +72,178 @@ def registrar_y_mostrar(tipo: str, mensaje: str) -> None:
         else:
             logger.info(mensaje)
 
+
+# ============================================================================
+# GESTION DE ESTADO DE SINCRONIZACION EN SESSION_STATE
+# ============================================================================
+# Las siguientes funciones gestionan el estado de sincronizacion de forma
+# centralizada usando st.session_state, eliminando la necesidad de variables
+# globales y proporcionando persistencia entre recargas de Streamlit.
+
+
+def inicializar_estado_sincronizacion():
+    """
+    Inicializa el estado de sincronizacion en st.session_state.
+    
+    Esta funcion crea una estructura de datos centralizada para mantener
+    toda la informacion de sincronizacion de forma persistente entre
+    interacciones de Streamlit.
+    
+    Estructura creada:
+        sync_state = {
+            'remote_time': datetime | None,        # Hora del servidor SIAT
+            'local_time': datetime | None,         # Hora local del sistema
+            'time_difference': timedelta | None,   # Diferencia horaria calculada
+            'ultima_sincronizacion': datetime | None,  # Timestamp ultima sync
+            'estado_comunicacion': str,            # 'conectado', 'desconectado', 'no_verificado'
+            'ultima_verificacion': datetime | None,    # Timestamp ultima verificacion
+            'sincronizaciones_completadas': list[str]  # Historial de servicios sincronizados
+        }
+    
+    Si existe informacion previa en la base de datos, se carga automaticamente
+    al inicializar por primera vez.
+    """
+    if 'sync_state' not in st.session_state:
+        st.session_state.sync_state = {
+            'remote_time': None,
+            'local_time': None,
+            'time_difference': None,
+            'ultima_sincronizacion': None,
+            'estado_comunicacion': 'no_verificado',
+            'ultima_verificacion': None,
+            'sincronizaciones_completadas': []
+        }
+        logger.info("Estado de sincronizacion inicializado en session_state")
+    
+    # Si existe informacion en la BD pero no en session_state, cargarla
+    if st.session_state.sync_state['ultima_sincronizacion'] is None:
+        try:
+            db = next(get_db())
+            try:
+                sync_record = db.query(SincronizacionEstado).first()
+                if sync_record and sync_record.ultima_sincronizacion:
+                    st.session_state.sync_state['ultima_sincronizacion'] = sync_record.ultima_sincronizacion
+                    logger.info(f"Ultima sincronizacion cargada desde BD: {sync_record.ultima_sincronizacion}")
+            finally:
+                db.close()
+        except Exception as e:
+            logger.warning(f"No se pudo cargar estado desde BD: {e}")
+
+
+def obtener_estado_sync(clave: str, default=None):
+    """
+    Obtiene un valor del estado de sincronizacion.
+    
+    Esta funcion proporciona acceso controlado y seguro a los valores
+    almacenados en el estado de sincronizacion, garantizando que el
+    estado este inicializado antes de acceder.
+    
+    Args:
+        clave (str): Nombre del campo a obtener. Debe ser una de las claves
+            definidas en la estructura sync_state (remote_time, local_time,
+            time_difference, ultima_sincronizacion, estado_comunicacion,
+            ultima_verificacion, sincronizaciones_completadas).
+        default: Valor por defecto si la clave no existe o es None.
+    
+    Returns:
+        El valor almacenado o el valor por defecto si no existe.
+    
+    Example:
+        >>> remote_time = obtener_estado_sync('remote_time')
+        >>> if remote_time is not None:
+        ...     print(f"Hora del servidor: {remote_time}")
+    """
+    inicializar_estado_sincronizacion()  # Asegurar que existe
+    return st.session_state.sync_state.get(clave, default)
+
+
+def actualizar_estado_sync(clave: str, valor, guardar_bd: bool = True):
+    """
+    Actualiza un valor en el estado de sincronizacion.
+    
+    Esta funcion proporciona la unica forma recomendada de modificar
+    el estado de sincronizacion, asegurando consistencia entre
+    st.session_state y la base de datos cuando sea necesario.
+    
+    Args:
+        clave (str): Nombre del campo a actualizar.
+        valor: Nuevo valor a almacenar.
+        guardar_bd (bool): Si True, tambien actualiza la base de datos
+            (solo aplica para 'ultima_sincronizacion').
+    
+    Example:
+        >>> # Actualizar hora remota sin guardar en BD
+        >>> actualizar_estado_sync('remote_time', datetime.now(), guardar_bd=False)
+        >>> 
+        >>> # Registrar sincronizacion exitosa (se guarda en BD)
+        >>> actualizar_estado_sync('ultima_sincronizacion', datetime.now(pytz.utc))
+    """
+    inicializar_estado_sincronizacion()
+    st.session_state.sync_state[clave] = valor
+    logger.debug(f"Estado sync actualizado: {clave} = {valor}")
+    
+    # Sincronizar con BD si es necesario
+    if guardar_bd and clave == 'ultima_sincronizacion':
+        try:
+            db = next(get_db())
+            try:
+                sync_record = db.query(SincronizacionEstado).first()
+                if not sync_record:
+                    sync_record = SincronizacionEstado()
+                    db.add(sync_record)
+                
+                sync_record.ultima_sincronizacion = valor
+                db.commit()
+                logger.debug("Estado sync guardado en BD")
+            except Exception as e:
+                db.rollback()
+                logger.error(f"Error al guardar estado sync en BD: {e}")
+            finally:
+                db.close()
+        except Exception as e:
+            logger.error(f"Error al conectar con BD para guardar estado: {e}")
+
+
+def obtener_diferencia_horaria_formateada() -> str:
+    """
+    Retorna la diferencia horaria en formato legible.
+    
+    Convierte el timedelta almacenado en sync_state['time_difference']
+    en una cadena de texto facil de leer para mostrar al usuario.
+    
+    Returns:
+        str: Diferencia horaria formateada (ej: "+00:02:15.340" para
+            adelantado o "-01:30:00.000" para atrasado), o "No disponible"
+            si no se ha sincronizado.
+    
+    Example:
+        >>> diferencia = obtener_diferencia_horaria_formateada()
+        >>> print(f"Diferencia con SIAT: {diferencia}")
+        Diferencia con SIAT: +00:00:02.150
+    """
+    time_diff = obtener_estado_sync('time_difference')
+    if time_diff is None:
+        return "No disponible"
+    
+    diferencia_segundos = time_diff.total_seconds()
+    minutos, segundos = divmod(abs(diferencia_segundos), 60)
+    horas, minutos = divmod(minutos, 60)
+    dias, horas = divmod(horas, 24)
+    
+    signo = "+" if diferencia_segundos >= 0 else "-"
+    
+    if dias > 0:
+        return f"{signo}{int(dias)} dias, {int(horas):02}:{int(minutos):02}:{segundos:.3f}"
+    elif horas > 0:
+        return f"{signo}{int(horas):02}:{int(minutos):02}:{segundos:.3f}"
+    else:
+        return f"{signo}{int(minutos):02}:{segundos:.3f}"
+
+
+# ============================================================================
+# FIN DE GESTION DE ESTADO
+# ============================================================================
+
 # Importar desde database.py en el directorio facturador
 from database import get_db, Base
 
@@ -137,10 +309,14 @@ else:
         logger.error("Error general al inicializar el cliente SIAT: %s", exc, exc_info=True)
         client = None
 
-# Variables globales para sincronizacion de fecha y hora
-remote_time = None
-local_time = None
-time_difference = None
+# NOTA: Las variables globales remote_time, local_time y time_difference
+# han sido ELIMINADAS y reemplazadas por el sistema de gestion de estado
+# en st.session_state. Ver funciones:
+# - inicializar_estado_sincronizacion()
+# - obtener_estado_sync()
+# - actualizar_estado_sync()
+# Esto garantiza persistencia entre recargas de Streamlit y elimina
+# problemas de estado mutable global.
 
 
 def estado_cliente_siat():
