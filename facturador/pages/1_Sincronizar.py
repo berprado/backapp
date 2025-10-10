@@ -444,8 +444,16 @@ def calcular_diferencia_horaria(remote_time, local_time):
     return diferencia_segundos, diferencia_timedelta
 
 def sincronizar_fecha_hora():
-    global remote_time, local_time, time_difference
+    """
+    Sincroniza la fecha y hora con el servidor SIAT.
     
+    Esta función consulta la hora del servidor remoto, la compara con la hora
+    local del sistema y calcula la diferencia horaria. Todos los valores se
+    almacenan en st.session_state mediante las funciones de acceso.
+    
+    Returns:
+        bool: True si la sincronización fue exitosa, False en caso contrario.
+    """
     disponible, mensaje_cliente, _ = estado_cliente_siat()
     if not disponible:
         registrar_y_mostrar('warning', mensaje_cliente)
@@ -453,9 +461,18 @@ def sincronizar_fecha_hora():
 
     registrar_y_mostrar('info', "Iniciando sincronizacion de Fecha y Hora")
     SolicitudSincronizacion = client.get_type('ns0:solicitudSincronizacion')
+    
+    # Obtener y validar codigoPuntoVenta
+    codigo_punto_venta = os.getenv("CODIGO_PUNTO_VENTA", "0")
+    try:
+        codigo_punto_venta = int(codigo_punto_venta)
+    except (ValueError, TypeError):
+        logger.warning(f"CODIGO_PUNTO_VENTA invalido ({codigo_punto_venta}), usando 0 por defecto")
+        codigo_punto_venta = 0
+    
     solicitud = SolicitudSincronizacion(
         codigoAmbiente=int(os.getenv("CODIGO_AMBIENTE")),
-        codigoPuntoVenta=int(os.getenv("CODIGO_PUNTO_VENTA")),
+        codigoPuntoVenta=codigo_punto_venta,
         codigoSistema=os.getenv("CODIGO_SISTEMA"),
         codigoSucursal=int(os.getenv("CODIGO_SUCURSAL")),
         cuis=os.getenv("CUIS"),
@@ -463,6 +480,7 @@ def sincronizar_fecha_hora():
     )
     
     logger.debug(f"Solicitud creada: {solicitud}")
+    logger.debug(f"Parametros: codigoAmbiente={os.getenv('CODIGO_AMBIENTE')}, codigoPuntoVenta={codigo_punto_venta}, codigoSistema={os.getenv('CODIGO_SISTEMA')}, codigoSucursal={os.getenv('CODIGO_SUCURSAL')}, cuis={os.getenv('CUIS')}, nit={os.getenv('NIT')}")
     
     try:
         logger.debug("Enviando solicitud al servicio SOAP")
@@ -495,8 +513,13 @@ def sincronizar_fecha_hora():
         logger.debug(f"Hora remota (Bolivia): {remote_time}")
         logger.debug(f"Hora local: {local_time}")
 
-        # Calcular la diferencia horaria correctamente - modificado
+        # Calcular la diferencia horaria correctamente
         diferencia_segundos, time_difference = calcular_diferencia_horaria(remote_time, local_time)
+        
+        # Actualizar el estado de sincronización con los valores calculados
+        actualizar_estado_sync('remote_time', remote_time, guardar_bd=False)
+        actualizar_estado_sync('local_time', local_time, guardar_bd=False)
+        actualizar_estado_sync('time_difference', time_difference, guardar_bd=False)
 
         # Verificar si la diferencia de tiempo esta en un rango razonable (5 minutos)
         tiempo_razonable = 300  # 5 minutos en segundos
@@ -514,13 +537,14 @@ def sincronizar_fecha_hora():
             registrar_y_mostrar('warning', f"Diferencia de tiempo anormal detectada: {time_difference}. Desea corregirla?")
             
             if st.button("Corregir diferencia horaria"):
-                time_difference = timedelta(seconds=0)
+                # Corregir en el estado centralizado
+                actualizar_estado_sync('time_difference', timedelta(seconds=0), guardar_bd=False)
                 diferencia_segundos = 0
                 registrar_y_mostrar('success', " Diferencia horaria corregida manualmente.")
 
         logger.debug(f"Diferencia de tiempo calculada: {time_difference}")
 
-        # Guardar resultado en la base de datos
+        # Guardar resultado en la base de datos y actualizar estado
         try:
             db = next(get_db())
             try:
@@ -529,26 +553,25 @@ def sincronizar_fecha_hora():
                     sync_record = SincronizacionEstado()
                     db.add(sync_record)
                 
-                # Actualizar fecha de sincronizacion
-                sync_record.ultima_sincronizacion = datetime.now(pytz.utc)
+                # Actualizar fecha de sincronizacion en BD y en estado
+                timestamp_sincronizacion = datetime.now(pytz.utc)
+                sync_record.ultima_sincronizacion = timestamp_sincronizacion
                 db.commit()
+                
+                # Actualizar también en el estado de sesión
+                actualizar_estado_sync('ultima_sincronizacion', timestamp_sincronizacion, guardar_bd=False)
+                logger.info(f"Sincronización guardada exitosamente: {timestamp_sincronizacion}")
             except Exception as e:
                 db.rollback()
                 logger.error(f"Error al guardar sincronizacion: {e}")
-                # Guardamos la informacion en la sesion de Streamlit como respaldo
-                st.session_state['ultima_sincronizacion'] = datetime.now(pytz.utc)
-                st.session_state['remote_time'] = remote_time
-                st.session_state['local_time'] = local_time
-                st.session_state['time_difference'] = time_difference
+                # Guardamos la información en la sesión como respaldo
+                actualizar_estado_sync('ultima_sincronizacion', datetime.now(pytz.utc), guardar_bd=False)
             finally:
                 db.close()
         except Exception as e:
             logger.error(f"Error al conectar con la base de datos: {e}")
-            # Guardamos la informacion en la sesion de Streamlit como respaldo
-            st.session_state['ultima_sincronizacion'] = datetime.now(pytz.utc)
-            st.session_state['remote_time'] = remote_time
-            st.session_state['local_time'] = local_time
-            st.session_state['time_difference'] = time_difference
+            # Guardamos la información en la sesión como respaldo
+            actualizar_estado_sync('ultima_sincronizacion', datetime.now(pytz.utc), guardar_bd=False)
             
         registrar_y_mostrar('success', " Sincronizacion de Fecha y Hora completada.")
         mostrar_informacion_sincronizacion()
@@ -561,6 +584,18 @@ def sincronizar_fecha_hora():
         return False
 
 def mostrar_informacion_sincronizacion():
+    """
+    Muestra la información de sincronización en la interfaz de Streamlit.
+    
+    Obtiene los valores del estado centralizado y los presenta en un formato
+    legible para el usuario, incluyendo la hora remota, hora local y la
+    diferencia horaria calculada.
+    """
+    # Obtener valores del estado centralizado
+    remote_time = obtener_estado_sync('remote_time')
+    local_time = obtener_estado_sync('local_time')
+    time_difference = obtener_estado_sync('time_difference')
+    
     if remote_time and local_time and time_difference is not None:
         registrar_y_mostrar('info', "Informacion de sincronizacion:")
         col1, col2 = st.columns(2)
@@ -571,29 +606,20 @@ def mostrar_informacion_sincronizacion():
             st.write("Hora local:")
             st.write(local_time.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3])
         
-        # Formateamos la diferencia de tiempo de manera mas clara
-        diferencia_segundos = time_difference.total_seconds()
+        # Usar la función centralizada para formatear la diferencia
         st.write("Diferencia de tiempo:")
+        diferencia_formateada = obtener_diferencia_horaria_formateada()
         
         # Si es cerca de 24 horas, mostrar una advertencia
+        diferencia_segundos = time_difference.total_seconds()
         if abs(diferencia_segundos) > 86000 and abs(diferencia_segundos) < 86400:
             registrar_y_mostrar('warning', " La diferencia parece ser de aproximadamente 24 horas, lo que sugiere un problema con la zona horaria.")
         
-        # Mostrar la diferencia en un formato mas amigable
-        minutos, segundos = divmod(abs(diferencia_segundos), 60)
-        horas, minutos = divmod(minutos, 60)
-        dias, horas = divmod(horas, 24)
-        
-        signo = "+" if diferencia_segundos >= 0 else "-"
-        
-        if dias > 0:
-            st.write(f"{signo}{int(dias)} dias, {int(horas):02}:{int(minutos):02}:{segundos:.3f}")
-        elif horas > 0:
-            st.write(f"{signo}{int(horas):02}:{int(minutos):02}:{segundos:.3f}")
-        else:
-            st.write(f"{signo}{int(minutos):02}:{segundos:.3f}")
+        # Mostrar la diferencia formateada
+        st.write(diferencia_formateada)
             
         # Tambien mostrar en segundos para mayor claridad
+        signo = "+" if diferencia_segundos >= 0 else "-"
         st.write(f"Total en segundos: {signo}{abs(diferencia_segundos):.3f} segundos")
     else:
         registrar_y_mostrar('warning', "No hay informacion de sincronizacion disponible.")
@@ -605,9 +631,18 @@ def crear_solicitud_sincronizacion():
         raise RuntimeError(mensaje_cliente)
 
     SolicitudSincronizacion = client.get_type('ns0:solicitudSincronizacion')
+    
+    # Obtener y validar codigoPuntoVenta
+    codigo_punto_venta = os.getenv("CODIGO_PUNTO_VENTA", "0")
+    try:
+        codigo_punto_venta = int(codigo_punto_venta)
+    except (ValueError, TypeError):
+        logger.warning(f"CODIGO_PUNTO_VENTA invalido ({codigo_punto_venta}), usando 0 por defecto")
+        codigo_punto_venta = 0
+    
     solicitud = SolicitudSincronizacion(
         codigoAmbiente=int(os.getenv("CODIGO_AMBIENTE")),
-        codigoPuntoVenta=int(os.getenv("CODIGO_PUNTO_VENTA")),
+        codigoPuntoVenta=codigo_punto_venta,
         codigoSistema=os.getenv("CODIGO_SISTEMA"),
         codigoSucursal=int(os.getenv("CODIGO_SUCURSAL")),
         cuis=os.getenv("CUIS"),
@@ -904,10 +939,41 @@ def sincronizar_parametrica(service_name, model_class):
         return False
 
 def main():
+    """
+    Función principal del módulo de sincronización.
+    
+    Presenta la interfaz de usuario para sincronizar datos con el servidor SIAT,
+    incluyendo indicadores de estado de conexión y sincronización.
+    """
     st.title("Sincronizar Datos")
 
-    # Asegurarse de que las variables globales esten inicializadas
-    global remote_time, local_time, time_difference
+    # Inicializar el estado de sincronización
+    inicializar_estado_sincronizacion()
+    
+    # Mostrar información de última sincronización si existe
+    ultima_sync = obtener_estado_sync('ultima_sincronizacion')
+    if ultima_sync:
+        # Asegurar que ambos datetimes tengan timezone para poder restarlos
+        if ultima_sync.tzinfo is None:
+            ultima_sync = pytz.utc.localize(ultima_sync)
+        tiempo_transcurrido = datetime.now(pytz.utc) - ultima_sync
+        horas_transcurridas = tiempo_transcurrido.total_seconds() / 3600
+        
+        if horas_transcurridas < 1:
+            st.success(f"✅ Última sincronización: hace {int(tiempo_transcurrido.total_seconds() / 60)} minutos")
+        elif horas_transcurridas < 24:
+            st.info(f"ℹ️ Última sincronización: hace {int(horas_transcurridas)} horas")
+        else:
+            st.warning(f"⚠️ Última sincronización: hace {int(horas_transcurridas / 24)} días")
+            st.caption("Se recomienda sincronizar al menos una vez al día")
+
+    # Botón para consultar información de sincronización
+    # Este botón está disponible siempre (online/offline) porque consulta datos locales
+    st.markdown("---")
+    if st.button('📊 Mostrar Información de Última Sincronización', 
+                 help="Muestra los datos de la última sincronización de fecha/hora realizada con el servidor SIAT"):
+        mostrar_informacion_sincronizacion()
+    st.markdown("---")
 
     disponible, mensaje_cliente, detalle = estado_cliente_siat()
     if not disponible:
@@ -960,8 +1026,6 @@ def main():
                     if resultado:
                         registrar_y_mostrar('success', f"[OK] Sincronizacion de {selected_service} completada.")
 
-        if st.button('Mostrar informacion de sincronizacion'):
-            mostrar_informacion_sincronizacion()
     else:
         registrar_y_mostrar('error', f"Error de comunicacion con el servidor remoto: {mensaje}")
         registrar_y_mostrar('warning', "No se pueden realizar sincronizaciones debido a problemas de comunicacion.")
