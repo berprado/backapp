@@ -73,6 +73,72 @@ def registrar_y_mostrar(tipo: str, mensaje: str) -> None:
             logger.info(mensaje)
 
 
+def notificar(tipo: str, mensaje: str, usar_toast: bool = True):
+    """
+    Sistema de notificaciones mejorado con soporte para toast.
+    
+    Esta función extiende la funcionalidad de registrar_y_mostrar()
+    agregando soporte para notificaciones toast no invasivas,
+    mientras mantiene el registro centralizado en logs.
+    
+    Args:
+        tipo (str): Tipo de mensaje ('success', 'warning', 'error', 'info')
+        mensaje (str): Texto del mensaje a mostrar y registrar
+        usar_toast (bool): Si True, usa toast; si False, usa alertas tradicionales
+                          Toast se recomienda para mensajes informativos.
+                          Alertas tradicionales para mensajes críticos.
+    
+    Example:
+        >>> # Notificación no invasiva (recomendado)
+        >>> notificar('success', 'Sincronización completada', usar_toast=True)
+        >>> 
+        >>> # Alerta tradicional para errores críticos
+        >>> notificar('error', 'Error de conexión con SIAT', usar_toast=False)
+    
+    Note:
+        El logging se realiza siempre, independientemente del tipo de visualización.
+    """
+    # Mapeo de iconos para toast
+    iconos = {
+        'success': '✅',
+        'warning': '⚠️',
+        'error': '❌',
+        'info': 'ℹ️'
+    }
+    
+    icono = iconos.get(tipo, 'ℹ️')
+    
+    # Registrar en log (siempre, preservando sistema centralizado)
+    if tipo == 'success':
+        logger.info(mensaje)
+    elif tipo == 'warning':
+        logger.warning(mensaje)
+    elif tipo == 'error':
+        logger.error(mensaje)
+    else:
+        logger.info(mensaje)
+    
+    # Mostrar en UI
+    try:
+        if usar_toast:
+            # Usar toast para mensajes menos críticos (nuevo en 1.49.0)
+            st.toast(f"{icono} {mensaje}", icon=icono)
+        else:
+            # Usar alertas tradicionales para mensajes importantes
+            if tipo == 'success':
+                st.success(mensaje)
+            elif tipo == 'warning':
+                st.warning(mensaje)
+            elif tipo == 'error':
+                st.error(mensaje)
+            else:
+                st.info(mensaje)
+    except Exception as e:
+        # Fallback si Streamlit no está disponible
+        logger.info(f"[UI no disponible] {tipo.upper()}: {mensaje}")
+        logger.debug(f"Error al mostrar mensaje en UI: {e}")
+
+
 # ============================================================================
 # GESTION DE ESTADO DE SINCRONIZACION EN SESSION_STATE
 # ============================================================================
@@ -238,6 +304,135 @@ def obtener_diferencia_horaria_formateada() -> str:
         return f"{signo}{int(horas):02}:{int(minutos):02}:{segundos:.3f}"
     else:
         return f"{signo}{int(minutos):02}:{segundos:.3f}"
+
+
+def mostrar_panel_metricas():
+    """
+    Muestra un panel de métricas siempre visible en la parte superior.
+    
+    Este panel proporciona una vista rápida del estado del sistema:
+    - Estado de conexión con SIAT
+    - Tiempo desde última sincronización
+    - Servicios sincronizados correctamente
+    - Diferencia horaria actual
+    
+    Las métricas se obtienen del estado centralizado en st.session_state
+    y se actualizan automáticamente con cada sincronización.
+    """
+    col1, col2, col3, col4 = st.columns(4)
+    
+    ultima_sync = obtener_estado_sync('ultima_sincronizacion')
+    estado_conn = obtener_estado_sync('estado_comunicacion', 'no_verificado')
+    servicios_ok = len(obtener_estado_sync('sincronizaciones_completadas', []))
+    time_diff = obtener_estado_sync('time_difference')
+    
+    # Métrica 1: Estado de Conexión
+    with col1:
+        if estado_conn == 'conectado':
+            st.metric("🌐 Conexión", "Online", delta="✓", delta_color="normal")
+        elif estado_conn == 'desconectado':
+            st.metric("🌐 Conexión", "Offline", delta="✗", delta_color="inverse")
+        else:
+            st.metric("🌐 Conexión", "Sin verificar", delta="?", delta_color="off")
+    
+    # Métrica 2: Última Sincronización
+    with col2:
+        if ultima_sync:
+            # Asegurar timezone
+            if ultima_sync.tzinfo is None:
+                ultima_sync = pytz.utc.localize(ultima_sync)
+            
+            tiempo_transcurrido = datetime.now(pytz.utc) - ultima_sync
+            minutos = int(tiempo_transcurrido.total_seconds() / 60)
+            
+            if minutos < 60:
+                st.metric("⏱️ Última Sync", f"{minutos} min", 
+                         delta="Reciente" if minutos < 10 else None)
+            else:
+                horas = minutos // 60
+                st.metric("⏱️ Última Sync", f"{horas} h", 
+                         delta="Antigua" if horas > 24 else None, 
+                         delta_color="inverse" if horas > 24 else "off")
+        else:
+            st.metric("⏱️ Última Sync", "Nunca", delta="Sincronizar", delta_color="inverse")
+    
+    # Métrica 3: Servicios Sincronizados
+    with col3:
+        total_servicios = len(service_model_map) + 1  # +1 por fecha/hora
+        porcentaje = int((servicios_ok / total_servicios) * 100) if servicios_ok > 0 else 0
+        st.metric("📊 Servicios", f"{servicios_ok}/{total_servicios}", 
+                 delta=f"{porcentaje}%" if servicios_ok > 0 else "0%")
+    
+    # Métrica 4: Diferencia Horaria
+    with col4:
+        if time_diff is not None:
+            diff_segundos = abs(time_diff.total_seconds())
+            if diff_segundos <= 5:
+                st.metric("⏰ Diferencia", f"±{diff_segundos:.1f}s", 
+                         delta="Óptima", delta_color="normal")
+            elif diff_segundos <= 300:
+                st.metric("⏰ Diferencia", f"±{diff_segundos:.0f}s", 
+                         delta="Aceptable", delta_color="off")
+            else:
+                st.metric("⏰ Diferencia", f"±{diff_segundos:.0f}s", 
+                         delta="Alta", delta_color="inverse")
+        else:
+            st.metric("⏰ Diferencia", "N/D", delta="Sincronizar")
+
+
+def mostrar_indicador_estado_sidebar():
+    """
+    Muestra un indicador compacto de estado en el sidebar.
+    
+    Este indicador proporciona información rápida sobre:
+    - Estado de conexión actual con SIAT
+    - Tiempo desde última sincronización
+    - Botón de verificación rápida
+    
+    Diseñado para ser siempre visible y ocupar mínimo espacio.
+    """
+    with st.sidebar:
+        st.markdown("### 📊 Estado del Sistema")
+        
+        estado_conn = obtener_estado_sync('estado_comunicacion', 'no_verificado')
+        
+        # Indicador visual con color
+        if estado_conn == 'conectado':
+            st.success("🟢 **Sistema Online**")
+        elif estado_conn == 'desconectado':
+            st.error("🔴 **Sistema Offline**")
+        else:
+            st.warning("🟡 **Estado Desconocido**")
+        
+        # Última sincronización compacta
+        ultima_sync = obtener_estado_sync('ultima_sincronizacion')
+        if ultima_sync:
+            if ultima_sync.tzinfo is None:
+                ultima_sync = pytz.utc.localize(ultima_sync)
+            tiempo_transcurrido = datetime.now(pytz.utc) - ultima_sync
+            minutos = int(tiempo_transcurrido.total_seconds() / 60)
+            
+            if minutos < 60:
+                st.caption(f"⏱️ Última sync: hace {minutos} min")
+            else:
+                horas = minutos // 60
+                st.caption(f"⏱️ Última sync: hace {horas} h")
+        else:
+            st.caption("⏱️ Sin sincronización previa")
+        
+        # Botón de actualización rápida
+        if st.button("🔄 Verificar Conexión", use_container_width=True):
+            logger.info("Usuario solicitó verificación rápida desde sidebar")
+            exito, mensaje = verificar_comunicacion()
+            if exito:
+                actualizar_estado_sync('estado_comunicacion', 'conectado', guardar_bd=False)
+                notificar('success', "✓ Conexión verificada", usar_toast=True)
+                logger.info("Verificación rápida exitosa")
+            else:
+                actualizar_estado_sync('estado_comunicacion', 'desconectado', guardar_bd=False)
+                notificar('error', f"✗ {mensaje}", usar_toast=False)
+                logger.error(f"Verificación rápida falló: {mensaje}")
+            st.rerun()
 
 
 # ============================================================================
@@ -585,11 +780,10 @@ def sincronizar_fecha_hora():
 
 def mostrar_informacion_sincronizacion():
     """
-    Muestra la información de sincronización en la interfaz de Streamlit.
+    FUNCIÓN LEGACY: Mantenida por compatibilidad.
     
-    Obtiene los valores del estado centralizado y los presenta en un formato
-    legible para el usuario, incluyendo la hora remota, hora local y la
-    diferencia horaria calculada.
+    Use mostrar_detalles_sincronizacion_expandible() para la nueva interfaz.
+    Esta función mantiene el comportamiento original para evitar breaking changes.
     """
     # Obtener valores del estado centralizado
     remote_time = obtener_estado_sync('remote_time')
@@ -600,20 +794,20 @@ def mostrar_informacion_sincronizacion():
         registrar_y_mostrar('info', "Informacion de sincronizacion:")
         col1, col2 = st.columns(2)
         with col1:
-            st.write("Hora del servidor remoto (Bolivia):")
+            st.write("🌎 Hora del servidor remoto (Bolivia):")
             st.write(remote_time.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3])
         with col2:
-            st.write("Hora local:")
+            st.write("💻 Hora local:")
             st.write(local_time.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3])
         
         # Usar la función centralizada para formatear la diferencia
-        st.write("Diferencia de tiempo:")
+        st.write("⏱️ Diferencia de tiempo:")
         diferencia_formateada = obtener_diferencia_horaria_formateada()
         
         # Si es cerca de 24 horas, mostrar una advertencia
         diferencia_segundos = time_difference.total_seconds()
         if abs(diferencia_segundos) > 86000 and abs(diferencia_segundos) < 86400:
-            registrar_y_mostrar('warning', " La diferencia parece ser de aproximadamente 24 horas, lo que sugiere un problema con la zona horaria.")
+            registrar_y_mostrar('warning', "⚠️ La diferencia parece ser de aproximadamente 24 horas, lo que sugiere un problema con la zona horaria.")
         
         # Mostrar la diferencia formateada
         st.write(diferencia_formateada)
@@ -622,7 +816,79 @@ def mostrar_informacion_sincronizacion():
         signo = "+" if diferencia_segundos >= 0 else "-"
         st.write(f"Total en segundos: {signo}{abs(diferencia_segundos):.3f} segundos")
     else:
-        registrar_y_mostrar('warning', "No hay informacion de sincronizacion disponible.")
+        registrar_y_mostrar('warning', "⚠️ No hay informacion de sincronizacion disponible.")
+
+
+def mostrar_detalles_sincronizacion_expandible():
+    """
+    Muestra detalles de sincronización en un contenedor expandible.
+    
+    Usa st.status() para crear un panel colapsable que contiene
+    información detallada de la última sincronización de fecha/hora,
+    incluyendo comparación de tiempos y análisis de diferencia horaria.
+    
+    Este diseño ahorra espacio vertical y permite al usuario
+    consultar detalles solo cuando los necesita.
+    """
+    remote_time = obtener_estado_sync('remote_time')
+    local_time = obtener_estado_sync('local_time')
+    time_difference = obtener_estado_sync('time_difference')
+    
+    if not all([remote_time, local_time, time_difference is not None]):
+        st.info("👉 No hay datos de sincronización. Ejecute 'Sincronizar Fecha y Hora' primero.")
+        logger.debug("Intento de mostrar detalles sin datos de sincronización disponibles")
+        return
+    
+    # Contenedor expandible con estado
+    with st.status("🔍 Detalles de Sincronización", expanded=False) as status:
+        st.write("**📡 Información de Sincronización de Fecha/Hora**")
+        
+        # Tabla comparativa en columnas
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric(
+                "🌎 Hora Servidor SIAT (Bolivia)",
+                remote_time.strftime("%H:%M:%S"),
+                delta=remote_time.strftime("%Y-%m-%d")
+            )
+        with col2:
+            st.metric(
+                "💻 Hora Local",
+                local_time.strftime("%H:%M:%S"),
+                delta=local_time.strftime("%Y-%m-%d")
+            )
+        
+        # Diferencia horaria con visualización condicional
+        st.divider()
+        diferencia_formateada = obtener_diferencia_horaria_formateada()
+        diferencia_segundos = time_difference.total_seconds()
+        
+        if abs(diferencia_segundos) <= 5:
+            st.success(f"⏱️ **Diferencia:** {diferencia_formateada} (Óptima ✓)")
+        elif abs(diferencia_segundos) <= 300:
+            st.info(f"⏱️ **Diferencia:** {diferencia_formateada} (Aceptable)")
+        else:
+            st.warning(f"⏱️ **Diferencia:** {diferencia_formateada} (Alta - Revisar)")
+        
+        # Advertencia especial para problemas de zona horaria
+        if abs(diferencia_segundos) > 86000 and abs(diferencia_segundos) < 86400:
+            st.error("🚨 **Alerta:** Diferencia cercana a 24 horas - Posible problema de zona horaria")
+            logger.warning(f"Diferencia horaria sospechosa detectada: {diferencia_segundos}s (≈24h)")
+        
+        # Detalles técnicos en expander adicional
+        with st.expander("🔧 Detalles Técnicos"):
+            st.code(f"""
+Diferencia total: {diferencia_segundos:+.3f} segundos
+Sistema local: {"Adelantado" if diferencia_segundos > 0 else "Atrasado"}
+Zona horaria remota: {remote_time.tzinfo}
+Zona horaria local: {local_time.tzinfo}
+Última sincronización: {obtener_estado_sync('ultima_sincronizacion', 'No disponible')}
+            """)
+        
+        # Marcar como completado
+        status.update(label="✅ Detalles mostrados", state="complete")
+    
+    logger.debug("Detalles de sincronización mostrados en contenedor expandible")
 
 def crear_solicitud_sincronizacion():
     """Crear una solicitud de sincronizacion estandar."""
@@ -938,97 +1204,272 @@ def sincronizar_parametrica(service_name, model_class):
         logger.error(traceback.format_exc())
         return False
 
+def sincronizar_todo_con_progreso():
+    """
+    Sincroniza todos los servicios mostrando progreso en tiempo real.
+    
+    Esta función reemplaza el botón "Sincronizar Todo" con una interfaz
+    mejorada que incluye:
+    - Barra de progreso visual
+    - Métricas en tiempo real (exitosos/fallidos/tiempo)
+    - Notificaciones toast por servicio
+    - Celebración visual si todo es exitoso
+    
+    Usa las nuevas capacidades de Streamlit 1.49.0+ para proporcionar
+    una experiencia de usuario superior durante la sincronización masiva.
+    """
+    logger.info("Iniciando sincronización completa con indicadores de progreso")
+    
+    # Contenedor para métricas en tiempo real
+    metricas_container = st.empty()
+    progress_bar = st.progress(0, text="🚀 Iniciando sincronización completa...")
+    
+    # Inicializar contadores
+    exitosos = 0
+    fallidos = 0
+    total_servicios = len(service_model_map) + 1  # +1 por fecha/hora
+    inicio_tiempo = datetime.now(pytz.utc)
+    
+    # Función auxiliar para actualizar métricas
+    def actualizar_metricas_progreso(procesados):
+        tiempo_transcurrido = (datetime.now(pytz.utc) - inicio_tiempo).total_seconds()
+        with metricas_container.container():
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric(
+                    "✅ Exitosos", 
+                    exitosos, 
+                    delta=f"{(exitosos/total_servicios)*100:.0f}%",
+                    delta_color="normal"
+                )
+            with col2:
+                st.metric(
+                    "❌ Fallidos", 
+                    fallidos,
+                    delta=f"{(fallidos/total_servicios)*100:.0f}%" if fallidos > 0 else "0%",
+                    delta_color="inverse"
+                )
+            with col3:
+                st.metric(
+                    "📊 Progreso",
+                    f"{procesados}/{total_servicios}",
+                    delta=f"{(procesados/total_servicios)*100:.1f}%"
+                )
+            with col4:
+                st.metric(
+                    "⏱️ Tiempo",
+                    f"{tiempo_transcurrido:.1f}s",
+                    delta=f"{tiempo_transcurrido/procesados:.1f}s/serv" if procesados > 0 else "0s/serv"
+                )
+    
+    try:
+        # Paso 1: Sincronizar fecha y hora
+        progress_bar.progress(0, text="🕐 Sincronizando fecha y hora...")
+        resultado_fecha = sincronizar_fecha_hora()
+        
+        if resultado_fecha:
+            exitosos += 1
+            notificar('success', "⏰ Fecha/hora sincronizada", usar_toast=True)
+        else:
+            fallidos += 1
+            notificar('error', "⏰ Error en sincronización de fecha/hora", usar_toast=True)
+        
+        actualizar_metricas_progreso(1)
+        
+        # Paso 2: Sincronizar servicios paramétricos
+        procesados = 1
+        for service_name, model_class in service_model_map.items():
+            # Actualizar barra de progreso
+            progreso = procesados / total_servicios
+            progress_bar.progress(
+                progreso, 
+                text=f"📡 Sincronizando {service_name} ({procesados}/{total_servicios})..."
+            )
+            
+            # Ejecutar sincronización
+            resultado = sincronizar_parametrica(service_name, model_class)
+            
+            # Registrar resultado
+            if resultado:
+                exitosos += 1
+                # Toast solo para servicios críticos o cada 3 servicios
+                if procesados % 3 == 0 or 'Documento' in service_name or 'Moneda' in service_name:
+                    notificar('success', f"✓ {service_name}", usar_toast=True)
+            else:
+                fallidos += 1
+                # Siempre notificar errores
+                notificar('error', f"✗ {service_name}", usar_toast=True)
+            
+            procesados += 1
+            actualizar_metricas_progreso(procesados)
+        
+        # Finalización
+        progress_bar.progress(1.0, text="✅ Sincronización completa!")
+        tiempo_total = (datetime.now(pytz.utc) - inicio_tiempo).total_seconds()
+        
+        # Resumen final
+        if fallidos == 0:
+            st.success(f"🎉 ¡Sincronización perfecta! {exitosos} servicios en {tiempo_total:.1f}s")
+            st.balloons()  # Celebración visual
+            logger.info(f"Sincronización completa exitosa: {exitosos}/{total_servicios} en {tiempo_total:.1f}s")
+        elif exitosos > fallidos:
+            st.warning(f"⚠️ Sincronización con advertencias: {exitosos} exitosos, {fallidos} fallidos en {tiempo_total:.1f}s")
+            logger.warning(f"Sincronización parcial: {exitosos} exitosos, {fallidos} fallidos")
+        else:
+            st.error(f"❌ Sincronización con errores: {exitosos} exitosos, {fallidos} fallidos en {tiempo_total:.1f}s")
+            logger.error(f"Sincronización con errores: {exitosos} exitosos, {fallidos} fallidos")
+        
+        # Actualizar estado de última sincronización
+        actualizar_estado_sync('ultima_sincronizacion', datetime.now(pytz.utc))
+        
+        return exitosos, fallidos
+        
+    except Exception as e:
+        progress_bar.progress(0, text="❌ Error durante sincronización")
+        error_msg = f"Error crítico en sincronización completa: {str(e)}"
+        notificar('error', error_msg, usar_toast=False)
+        logger.error(f"{error_msg}\n{traceback.format_exc()}")
+        return exitosos, fallidos
+
+
 def main():
     """
-    Función principal del módulo de sincronización.
+    Función principal del módulo de sincronización - REFACTORIZADA FASE 3.
     
-    Presenta la interfaz de usuario para sincronizar datos con el servidor SIAT,
-    incluyendo indicadores de estado de conexión y sincronización.
+    Presenta una interfaz modernizada con tabs para sincronizar datos
+    con el servidor SIAT. Incluye:
+    - Panel de métricas superior siempre visible
+    - Indicador de estado en sidebar
+    - Tab 1: Sincronización rápida (todo a la vez)
+    - Tab 2: Sincronización manual (servicio por servicio)
+    - Notificaciones toast no invasivas
+    - Detalles expandibles de última sincronización
+    
+    Versión: Fase 3 - Streamlit 1.49.0+
     """
-    st.title("Sincronizar Datos")
+    st.title("🔄 Sincronización de Datos SIAT")
 
     # Inicializar el estado de sincronización
     inicializar_estado_sincronizacion()
     
-    # Mostrar información de última sincronización si existe
-    ultima_sync = obtener_estado_sync('ultima_sincronizacion')
-    if ultima_sync:
-        # Asegurar que ambos datetimes tengan timezone para poder restarlos
-        if ultima_sync.tzinfo is None:
-            ultima_sync = pytz.utc.localize(ultima_sync)
-        tiempo_transcurrido = datetime.now(pytz.utc) - ultima_sync
-        horas_transcurridas = tiempo_transcurrido.total_seconds() / 3600
-        
-        if horas_transcurridas < 1:
-            st.success(f"✅ Última sincronización: hace {int(tiempo_transcurrido.total_seconds() / 60)} minutos")
-        elif horas_transcurridas < 24:
-            st.info(f"ℹ️ Última sincronización: hace {int(horas_transcurridas)} horas")
-        else:
-            st.warning(f"⚠️ Última sincronización: hace {int(horas_transcurridas / 24)} días")
-            st.caption("Se recomienda sincronizar al menos una vez al día")
-
-    # Botón para consultar información de sincronización
-    # Este botón está disponible siempre (online/offline) porque consulta datos locales
+    # ========== FASE 3: PANEL DE MÉTRICAS SUPERIOR ==========
+    # Siempre visible, proporciona visibilidad instantánea del estado
+    mostrar_panel_metricas()
+    
     st.markdown("---")
-    if st.button('📊 Mostrar Información de Última Sincronización', 
-                 help="Muestra los datos de la última sincronización de fecha/hora realizada con el servidor SIAT"):
-        mostrar_informacion_sincronizacion()
+    
+    # ========== FASE 3: INDICADOR COMPACTO EN SIDEBAR ==========
+    with st.sidebar:
+        mostrar_indicador_estado_sidebar()
+    
+    # ========== FASE 3: DETALLES EXPANDIBLES DE SINCRONIZACIÓN ==========
+    # Reemplaza el botón antiguo con contenedor colapsable
+    mostrar_detalles_sincronizacion_expandible()
+    
     st.markdown("---")
-
+    
+    # Verificar disponibilidad del cliente SIAT
     disponible, mensaje_cliente, detalle = estado_cliente_siat()
     if not disponible:
-        registrar_y_mostrar('warning', mensaje_cliente)
-        st.info("El sistema se encuentra en modo offline; no es posible sincronizar sin conexion a Internet.")
+        notificar('warning', mensaje_cliente, usar_toast=False)
+        st.info("🔌 El sistema se encuentra en modo offline; no es posible sincronizar sin conexión a Internet.")
         st.markdown(
-            "- Verifique su conexion de red.\n"
-            "- Intente nuevamente cuando el enlace a SIAT este disponible.\n"
-            "- Si el problema persiste estando en linea, revise la configuracion de variables de entorno."
+            "**Posibles soluciones:**\n"
+            "- Verifique su conexión de red\n"
+            "- Intente nuevamente cuando el enlace a SIAT esté disponible\n"
+            "- Si el problema persiste estando en línea, revise la configuración de variables de entorno"
         )
         if detalle:
-            st.caption(f"Detalle tecnico: {detalle}")
+            with st.expander("🔧 Detalle Técnico"):
+                st.code(detalle)
         st.stop()
 
-    # Verificar comunicacion antes de mostrar opciones de sincronizacion
+    # Verificar comunicación antes de mostrar opciones de sincronización
     exito, mensaje = verificar_comunicacion()
-    if exito:
-        registrar_y_mostrar('success', "[OK] Conexion exitosa con el servidor remoto.")
-
-        if st.button('Sincronizar Todo'):
-            sincronizar_fecha_hora()
-            with st.spinner("Sincronizando tablas parametricas..."):
-                resultados = []
-                for service_name, model_class in service_model_map.items():
-                    resultado = sincronizar_parametrica(service_name, model_class)
-                    resultados.append((service_name, resultado))
-
-                # Mostrar resumen
-                st.subheader("Resumen de sincronizacion")
-                for service_name, exito in resultados:
-                    icon = "[OK]" if exito else "[ERROR]"
-                    # Mostrar un resumen en la interfaz y registrar en el log
-                    st.text(f"{icon} {service_name}")
-                    logger.info(f"Resultado sincronizacion {service_name}: {'Exitoso' if exito else 'Fallido'}")
-
-                registrar_y_mostrar('success', "Todas las sincronizaciones completadas.")
-
-        # Opcion para sincronizar servicios individuales
-        selected_service = st.selectbox(
-            "Seleccione un servicio para sincronizar",
-            ['sincronizarFechaHora'] + list(service_model_map.keys())
+    
+    if not exito:
+        notificar('error', f"Error de comunicación con el servidor remoto: {mensaje}", usar_toast=False)
+        st.error("❌ No se pueden realizar sincronizaciones debido a problemas de comunicación.")
+        st.info("💡 Use el botón de 'Verificar Conexión' en el sidebar para intentar reconectar")
+        st.stop()
+    
+    # Si llegamos aquí, la comunicación es exitosa
+    notificar('success', "🌐 Conexión exitosa con el servidor SIAT", usar_toast=True)
+    
+    # ========== FASE 3: INTERFAZ CON TABS ==========
+    tab_rapida, tab_manual = st.tabs(["🚀 Sincronización Rápida", "🔧 Sincronización Manual"])
+    
+    # ===== TAB 1: SINCRONIZACIÓN RÁPIDA =====
+    with tab_rapida:
+        st.header("⚡ Sincronización Completa")
+        st.info(
+            "**Esta opción sincroniza todos los servicios paramétricos** incluyendo:\n"
+            "- ⏰ Fecha y hora del servidor\n"
+            "- 📋 Todas las tablas paramétricas (tipos de documento, monedas, actividades, etc.)\n\n"
+            "**Tiempo estimado:** 30-90 segundos dependiendo de la conexión"
         )
+        
+        if st.button('🚀 Sincronizar Todo Ahora', type="primary", use_container_width=True):
+            logger.info("Usuario inició sincronización completa desde Tab Rápida")
+            exitosos, fallidos = sincronizar_todo_con_progreso()
+            
+            # Actualizar el panel de métricas después de la sincronización
+            if exitosos > 0:
+                mostrar_panel_metricas()
+    
+    # ===== TAB 2: SINCRONIZACIÓN MANUAL =====
+    with tab_manual:
+        st.header("🛠️ Sincronización Selectiva")
+        st.info(
+            "**Sincronice servicios individuales** cuando:\n"
+            "- Necesite actualizar solo un tipo de datos específico\n"
+            "- Quiera verificar un servicio particular\n"
+            "- Desee un control más granular del proceso"
+        )
+        
+        # Crear lista de servicios con descripciones amigables
+        servicios_opciones = ['⏰ Fecha y Hora del Servidor'] + [
+            f"📊 {name.replace('sincronizar', '').replace('Parametrica', '')}" 
+            for name in service_model_map.keys()
+        ]
+        servicios_valores = ['sincronizarFechaHora'] + list(service_model_map.keys())
+        
+        selected_service_idx = st.selectbox(
+            "🎯 Seleccione el servicio a sincronizar:",
+            range(len(servicios_opciones)),
+            format_func=lambda x: servicios_opciones[x],
+            help="Elija un servicio específico para actualizar solo esos datos"
+        )
+        
+        selected_service = servicios_valores[selected_service_idx]
 
-        if st.button('Sincronizar Servicio Seleccionado'):
-            if selected_service == 'sincronizarFechaHora':
-                sincronizar_fecha_hora()
-            else:
-                with st.spinner(f"Sincronizando {selected_service}..."):
-                    resultado = sincronizar_parametrica(selected_service, service_model_map[selected_service])
-                    if resultado:
-                        registrar_y_mostrar('success', f"[OK] Sincronizacion de {selected_service} completada.")
-
-    else:
-        registrar_y_mostrar('error', f"Error de comunicacion con el servidor remoto: {mensaje}")
-        registrar_y_mostrar('warning', "No se pueden realizar sincronizaciones debido a problemas de comunicacion.")
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            if st.button('▶️ Sincronizar Servicio Seleccionado', use_container_width=True):
+                logger.info(f"Usuario inició sincronización manual de: {selected_service}")
+                
+                if selected_service == 'sincronizarFechaHora':
+                    with st.spinner("⏰ Sincronizando fecha y hora..."):
+                        resultado = sincronizar_fecha_hora()
+                        if resultado:
+                            notificar('success', "✅ Fecha/hora sincronizada correctamente", usar_toast=True)
+                            mostrar_detalles_sincronizacion_expandible()
+                        else:
+                            notificar('error', "❌ Error al sincronizar fecha/hora", usar_toast=False)
+                else:
+                    with st.spinner(f"📡 Sincronizando {selected_service}..."):
+                        resultado = sincronizar_parametrica(selected_service, service_model_map[selected_service])
+                        if resultado:
+                            notificar('success', f"✅ {selected_service} sincronizado correctamente", usar_toast=True)
+                        else:
+                            notificar('error', f"❌ Error en {selected_service}", usar_toast=False)
+                
+                # Actualizar métricas después de cualquier sincronización
+                mostrar_panel_metricas()
+        
+        with col2:
+            if st.button('🔄', help="Refrescar lista de servicios"):
+                st.rerun()
 
 
 if __name__ == "__main__":
