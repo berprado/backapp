@@ -98,15 +98,13 @@ def notificar(tipo: str, mensaje: str, usar_toast: bool = True):
     Note:
         El logging se realiza siempre, independientemente del tipo de visualización.
     """
-    # Mapeo de iconos para toast
-    iconos = {
+    # Mapeo de iconos para el parámetro icon de toast
+    iconos_emoji = {
         'success': '✅',
         'warning': '⚠️',
         'error': '❌',
         'info': 'ℹ️'
     }
-    
-    icono = iconos.get(tipo, 'ℹ️')
     
     # Registrar en log (siempre, preservando sistema centralizado)
     if tipo == 'success':
@@ -122,7 +120,9 @@ def notificar(tipo: str, mensaje: str, usar_toast: bool = True):
     try:
         if usar_toast:
             # Usar toast para mensajes menos críticos (nuevo en 1.49.0)
-            st.toast(f"{icono} {mensaje}", icon=icono)
+            # IMPORTANTE: Solo pasamos el mensaje, el icono se muestra automáticamente
+            # con el parámetro icon= (evita duplicación de iconos)
+            st.toast(mensaje, icon=iconos_emoji.get(tipo, 'ℹ️'))
         else:
             # Usar alertas tradicionales para mensajes importantes
             if tipo == 'success':
@@ -1351,6 +1351,17 @@ def main():
 
     # Inicializar el estado de sincronización
     inicializar_estado_sincronizacion()
+    
+    # ========== VERIFICACIÓN INICIAL AUTOMÁTICA ==========
+    # Ejecutar verificación al cargar la página para tener estado real
+    # IMPORTANTE: Esto se ejecuta UNA VEZ gracias al caché de 30s del communication_manager
+    try:
+        from communication_manager import communication_manager
+        # Esta llamada usa el caché, por lo que es prácticamente gratis
+        resultado_inicial = communication_manager.verificar_comunicacion_completa()
+        logger.debug(f"Verificación inicial automática completada: {resultado_inicial.get('estado_general')}")
+    except Exception as e:
+        logger.warning(f"No se pudo ejecutar verificación inicial automática: {e}")
     
     # ========== FASE 3: PANEL DE MÉTRICAS SUPERIOR ==========
     # Siempre visible, proporciona visibilidad instantánea del estado
