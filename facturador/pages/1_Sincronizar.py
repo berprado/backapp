@@ -49,16 +49,15 @@ def registrar_y_mostrar(tipo: str, mensaje: str) -> None:
     tipo = (tipo or '').lower().strip()
     try:
         if tipo == 'success':
-            st.success(mensaje)
+            
             logger.info(mensaje)
         elif tipo == 'warning':
-            st.warning(mensaje)
+            
             logger.warning(mensaje)
         elif tipo == 'error':
-            st.error(mensaje)
+            
             logger.error(mensaje)
         else:
-            st.info(mensaje)
             logger.info(mensaje)
     except Exception:
         # En entornos no interactivos, es posible que ``st`` no este
@@ -1294,11 +1293,11 @@ def sincronizar_todo_con_progreso():
                 exitosos += 1
                 # Toast solo para servicios críticos o cada 3 servicios
                 if procesados % 3 == 0 or 'Documento' in service_name or 'Moneda' in service_name:
-                    notificar('success', f"✓ {service_name}", usar_toast=True)
+                    notificar('success', f" {service_name}", usar_toast=True)
             else:
                 fallidos += 1
                 # Siempre notificar errores
-                notificar('error', f"✗ {service_name}", usar_toast=True)
+                notificar('error', f" {service_name}", usar_toast=True)
             
             procesados += 1
             actualizar_metricas_progreso(procesados)
