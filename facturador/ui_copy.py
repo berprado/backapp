@@ -32,10 +32,10 @@ from tabs import (
     clientes_tab,
     verificar_factura_tab,
     cuis_tab,
-    anular_factura_tab,
-    revertir_anulacion_tab,
+    anular_revertir_tab,  # ✅ Nuevo módulo unificado
     diagnostico_tab
 )
+# DEPRECADO: anular_factura_tab, revertir_anulacion_tab (reemplazados por anular_revertir_tab)
 
 # Importar verificador de session_state para diagnóstico de impresión
 from verificador_session_state import ejecutar_diagnostico_completo
@@ -204,8 +204,7 @@ def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict
         'Validar NIT': validar_nit_tab.render,
         'Verificar Factura': verificar_factura_tab.render,
         'Gestionar CUIS': cuis_tab.render,
-        'Anular Factura': anular_factura_tab.render,
-        'Revertir Anulacion': revertir_anulacion_tab.render,
+        'Anular/Revertir': anular_revertir_tab.render,  # ✅ Nueva pestaña unificada
         'Diagnostico': diagnostico_tab.render,
         'Pruebas': lambda: ejecutar_diagnostico_completo('tab_pruebas')
     }
@@ -214,8 +213,7 @@ def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict
         'Validar NIT',
         'Verificar Factura',
         'Gestionar CUIS',
-        'Anular o Revertir',
-        'Revertir Anulacion'
+        'Anular/Revertir'  # ✅ Pestaña unificada solo disponible en modo online
     ]
 
     tabs_to_render = ['Facturar', 'Ver Facturas', 'Clientes']
