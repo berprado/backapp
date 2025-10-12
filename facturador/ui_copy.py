@@ -204,7 +204,7 @@ def render_full_ui(is_online: bool, connectivity_info: dict, evento_activo: dict
         'Validar NIT': validar_nit_tab.render,
         'Verificar Factura': verificar_factura_tab.render,
         'Gestionar CUIS': cuis_tab.render,
-        'Anular o Revertir': anular_factura_tab.render,
+        'Anular Factura': anular_factura_tab.render,
         'Revertir Anulacion': revertir_anulacion_tab.render,
         'Diagnostico': diagnostico_tab.render,
         'Pruebas': lambda: ejecutar_diagnostico_completo('tab_pruebas')
