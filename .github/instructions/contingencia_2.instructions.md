@@ -124,7 +124,7 @@ def actualizar_estado_facturas(batch_numbers, codigo_recepcion, estado_paquete):
 
 ```python
 def finalizar_evento_si_conectado(evento_id, facturas, cufd):
-    logging.info(f"[📡] Conexión restablecida. Finalizando evento #{evento_id}...")
+    logging.info(f"[📡] Conexión restablecida. Finalizando evento {evento_id}...")
 
     nuevo_cufd = solicitar_nuevo_cufd()
     if not nuevo_cufd:
@@ -141,9 +141,9 @@ def finalizar_evento_si_conectado(evento_id, facturas, cufd):
     )
 
     if ok:
-        logging.info(f"[✅] Evento #{evento_id} finalizado exitosamente.")
+        logging.info(f"[✅] Evento {evento_id} finalizado exitosamente.")
     else:
-        logging.error(f"[❌] Fallo en validación/envío del evento #{evento_id}.")
+        logging.error(f"[❌] Fallo en validación/envío del evento {evento_id}.")
 ```
 
 ---
