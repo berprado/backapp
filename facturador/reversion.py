@@ -35,11 +35,47 @@ if len(logger.handlers) > 2:
 load_dotenv()
 
 # Códigos de estado como constantes
-ESTADO_REVERSION_CONFIRMADA = "907"
-ESTADO_FACTURA_YA_REVERTIDA = "981"
-ESTADO_FACTURA_NO_EXISTE = "924"
-ESTADO_SISTEMA_NO_AUTORIZADO = "3011"
-ESTADO_FUERA_DE_PLAZO = "3012"
+ESTADO_REVERSION_CONFIRMADA = "907"       # Reversión confirmada exitosamente
+ESTADO_REVERSION_RECHAZADA = "909"        # Reversión rechazada por el SIAT (NUEVO)
+ESTADO_FACTURA_YA_REVERTIDA = "981"       # Factura ya revertida anteriormente
+ESTADO_FACTURA_NO_EXISTE = "924"          # Factura no existe en base de datos SIAT
+ESTADO_SISTEMA_NO_AUTORIZADO = "3011"     # Sistema no autorizado
+ESTADO_FUERA_DE_PLAZO = "3012"            # Solicitud fuera de plazo
+
+
+def limpiar_emojis_descripcion(descripcion):
+    """
+    Limpia emojis comunes del inicio de una descripción para evitar duplicación.
+    
+    Algunos mensajes del SIAT vienen con emojis (ej: "✅ REVERSION...").
+    Esta función los elimina para que podamos añadir nuestro propio formato consistente.
+    
+    Args:
+        descripcion (str): Descripción que puede contener emojis al inicio
+        
+    Returns:
+        str: Descripción sin emojis al inicio
+        
+    Ejemplo:
+        "✅ REVERSION CONFIRMADA" → "REVERSION CONFIRMADA"
+        "❌ ERROR EN PROCESO" → "ERROR EN PROCESO"
+        "MENSAJE NORMAL" → "MENSAJE NORMAL"
+    """
+    if not descripcion:
+        return descripcion
+    
+    # Lista de emojis comunes a remover del inicio
+    emojis_a_limpiar = ['✅', '❌', '⚠️', 'ℹ️', '🔴', '🟢', '🟡', '⏰', '❓']
+    
+    descripcion_limpia = descripcion.strip()
+    
+    # Remover emojis del inicio (pueden estar repetidos)
+    for emoji in emojis_a_limpiar:
+        while descripcion_limpia.startswith(emoji):
+            descripcion_limpia = descripcion_limpia[len(emoji):].strip()
+    
+    return descripcion_limpia
+
 
 def construir_solicitud_reversion(cuf):
     """
@@ -165,86 +201,219 @@ def procesar_respuesta_reversion(respuesta_xml, factura):
     """
     Procesa la respuesta XML del servicio SIAT y actualiza la factura según corresponda.
     
+    VERSIÓN MEJORADA:
+    - Extrae TODOS los campos de la respuesta (codigoEstado, codigoDescripcion, mensajesList)
+    - Usa BD local como fuente primaria, SIAT como fallback
+    - Construye mensajes detallados para el usuario con formato Markdown
+    - Logging exhaustivo para debugging
+    
     Args:
         respuesta_xml (bytes): Respuesta XML del servicio
         factura (FacturaCabecera): Objeto de factura a actualizar
         
     Returns:
-        tuple: (éxito, mensaje)
+        tuple: (éxito, mensaje_detallado)
     """
-    logger.info(f"Procesando respuesta para factura #{factura.numeroFactura}")
+    logger.info(f"[PROCESAMIENTO] Iniciando análisis de respuesta para factura #{factura.numeroFactura}")
     
     try:
-        # Procesar el XML de respuesta para extraer la información relevante
+        # ========== PASO 1: PARSEAR XML ==========
         tree = ET.fromstring(respuesta_xml)
         
-        # Extraer campos relevantes de la respuesta
+        # Extraer campos principales
         transaccion_elem = tree.find('.//transaccion')
         codigo_estado_elem = tree.find('.//codigoEstado')
+        codigo_descripcion_elem = tree.find('.//codigoDescripcion')
         
+        # Validación de campos obligatorios
         if transaccion_elem is None or codigo_estado_elem is None:
-            logger.error("Respuesta XML no contiene elementos requeridos (transaccion o codigoEstado)")
-            logger.debug(f"Respuesta XML completa: {respuesta_xml}")
-            return False, "Respuesta del servicio incorrecta o incompleta"
+            logger.error("[ERROR] Respuesta XML incompleta: faltan campos obligatorios")
+            logger.debug(f"XML recibido: {respuesta_xml.decode('utf-8')[:500]}")
+            return False, "❌ Respuesta del servicio incorrecta o incompleta"
         
+        # Extraer valores
         transaccion = transaccion_elem.text.lower() == 'true'
         codigo_estado = codigo_estado_elem.text
+        codigo_descripcion_siat = codigo_descripcion_elem.text if codigo_descripcion_elem is not None else None
         
-        logger.debug(f"Transacción exitosa: {transaccion}")
-        logger.debug(f"Código de estado: {codigo_estado}")
-
-        # Obtener la descripción del código desde la base de datos
-        descripcion_codigo = obtener_mensaje_por_codigo(codigo_estado)
-        logger.debug(f"Descripción del código: {descripcion_codigo}")
-
-        if codigo_estado == ESTADO_REVERSION_CONFIRMADA:  # Reversión confirmada
-            logger.info(f"Reversión confirmada para factura #{factura.numeroFactura}")
+        logger.info(f"[SIAT] Código estado: {codigo_estado}")
+        logger.info(f"[SIAT] Transacción: {transaccion}")
+        logger.debug(f"[SIAT] Descripción: {codigo_descripcion_siat}")
+        
+        # ========== PASO 2: OBTENER DESCRIPCIÓN DE BD LOCAL ==========
+        descripcion_bd = obtener_mensaje_por_codigo(codigo_estado)
+        
+        # Decidir qué descripción usar (BD primero, SIAT como fallback)
+        if descripcion_bd and not descripcion_bd.startswith("Código desconocido"):
+            descripcion_principal = limpiar_emojis_descripcion(descripcion_bd)
+            logger.debug(f"[BD] Descripción encontrada: {descripcion_bd}")
+        else:
+            descripcion_principal = limpiar_emojis_descripcion(codigo_descripcion_siat) if codigo_descripcion_siat else f"Código {codigo_estado}"
+            logger.warning(f"[BD] Código {codigo_estado} no encontrado, usando descripción SIAT")
+        
+        # ========== PASO 3: EXTRAER MENSAJES ADICIONALES (mensajesList) ==========
+        mensajes_detalle = []
+        for mensaje_elem in tree.findall('.//mensajesList'):
+            codigo_msg_elem = mensaje_elem.find('codigo')
+            desc_msg_elem = mensaje_elem.find('descripcion')
             
+            if codigo_msg_elem is not None and desc_msg_elem is not None:
+                codigo_msg = codigo_msg_elem.text
+                desc_msg_siat = desc_msg_elem.text
+                
+                # Intentar obtener descripción de BD para este código adicional
+                desc_msg_bd = obtener_mensaje_por_codigo(codigo_msg)
+                
+                # Decidir qué descripción usar
+                if desc_msg_bd and not desc_msg_bd.startswith("Código desconocido"):
+                    desc_msg_final = desc_msg_bd
+                else:
+                    desc_msg_final = desc_msg_siat
+                
+                mensajes_detalle.append({
+                    'codigo': codigo_msg,
+                    'descripcion': desc_msg_final
+                })
+                
+                logger.info(f"[DETALLE] Mensaje adicional: [{codigo_msg}] {desc_msg_final}")
+        
+        # ========== PASO 4: PROCESAR SEGÚN EL CÓDIGO DE ESTADO ==========
+        
+        # IMPORTANTE: Guardar numero_factura ANTES de modificar la sesión
+        numero_factura = factura.numeroFactura
+        
+        if codigo_estado == ESTADO_REVERSION_CONFIRMADA:  # 907
+            logger.info(f"[EXITO] Reversion confirmada para factura #{numero_factura}")
+            
+            # Actualizar factura en BD
             factura.estado = "Valida"
             factura.fechaValidacion = datetime.now()
-
+            factura.fechaAnulacion = None
+            factura.motivoAnulacion = None
+            factura.anuladaPor = None
+            
             session = SessionLocal()
             try:
                 session.add(factura)
                 session.commit()
-                logger.info("Factura actualizada correctamente en la base de datos")
+                logger.info("[BD] Factura actualizada correctamente")
             except Exception as e:
                 session.rollback()
-                logger.error(f"Error al actualizar la factura en BD: {e}", exc_info=True)
-                return False, f"Error al actualizar la factura: {e}"
+                logger.error(f"[BD] Error al actualizar factura: {e}", exc_info=True)
+                return False, f"❌ **Error al actualizar la factura en base de datos**\n\n{str(e)}"
             finally:
                 session.close()
+            
+            # Construir mensaje de éxito usando la variable guardada
+            mensaje_exito = f"✅ **{descripcion_principal}**\n\n" \
+                           f"La factura #{numero_factura} ha sido restaurada exitosamente."
+            
+            return True, mensaje_exito
+        
+        elif codigo_estado == ESTADO_REVERSION_RECHAZADA:  # 909
+            logger.warning(f"[RECHAZADO] Reversion rechazada para factura #{numero_factura}")
+            
+            # Construir mensaje detallado con mensajesList
+            mensaje_rechazo = f"❌ **{descripcion_principal}**\n\n"
+            
+            if mensajes_detalle:
+                mensaje_rechazo += "**Motivos específicos del rechazo:**\n"
+                for msg in mensajes_detalle:
+                    mensaje_rechazo += f"• **[{msg['codigo']}]** {msg['descripcion']}\n"
+                
+                # Agregar interpretación contextual según códigos conocidos
+                codigos_en_respuesta = [msg['codigo'] for msg in mensajes_detalle]
+                
+                mensaje_rechazo += "\n**Posibles acciones:**\n"
+                
+                if "981" in codigos_en_respuesta:
+                    mensaje_rechazo += "• Verifique que la factura esté efectivamente anulada\n"
+                    mensaje_rechazo += "• Confirme que no haya sido revertida previamente\n"
+                    mensaje_rechazo += "• La factura pudo haber sido usada en una declaración jurada\n"
+                
+                if any(c in ["3012", "970"] for c in codigos_en_respuesta):
+                    mensaje_rechazo += "• La reversión está fuera del plazo normativo (9 días del mes siguiente)\n"
+                
+                if "924" in codigos_en_respuesta:
+                    mensaje_rechazo += "• Verifique el número de factura ingresado\n"
+            else:
+                # Si no hay mensajesList, dar mensaje genérico
+                mensaje_rechazo += "No se proporcionaron detalles específicos. " \
+                                  "Verifique el estado actual de la factura en el sistema."
+            
+            return False, mensaje_rechazo
+        
+        elif codigo_estado == ESTADO_FACTURA_YA_REVERTIDA:  # 981
+            logger.warning(f"[INFO] Factura #{numero_factura} ya revertida")
+            
+            # Intentar sincronizar estado local si está desactualizado
+            if factura.estado == "Anulada":
+                logger.info(f"[SYNC] Sincronizando estado local de factura {numero_factura}")
 
-            return True, f"Reversión de anulación realizada correctamente: {descripcion_codigo}"
-
-        elif codigo_estado == ESTADO_FACTURA_YA_REVERTIDA:  # Factura no disponible para reversión
-            logger.warning(f"Factura #{factura.numeroFactura} ya fue revertida previamente")
-            return False, f"La factura ya fue revertida previamente: {descripcion_codigo}"
-
-        elif codigo_estado == ESTADO_FACTURA_NO_EXISTE:  # Factura no existe en la base de datos
-            logger.warning(f"Factura #{factura.numeroFactura} no existe en la base de datos del SIN")
-            return False, f"Factura no existe en la base de datos del SIN: {descripcion_codigo}"
-
-        elif codigo_estado == ESTADO_SISTEMA_NO_AUTORIZADO:  # Sistema no autorizado
-            logger.error("El sistema no está autorizado para utilizar la reversión")
-            return False, f"El sistema no está autorizado para utilizar la reversión: {descripcion_codigo}"
-
-        elif codigo_estado == ESTADO_FUERA_DE_PLAZO:  # Solicitud de reversión fuera de plazo
-            logger.warning(f"Solicitud de reversión para factura #{factura.numeroFactura} fuera de plazo")
-            return False, f"La solicitud de reversión fue realizada fuera de plazo: {descripcion_codigo}"
-
+                
+                factura.estado = "Valida"
+                factura.fechaValidacion = datetime.now()
+                factura.fechaAnulacion = None
+                factura.motivoAnulacion = None
+                
+                session = SessionLocal()
+                try:
+                    session.add(factura)
+                    session.commit()
+                    logger.info("[SYNC] Estado local sincronizado")
+                    
+                    return True, f"ℹ️ **La factura ya estaba revertida en el SIAT**\n\n" \
+                                f"Se ha sincronizado el estado local de la factura #{numero_factura}."
+                except Exception as e:
+                    logger.error(f"[SYNC] Error al sincronizar: {e}")
+                    return False, f"⚠️ **{descripcion_principal}**\n\n" \
+                                 f"No se pudo sincronizar el estado local."
+                finally:
+                    session.close()
+            
+            return False, f"ℹ️ **{descripcion_principal}**\n\n" \
+                         f"La factura ya fue revertida anteriormente."
+        
+        elif codigo_estado == ESTADO_FACTURA_NO_EXISTE:  # 924
+            logger.warning(f"[ERROR] Factura #{numero_factura} no existe en SIAT")
+            return False, f"❌ **{descripcion_principal}**\n\n" \
+                         f"La factura no existe en la base de datos del SIN. " \
+                         f"Verifique el número de factura."
+        
+        elif codigo_estado == ESTADO_SISTEMA_NO_AUTORIZADO:  # 3011
+            logger.error("[CRITICO] Sistema no autorizado para reversion")
+            return False, f"❌ **{descripcion_principal}**\n\n" \
+                         f"El sistema no está autorizado para utilizar el servicio de reversión. " \
+                         f"Contacte al administrador."
+        
+        elif codigo_estado == ESTADO_FUERA_DE_PLAZO:  # 3012
+            logger.warning(f"[PLAZO] Reversion fuera de plazo para factura #{numero_factura}")
+            return False, f"⏰ **{descripcion_principal}**\n\n" \
+                         f"La reversión está fuera del plazo permitido " \
+                         f"(hasta el día 9 del mes siguiente a la emisión)."
+        
         else:
-            logger.error(f"Código de estado desconocido: {codigo_estado}")
-            return False, f"Error desconocido en la reversión: {descripcion_codigo}"
+            # Código no contemplado en el sistema
+            logger.error(f"[DESCONOCIDO] Codigo {codigo_estado} no contemplado")
+            
+            mensaje_desconocido = f"❓ **Código de respuesta no reconocido: {codigo_estado}**\n\n" \
+                                 f"Descripción: {descripcion_principal}\n\n"
+            
+            if mensajes_detalle:
+                mensaje_desconocido += "**Mensajes adicionales:**\n"
+                for msg in mensajes_detalle:
+                    mensaje_desconocido += f"• [{msg['codigo']}] {msg['descripcion']}\n"
+            
+            return False, mensaje_desconocido
     
     except ET.ParseError as e:
-        logger.error(f"Error al parsear XML de respuesta: {e}", exc_info=True)
-        logger.debug(f"XML problemático: {respuesta_xml}")
-        return False, f"Error al procesar la respuesta del servicio: {e}"
+        logger.error(f"[PARSE] Error al parsear XML: {e}", exc_info=True)
+        logger.debug(f"XML problematico: {respuesta_xml.decode('utf-8')[:500]}")
+        return False, f"❌ **Error al procesar la respuesta del servicio**\n\n{str(e)}"
     
     except Exception as e:
-        logger.error(f"Error al procesar respuesta: {e}", exc_info=True)
-        return False, f"Error al procesar la respuesta: {e}"
+        logger.error(f"[ERROR] Error general al procesar respuesta: {e}", exc_info=True)
+        return False, f"❌ **Error inesperado al procesar la respuesta**\n\n{str(e)}"
 
 def revertir_anulacion_factura(numero_factura):
     """
