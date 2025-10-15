@@ -1,214 +1,581 @@
+"""
+Módulo de Anulación de Facturas
+================================
+
+PROPÓSITO:
+----------
+Gestiona el proceso de anulación de facturas electrónicas válidas a través
+del servicio SIAT (Servicio de Impuestos Nacionales).
+
+FUNCIONALIDADES:
+----------------
+- Construcción de solicitudes SOAP para anulación
+- Envío de solicitudes al servicio SIAT
+- Procesamiento de respuestas con manejo de múltiples códigos de estado
+- Actualización de estado en base de datos local
+- Limpieza de emojis duplicados en descripciones del SIAT
+
+NORMATIVA:
+----------
+Plazo de anulación: Hasta el día 9 del mes siguiente a la emisión
+
+CÓDIGOS DE ESTADO SOPORTADOS:
+------------------------------
+- 905: Anulación confirmada
+- 906: Anulación rechazada
+- 924: Factura no existe en BD del SIN
+- 936: Factura ya anulada
+- 970: Fuera de plazo para anulación
+- 3011: Sistema no autorizado
+- 3012: Solicitud fuera de plazo
+
+VERSIÓN: 2.0.0 (Refactorizado - 15 octubre 2025)
+CAMBIOS: 
+  - Migrado a siat_service_client.py (eliminación de código duplicado)
+  - Implementado sistema de limpieza de emojis
+  - Mensajes detallados con formato Markdown
+  - Logging estructurado sin emojis en consola
+  - Uso de BD local como fuente primaria de mensajes
+  - Prevención de DetachedInstanceError
+
+AUTOR: Sistema de Facturación Electrónica
+"""
+
 import os
-import logging
 import sys
-# Agregar la ruta del directorio padre al path de Python si no está ya
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-if parent_dir not in sys.path:
-    sys.path.append(parent_dir)
-
-from logger_config import get_logger, get_facturacion_logger
-def get_anulacion_logger():
-    logger = logging.getLogger('anulacion')
-    logger.setLevel(logging.DEBUG)
-    file_handler = logging.FileHandler(os.path.join(os.path.dirname(__file__), 'logs', 'anulacion.log'), encoding='utf-8')
-    console_handler = logging.StreamHandler()
-    log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    formatter = logging.Formatter(log_format)
-    file_handler.setFormatter(formatter)
-    console_handler.setFormatter(formatter)
-    if not logger.hasHandlers():
-        logger.addHandler(file_handler)
-        logger.addHandler(console_handler)
-    return logger
-import traceback  # Añadir la importación de traceback
-
-# Obtener loggers para este módulo
-logger = get_logger()
-facturacion_logger = get_facturacion_logger()
-anulacion_logger = get_anulacion_logger()
-
-import requests
+import logging
+import traceback
 import xml.etree.ElementTree as ET
-from dotenv import load_dotenv
-from database import SessionLocal
-from models import SincronizarParametricaMotivoAnulacion, Cufd
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Importaciones de módulos locales
+from logger_config import get_logger
+from siat_service_client import get_siat_client
+from database import SessionLocal
+from models import SincronizarParametricaMotivoAnulacion, FacturaCabecera
 from data_access import obtener_mensaje_por_codigo, obtener_cuf_por_numero_factura
 
+# Cargar variables de entorno
 load_dotenv()
 
+# Configurar logger centralizado (sin emojis para compatibilidad con Windows console)
+logger = get_logger()
+
+# ========================================================================
+# CONSTANTES: Códigos de Estado del SIAT
+# ========================================================================
+
+ESTADO_ANULACION_CONFIRMADA = "905"       # Anulación exitosa
+ESTADO_ANULACION_RECHAZADA = "906"        # Anulación rechazada por el SIAT
+ESTADO_FACTURA_NO_EXISTE = "924"          # Factura no existe en BD del SIN
+ESTADO_FACTURA_YA_ANULADA = "936"         # Factura ya anulada anteriormente
+ESTADO_FUERA_DE_PLAZO = "970"             # Solicitud fuera de plazo
+ESTADO_SISTEMA_NO_AUTORIZADO = "3011"     # Sistema no autorizado
+ESTADO_SOLICITUD_FUERA_PLAZO = "3012"     # Solicitud fuera de plazo (código alternativo)
+
+ESTADO_SISTEMA_NO_AUTORIZADO = "3011"     # Sistema no autorizado
+ESTADO_SOLICITUD_FUERA_PLAZO = "3012"     # Solicitud fuera de plazo (código alternativo)
+
+
+# ========================================================================
+# FUNCIONES AUXILIARES
+# ========================================================================
+
+def limpiar_emojis_descripcion(descripcion):
+    """
+    Limpia emojis comunes del inicio de una descripción para evitar duplicación.
+    
+    Algunos mensajes del SIAT vienen con emojis (ej: "✅ ANULACION CONFIRMADA").
+    Esta función los elimina para que podamos añadir nuestro propio formato consistente.
+    
+    Args:
+        descripcion (str): Descripción que puede contener emojis al inicio
+        
+    Returns:
+        str: Descripción sin emojis al inicio
+        
+    Ejemplo:
+        "✅ ANULACION CONFIRMADA" → "ANULACION CONFIRMADA"
+        "❌ ERROR EN PROCESO" → "ERROR EN PROCESO"
+        "MENSAJE NORMAL" → "MENSAJE NORMAL"
+    """
+    if not descripcion:
+        return descripcion
+    
+    # Lista de emojis comunes a remover del inicio
+    emojis_a_limpiar = ['✅', '❌', '⚠️', 'ℹ️', '🔴', '🟢', '🟡', '⏰', '❓']
+    
+    descripcion_limpia = descripcion.strip()
+    
+    # Remover emojis del inicio (pueden estar repetidos)
+    for emoji in emojis_a_limpiar:
+        while descripcion_limpia.startswith(emoji):
+            descripcion_limpia = descripcion_limpia[len(emoji):].strip()
+    
+    return descripcion_limpia
 
 
 def obtener_cufd_vigente():
+    """
+    DEPRECADO: Esta función será removida en v3.0.0
+    
+    Usar data_access.obtener_cufd_vigente() en su lugar para mantener
+    consistencia en el acceso a datos.
+    
+    Returns:
+        str: Código CUFD vigente o None si no existe
+    """
+    from models import Cufd
+    
+    logger.warning("[DEPRECADO] Usando obtener_cufd_vigente() local. Migrar a data_access.")
+    
     session = SessionLocal()
     try:
         cufd_vigente = session.query(Cufd).filter_by(vigente=1).first()
         if cufd_vigente:
             return cufd_vigente.codigo
         else:
+            logger.error("No se encontro CUFD vigente en la base de datos.")
             return None
     except Exception as e:
+        logger.error(f"Error al obtener CUFD vigente: {e}")
         return None
     finally:
         session.close()
+
 
 def obtener_codigo_motivo(descripcion_motivo):
+    """
+    Obtiene el código clasificador del motivo de anulación desde la BD.
+    
+    Args:
+        descripcion_motivo (str): Descripción del motivo (ej: "Emitido con error")
+        
+    Returns:
+        str: Código clasificador o None si no se encuentra
+    """
+    logger.info(f"Buscando codigo de motivo para: {descripcion_motivo}")
+    
     session = SessionLocal()
     try:
-        motivo = session.query(SincronizarParametricaMotivoAnulacion).filter_by(descripcion=descripcion_motivo).first()
+        motivo = session.query(SincronizarParametricaMotivoAnulacion).filter_by(
+            descripcion=descripcion_motivo
+        ).first()
+        
         if motivo:
+            logger.info(f"Codigo de motivo encontrado: {motivo.codigoClasificador}")
             return motivo.codigoClasificador
         else:
+            logger.error(f"No se encontro codigo para el motivo: {descripcion_motivo}")
             return None
     except Exception as e:
+        logger.error(f"Error al obtener codigo de motivo: {e}")
         return None
     finally:
         session.close()
 
-def construir_solicitud_anulacion(cuf, cufd, codigo_motivo):
-    envelope = ET.Element("{http://schemas.xmlsoap.org/soap/envelope/}Envelope")
-    body = ET.SubElement(envelope, "{http://schemas.xmlsoap.org/soap/envelope/}Body")
-    anulacion_factura = ET.SubElement(body, "{https://siat.impuestos.gob.bo/}anulacionFactura")
-    solicitud = ET.SubElement(anulacion_factura, "SolicitudServicioAnulacionFactura")
 
-    # Añadir los elementos necesarios a la solicitud
-    ET.SubElement(solicitud, "codigoAmbiente").text = os.getenv('CODIGO_AMBIENTE')
-    ET.SubElement(solicitud, "codigoDocumentoSector").text = os.getenv('CODIGO_DOCUMENTO_SECTOR')
-    ET.SubElement(solicitud, "codigoEmision").text = os.getenv('CODIGO_TIPO_EMISION')
-    ET.SubElement(solicitud, "codigoModalidad").text = os.getenv('CODIGO_MODALIDAD')
-    ET.SubElement(solicitud, "codigoPuntoVenta").text = os.getenv('CODIGO_PUNTO_VENTA')
-    ET.SubElement(solicitud, "codigoSistema").text = os.getenv('CODIGO_SISTEMA')
-    ET.SubElement(solicitud, "codigoSucursal").text = os.getenv('CODIGO_SUCURSAL')
-    ET.SubElement(solicitud, "cufd").text = cufd
-    ET.SubElement(solicitud, "cuis").text = os.getenv('CUIS')
-    ET.SubElement(solicitud, "nit").text = os.getenv('NIT')
-    ET.SubElement(solicitud, "tipoFacturaDocumento").text = os.getenv('CODIGO_TIPO_FACTURA')
-    ET.SubElement(solicitud, "codigoMotivo").text = str(codigo_motivo)
-    ET.SubElement(solicitud, "cuf").text = cuf
+# ========================================================================
+# FUNCIONES PRINCIPALES
+# ========================================================================
 
-    # Convertir la estructura a una cadena XML
-    return ET.tostring(envelope, encoding='utf-8', method='xml')
-
-def enviar_solicitud_anulacion(cuf, cufd, codigo_motivo):
-    url = "https://pilotosiatservicios.impuestos.gob.bo/v2/ServicioFacturacionCompraVenta"
-    headers = {
-        'Content-Type': 'text/xml;charset=UTF-8',
-        'apikey': os.getenv('API_KEY')
-    }
-
-    solicitud_xml = construir_solicitud_anulacion(cuf, cufd, codigo_motivo)
+def enviar_solicitud_anulacion(cuf, codigo_motivo):
+    """
+    Envía la solicitud de anulación al servicio SIAT usando el cliente centralizado.
+    
+    VERSIÓN REFACTORIZADA (v2.0.0):
+    - Usa siat_service_client.py en lugar de código duplicado
+    - Manejo de errores robusto y consistente
+    - Logging estructurado sin emojis en consola
+    - Validación de parámetros antes de enviar
+    
+    Args:
+        cuf (str): Código Único de Facturación
+        codigo_motivo (int): Código del motivo de anulación
+        
+    Returns:
+        tuple: (éxito, respuesta_xml/mensaje_error)
+    """
+    logger.info(f"Iniciando envio de solicitud de anulacion para CUF: {cuf[:20]}...")
+    
+    # Validación de parámetros críticos
+    if not cuf or len(cuf) == 0:
+        logger.error("[VALIDACION] CUF vacio o None")
+        return False, "CUF no válido: está vacío"
+    
+    if not codigo_motivo or int(codigo_motivo) <= 0:
+        logger.error(f"[VALIDACION] Codigo de motivo invalido: {codigo_motivo}")
+        return False, f"Código de motivo no válido: {codigo_motivo}"
+    
+    logger.info(f"[VALIDACION] CUF: {cuf[:20]}... (longitud: {len(cuf)})")
+    logger.info(f"[VALIDACION] Codigo motivo: {codigo_motivo}")
+    
     try:
-        anulacion_logger.info(f"Enviando solicitud de anulación para CUF: {cuf}")
-        anulacion_logger.debug(f"URL del servicio: {url}")
-        anulacion_logger.debug(f"Cabeceras: {headers}")
-        anulacion_logger.info(f"Construyendo solicitud de anulación para CUF: {cuf}")
-        anulacion_logger.debug(f"CUFD vigente utilizado: {cufd}")
-        anulacion_logger.debug(f"Parámetros de solicitud: {{'codigoAmbiente': os.getenv('CODIGO_AMBIENTE'), 'codigoPuntoVenta': os.getenv('CODIGO_PUNTO_VENTA'), 'codigoSistema': os.getenv('CODIGO_SISTEMA'), 'codigoSucursal': os.getenv('CODIGO_SUCURSAL'), 'nit': os.getenv('NIT'), 'codigoDocumentoSector': os.getenv('CODIGO_DOCUMENTO_SECTOR'), 'codigoEmision': os.getenv('CODIGO_TIPO_EMISION'), 'codigoModalidad': os.getenv('CODIGO_MODALIDAD'), 'cufd': cufd, 'cuis': os.getenv('CUIS'), 'tipoFacturaDocumento': os.getenv('CODIGO_TIPO_FACTURA'), 'codigoMotivo': codigo_motivo, 'cuf': cuf}}")
-        anulacion_logger.debug(f"XML de solicitud (resumido): {solicitud_xml[:100]}...{solicitud_xml[-100:] if len(solicitud_xml) > 200 else ''}")
-        anulacion_logger.debug("Enviando solicitud al servicio SIAT...")
-        response = requests.post(url, headers=headers, data=solicitud_xml, timeout=45)
-        anulacion_logger.debug(f"Respuesta recibida. Código HTTP: {response.status_code}")
-        response_content = response.content.decode('utf-8') if response.content else ""
-        anulacion_logger.debug(f"Respuesta (resumida): {response_content[:100]}...{response_content[-100:] if len(response_content) > 200 else ''}")
-        anulacion_logger.info(f"[SIAT] Respuesta recibida: {response.content}")
-        response.raise_for_status()
-        return True, response.content
-    except requests.exceptions.Timeout:
-        anulacion_logger.error("Error inesperado: Timeout al intentar conectar con el servicio de anulación.")
-        return False, "Error inesperado: Timeout al intentar conectar con el servicio de anulación."
-    except requests.exceptions.HTTPError as http_err:
-        anulacion_logger.error(f"HTTP error occurred: {http_err}")
-        return False, f"HTTP error occurred: {http_err}"
+        # Obtener cliente SIAT centralizado
+        client = get_siat_client()
+        
+        # Construir solicitud usando cliente centralizado
+        solicitud_xml = client.construir_solicitud_anulacion(cuf, int(codigo_motivo))
+        
+        # Enviar solicitud
+        exito, respuesta = client.enviar_solicitud(solicitud_xml, operacion="anulación")
+        
+        if exito:
+            logger.info("[EXITO] Solicitud de anulacion enviada correctamente.")
+            return True, respuesta
+        else:
+            logger.error(f"[ERROR] Fallo al enviar solicitud: {respuesta}")
+            return False, respuesta
+            
     except Exception as e:
-        anulacion_logger.error(f"An error occurred: {e}")
-        return False, f"An error occurred: {e}"
+        logger.error(f"[ERROR] Excepcion al enviar solicitud de anulacion: {e}")
+        logger.error(traceback.format_exc())
+        return False, f"Error inesperado al enviar solicitud: {str(e)}"
+
+
 
 def procesar_respuesta_anulacion(respuesta_xml, factura, descripcion_motivo):
-    # Procesar el XML de respuesta para extraer la información relevante
-    tree = ET.fromstring(respuesta_xml)
-    codigo_estado = tree.find('.//codigoEstado').text
-    codigo_descripcion = tree.find('.//codigoDescripcion').text
+    """
+    Procesa la respuesta XML del servicio SIAT y actualiza la factura según corresponda.
+    
+    VERSIÓN MEJORADA (v2.0.0):
+    - Extrae TODOS los campos de la respuesta (codigoEstado, codigoDescripcion, mensajesList)
+    - Usa BD local como fuente primaria, SIAT como fallback
+    - Construye mensajes detallados para el usuario con formato Markdown
+    - Logging exhaustivo para debugging
+    - Limpieza de emojis duplicados
+    
+    Args:
+        respuesta_xml (bytes): Respuesta XML del servicio SIAT
+        factura (FacturaCabecera): Objeto de factura a anular
+        descripcion_motivo (str): Descripción del motivo de anulación
+        
+    Returns:
+        tuple: (éxito, mensaje_detallado)
+    """
+    logger.info(f"[PROCESAMIENTO] Iniciando analisis de respuesta para factura #{factura.numeroFactura}")
+    
+    try:
+        # Parsear el XML de respuesta
+        tree = ET.fromstring(respuesta_xml)
+        codigo_estado = tree.find('.//codigoEstado')
+        codigo_descripcion = tree.find('.//codigoDescripcion')
+        
+        # Extraer valores con validación
+        codigo_estado_valor = codigo_estado.text if codigo_estado is not None else None
+        codigo_descripcion_siat = codigo_descripcion.text if codigo_descripcion is not None else "Sin descripción"
+        
+        logger.info(f"[PROCESAMIENTO] Codigo de estado: {codigo_estado_valor}")
+        logger.info(f"[PROCESAMIENTO] Descripcion SIAT: {codigo_descripcion_siat}")
+        
+        # Buscar mensajes adicionales (advertencias/errores)
+        mensajes_lista = tree.findall('.//mensajesList')
+        mensajes_adicionales = []
+        
+        if mensajes_lista:
+            for mensaje in mensajes_lista:
+                desc = mensaje.find('descripcion')
+                if desc is not None and desc.text:
+                    mensajes_adicionales.append(desc.text)
+                    logger.info(f"[PROCESAMIENTO] Mensaje adicional SIAT: {desc.text}")
+        
+        # ====================================================================
+        # ESTRATEGIA DE DESCRIPCIÓN: BD primero, SIAT como fallback
+        # ====================================================================
+        
+        # Intentar obtener mensaje desde BD local (más confiable y consistente)
+        descripcion_bd = obtener_mensaje_por_codigo(int(codigo_estado_valor)) if codigo_estado_valor else None
+        
+        # Aplicar limpieza de emojis a ambas fuentes
+        descripcion_principal = limpiar_emojis_descripcion(
+            descripcion_bd if descripcion_bd else limpiar_emojis_descripcion(codigo_descripcion_siat)
+        )
+        
+        logger.info(f"[PROCESAMIENTO] Descripcion final (limpia): {descripcion_principal}")
+        
+        # ====================================================================
+        # GUARDAR numero_factura ANTES de cualquier operación de sesión
+        # (Prevención de DetachedInstanceError)
+        # ====================================================================
+        numero_factura = factura.numeroFactura
+        
+        # ====================================================================
+        # MANEJO DE ESTADOS ESPECÍFICOS
+        # ====================================================================
+        
+        if codigo_estado_valor == ESTADO_ANULACION_CONFIRMADA:  # 905 - Anulación confirmada
+            logger.info(f"[EXITO] Anulacion confirmada para factura #{numero_factura}")
+            
+            # Actualizar estado en BD
+            factura.estado = "Anulada"
+            factura.fechaAnulacion = datetime.now()
+            factura.motivoAnulacion = descripcion_motivo
+            
+            session = SessionLocal()
+            try:
+                session.add(factura)
+                session.commit()
+                logger.info(f"[BD] Factura #{numero_factura} actualizada exitosamente.")
+            except Exception as e:
+                session.rollback()
+                logger.error(f"[BD ERROR] Error al actualizar factura: {e}")
+                return False, f"❌ Error al actualizar la factura en BD: {e}"
+            finally:
+                session.close()
+            
+            # Construir mensaje de éxito con formato Markdown
+            mensaje_exito = f"✅ **{descripcion_principal}**\n\n"
+            mensaje_exito += f"📄 **Factura #{numero_factura}** anulada correctamente.\n"
+            mensaje_exito += f"📅 **Fecha:** {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n"
+            mensaje_exito += f"📝 **Motivo:** {descripcion_motivo}"
+            
+            if mensajes_adicionales:
+                mensaje_exito += f"\n\nℹ️ **Mensajes adicionales:**\n"
+                for msg in mensajes_adicionales:
+                    mensaje_exito += f"- {msg}\n"
+            
+            return True, mensaje_exito
+        
+        elif codigo_estado_valor == ESTADO_ANULACION_RECHAZADA:  # 906 - Rechazada
+            logger.warning(f"[RECHAZADO] Anulacion rechazada para factura #{numero_factura}")
+            
+            mensaje_rechazo = f"❌ **{descripcion_principal}**\n\n"
+            mensaje_rechazo += f"📄 **Factura #{numero_factura}**: La anulación fue rechazada por el SIAT.\n"
+            
+            # Agregar detalles de mensajes adicionales si existen
+            if mensajes_adicionales:
+                mensaje_rechazo += f"\n**Razones del rechazo:**\n"
+                for msg in mensajes_adicionales:
+                    # Casos especiales comunes
+                    if "YA SE ENCUENTRA ANULADA" in msg.upper():
+                        mensaje_rechazo += f"⚠️ La factura ya fue anulada previamente.\n"
+                    elif "NO EXISTE EN LA BASE DE DATOS" in msg.upper():
+                        mensaje_rechazo += f"⚠️ La factura no existe en la base de datos del SIN.\n"
+                    else:
+                        mensaje_rechazo += f"- {msg}\n"
+            
+            return False, mensaje_rechazo
+        
+        elif codigo_estado_valor == ESTADO_FACTURA_NO_EXISTE:  # 924
+            logger.warning(f"[RECHAZO] Factura #{numero_factura} no existe en BD del SIN")
+            
+            mensaje = f"⚠️ **{descripcion_principal}**\n\n"
+            mensaje += f"📄 **Factura #{numero_factura}** no se encuentra registrada en el SIN.\n"
+            mensaje += f"Por favor, verifica el número de factura."
+            
+            return False, mensaje
+        
+        elif codigo_estado_valor == ESTADO_FACTURA_YA_ANULADA:  # 936
+            logger.warning(f"[RECHAZO] Factura #{numero_factura} ya estaba anulada")
+            
+            mensaje = f"⚠️ **{descripcion_principal}**\n\n"
+            mensaje += f"📄 **Factura #{numero_factura}** ya fue anulada anteriormente.\n"
+            mensaje += f"No es posible anular una factura múltiples veces."
+            
+            return False, mensaje
+        
+        elif codigo_estado_valor == ESTADO_FUERA_DE_PLAZO:  # 970
+            logger.warning(f"[RECHAZO] Factura #{numero_factura} fuera de plazo")
+            
+            mensaje = f"⏰ **{descripcion_principal}**\n\n"
+            mensaje += f"📄 **Factura #{numero_factura}** está fuera del plazo permitido.\n"
+            mensaje += f"**Normativa:** Solo se pueden anular facturas hasta el día 9 del mes siguiente a su emisión."
+            
+            return False, mensaje
+        
+        elif codigo_estado_valor == ESTADO_SISTEMA_NO_AUTORIZADO:  # 3011
+            logger.error(f"[ERROR CRITICO] Sistema no autorizado")
+            
+            mensaje = f"🔴 **{descripcion_principal}**\n\n"
+            mensaje += f"El sistema no está autorizado para realizar esta operación.\n"
+            mensaje += f"Contacte al administrador del sistema."
+            
+            return False, mensaje
+        
+        elif codigo_estado_valor == ESTADO_SOLICITUD_FUERA_PLAZO:  # 3012
+            logger.warning(f"[RECHAZO] Solicitud fuera de plazo")
+            
+            mensaje = f"⏰ **{descripcion_principal}**\n\n"
+            mensaje += f"La solicitud fue rechazada por estar fuera del plazo permitido."
+            
+            return False, mensaje
+        
+        else:  # Código desconocido
+            logger.error(f"[ERROR] Codigo de estado desconocido: {codigo_estado_valor}")
+            
+            mensaje = f"❓ **Estado desconocido:** {descripcion_principal}\n\n"
+            mensaje += f"Código: {codigo_estado_valor}\n"
+            mensaje += f"Descripción SIAT: {codigo_descripcion_siat}"
+            
+            if mensajes_adicionales:
+                mensaje += f"\n\n**Mensajes adicionales:**\n"
+                for msg in mensajes_adicionales:
+                    mensaje += f"- {msg}\n"
+            
+            return False, mensaje
+    
+    except ET.ParseError as e:
+        logger.error(f"[ERROR XML] Error al parsear respuesta XML: {e}")
+        return False, f"❌ Error al procesar la respuesta del SIAT (XML malformado): {str(e)}"
+    
+    except Exception as e:
+        logger.error(f"[ERROR] Excepcion inesperada al procesar respuesta: {e}")
+        logger.error(traceback.format_exc())
+        return False, f"❌ Error inesperado al procesar la respuesta: {str(e)}"
 
-    # Manejar diferentes códigos de estado basados en la respuesta
-    if codigo_estado == "905":  # Anulación confirmada
-        factura.estado = "Anulada"
-        factura.fechaAnulacion = datetime.now()
-        factura.motivoAnulacion = descripcion_motivo  # Guardar el motivo seleccionado
-
-        session = SessionLocal()
-        try:
-            session.add(factura)
-            session.commit()
-        except Exception as e:
-            session.rollback()
-            return False, f"Error al actualizar la factura: {e}"
-        finally:
-            session.close()
-
-        return True, "Factura anulada correctamente."
-
-    elif codigo_estado == "906":  # Anulación rechazada
-        mensaje_error = tree.find('.//mensajesList/descripcion').text
-
-        if mensaje_error is not None and "YA SE ENCUENTRA ANULADA" in mensaje_error:
-            return False, "La factura ya fue anulada previamente."
-        elif mensaje_error is not None and "NO EXISTE EN LA BASE DE DATOS DEL SIN" in mensaje_error:
-            return False, "La factura no existe en la base de datos del SIN."
-        else:
-            return False, f"Error en la anulación: {mensaje_error}"
-
-    elif codigo_estado == "924":  # Factura no existe
-        return False, "La factura no existe en la base de datos del SIN."
-
-    elif codigo_estado == "936":  # Factura ya anulada
-        return False, "La factura ya ha sido anulada previamente."
-
-    elif codigo_estado == "970":  # Factura fuera de plazo
-        return False, "La factura está fuera del plazo permitido para su anulación."
-
-    else:
-        return False, f"Error desconocido en la anulación: {codigo_descripcion}"
 
 
 def anular_factura(numero_factura, descripcion_motivo):
+    """
+    Función principal para anular una factura electrónica.
+    
+    VERSIÓN REFACTORIZADA (v2.0.0):
+    - Validaciones robustas antes de enviar al SIAT
+    - Uso de cliente centralizado (siat_service_client)
+    - Mensajes detallados con formato Markdown
+    - Logging estructurado sin emojis en consola
+    
+    Args:
+        numero_factura (str): Número de la factura a anular
+        descripcion_motivo (str): Descripción del motivo de anulación
+        
+    Returns:
+        tuple: (éxito, mensaje_detallado)
+    """
+    logger.info(f"Iniciando proceso de anulacion para factura #{numero_factura}")
+    
     try:
-        facturacion_logger.info(f"Iniciando anulación de la factura {numero_factura}")
+        # ====================================================================
+        # 1. OBTENER CUF Y FACTURA DESDE BD
+        # ====================================================================
         cuf, factura = obtener_cuf_por_numero_factura(numero_factura)
-
-        # Verificar si la factura no se encontró o si hubo un error
+        
+        # Validar que se encontró la factura
         if factura is None:
-            return False, "No se encontró la factura especificada."
+            logger.error(f"[ERROR] No se encontro la factura #{numero_factura}")
+            return False, f"❌ No se encontró la factura **#{numero_factura}** en la base de datos."
         
         # Verificar si factura es un mensaje de error (str)
         if isinstance(factura, str):
-            facturacion_logger.error(f"Error al obtener la factura: {factura}")
-            return False, f"Error al recuperar la factura: {factura}"
-
-            # Registrar la respuesta completa del SIAT en el log (formato unificado)
-            logger.info(f"[SIAT] Respuesta recibida: {respuesta_siat}")
-
-            # Verificar si la factura está revertida y bloquear una nueva anulación
-            if str(factura.estado) == "Valida" and factura.fechaValidacion is not None:
-                return False, "La factura ya fue revertida y no puede ser anulada nuevamente."
-
-        # Verificar si la fecha actual supera el plazo de anulación
-        if datetime.now().month > factura.fechaEmision.month + 1:
-            return False, "La factura está fuera del plazo para su anulación."
-
+            logger.error(f"[ERROR] Error al obtener factura: {factura}")
+            return False, f"❌ Error al recuperar la factura: {factura}"
+        
+        logger.info(f"[BD] Factura #{numero_factura} encontrada. Estado actual: {factura.estado}")
+        
+        # ====================================================================
+        # 2. VALIDACIONES DE ESTADO
+        # ====================================================================
+        
+        # Verificar si la factura ya fue revertida (no se puede anular de nuevo)
+        if str(factura.estado) == "Valida" and factura.fechaValidacion is not None:
+            logger.warning(f"[RECHAZO] Factura #{numero_factura} fue revertida, no se puede anular")
+            mensaje = f"⚠️ **Operación no permitida**\n\n"
+            mensaje += f"📄 **Factura #{numero_factura}** ya fue revertida y no puede ser anulada nuevamente.\n"
+            mensaje += f"Una factura revertida recupera su estado válido y no puede ser anulada."
+            return False, mensaje
+        
+        # Verificar si ya está anulada
+        if str(factura.estado) == "Anulada":
+            logger.warning(f"[RECHAZO] Factura #{numero_factura} ya esta anulada")
+            mensaje = f"⚠️ **Factura ya anulada**\n\n"
+            mensaje += f"📄 **Factura #{numero_factura}** ya se encuentra en estado **Anulada**.\n"
+            mensaje += f"No es posible anular una factura múltiples veces."
+            return False, mensaje
+        
+        # ====================================================================
+        # 3. VALIDACIÓN DE PLAZO (Hasta día 9 del mes siguiente)
+        # ====================================================================
+        fecha_emision = factura.fechaEmision
+        fecha_actual = datetime.now()
+        
+        # Calcular si está fuera de plazo
+        mes_siguiente = fecha_emision.month + 1 if fecha_emision.month < 12 else 1
+        anio_siguiente = fecha_emision.year if fecha_emision.month < 12 else fecha_emision.year + 1
+        
+        if fecha_actual.month > mes_siguiente or (fecha_actual.month == mes_siguiente and fecha_actual.day > 9):
+            logger.warning(f"[RECHAZO] Factura #{numero_factura} fuera de plazo")
+            mensaje = f"⏰ **Fuera de plazo**\n\n"
+            mensaje += f"📄 **Factura #{numero_factura}** está fuera del plazo permitido.\n"
+            mensaje += f"**Fecha de emisión:** {fecha_emision.strftime('%d/%m/%Y')}\n"
+            mensaje += f"**Normativa:** Solo se pueden anular facturas hasta el día 9 del mes siguiente."
+            return False, mensaje
+        
+        logger.info(f"[VALIDACION] Factura dentro del plazo de anulacion")
+        
+        # ====================================================================
+        # 4. OBTENER CUFD Y CÓDIGO DE MOTIVO
+        # ====================================================================
         cufd = obtener_cufd_vigente()
         if cufd is None:
-            return False, "No se pudo obtener el CUFD vigente."
-
+            logger.error("[ERROR] No se pudo obtener CUFD vigente")
+            return False, "❌ No se pudo obtener el **CUFD vigente**. Verifique la sincronización con el SIAT."
+        
+        logger.info(f"[CUFD] Obtenido exitosamente: {cufd[:20]}...")
+        
         codigo_motivo = obtener_codigo_motivo(descripcion_motivo)
         if codigo_motivo is None:
-            return False, "No se pudo obtener el código del motivo de anulación."
-
-        exito, respuesta = enviar_solicitud_anulacion(cuf, cufd, codigo_motivo)
-        if exito:
-            return procesar_respuesta_anulacion(respuesta, factura, descripcion_motivo)
-        else:
-            return False, respuesta
+            logger.error(f"[ERROR] No se encontro codigo para el motivo: {descripcion_motivo}")
+            return False, f"❌ No se pudo obtener el **código del motivo** '{descripcion_motivo}'."
+        
+        logger.info(f"[MOTIVO] Codigo de motivo: {codigo_motivo} - {descripcion_motivo}")
+        
+        # ====================================================================
+        # 5. ENVIAR SOLICITUD AL SIAT
+        # ====================================================================
+        logger.info(f"[SIAT] Enviando solicitud de anulacion...")
+        
+        exito, respuesta = enviar_solicitud_anulacion(cuf, codigo_motivo)
+        
+        if not exito:
+            # Decodificar el mensaje de error si viene en bytes
+            mensaje_error = respuesta.decode('utf-8') if isinstance(respuesta, bytes) else str(respuesta)
+            logger.error(f"[SIAT ERROR] Fallo al enviar solicitud: {mensaje_error}")
+            return False, f"❌ **Error al comunicarse con el SIAT:**\n\n{mensaje_error}"
+        
+        # Log de respuesta recibida
+        logger.info(f"[SIAT] Respuesta recibida exitosamente. Procesando...")
+        
+        # ====================================================================
+        # 6. PROCESAR RESPUESTA
+        # ====================================================================
+        return procesar_respuesta_anulacion(respuesta, factura, descripcion_motivo)
+    
     except Exception as e:
-        facturacion_logger.error(f"Error al anular factura {numero_factura}: {e}")
-        facturacion_logger.error(traceback.format_exc())
-        return False, f"Error durante la anulación: {str(e)}"
+        logger.error(f"[ERROR] Excepcion inesperada al anular factura #{numero_factura}: {e}")
+        logger.error(traceback.format_exc())
+        return False, f"❌ **Error inesperado durante la anulación:**\n\n{str(e)}"
+
+
+# ========================================================================
+# PUNTO DE ENTRADA PARA TESTING/DEBUGGING
+# ========================================================================
+
+if __name__ == "__main__":
+    """
+    Permite ejecutar el módulo directamente para testing.
+    
+    Uso:
+        python anulacion.py <numero_factura> <descripcion_motivo>
+    
+    Ejemplo:
+        python anulacion.py 12345 "Emitido con error"
+    """
+    if len(sys.argv) > 2:
+        numero = sys.argv[1]
+        motivo = sys.argv[2]
+        print(f"\n{'='*60}")
+        print(f"Testing: Anulación de factura #{numero}")
+        print(f"Motivo: {motivo}")
+        print(f"{'='*60}\n")
+        
+        exito, mensaje = anular_factura(numero, motivo)
+        
+        print(f"\n{'='*60}")
+        print(f"Resultado: {'ÉXITO' if exito else 'ERROR'}")
+        print(f"{'='*60}")
+        print(mensaje)
+        print(f"{'='*60}\n")
+    else:
+        print("Uso: python anulacion.py <numero_factura> <descripcion_motivo>")
+        print('Ejemplo: python anulacion.py 12345 "Emitido con error"')

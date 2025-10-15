@@ -232,15 +232,22 @@ class SIATServiceClient:
             La anulación debe realizarse antes de que la factura sea incluida
             en una declaración jurada mensual.
         """
+        logger.info(f"[SIAT Client] Construyendo solicitud anulacion - CUF: {cuf[:20]}..., Motivo: {codigo_motivo}")
+        
         envelope, metodo = self._construir_envelope_base("anulacionFactura")
         solicitud = ET.SubElement(metodo, "SolicitudServicioAnulacionFactura")
         
         self._agregar_parametros_comunes(solicitud)
         ET.SubElement(solicitud, "cuf").text = cuf
-        ET.SubElement(solicitud, "codigoMotivoAnulacion").text = str(codigo_motivo)
+        ET.SubElement(solicitud, "codigoMotivo").text = str(codigo_motivo)
         
         xml_bytes = ET.tostring(envelope, encoding='utf-8', method='xml')
-        logger.debug(f"[SIAT Client] Solicitud anulación construida para CUF: {cuf[:20]}...")
+        
+        # Log completo del XML para debugging (solo en modo DEBUG)
+        if logger.level <= 10:  # DEBUG level
+            logger.debug(f"[SIAT Client] XML completo de anulacion:\n{xml_bytes.decode('utf-8')}")
+        
+        logger.debug(f"[SIAT Client] Solicitud anulacion construida exitosamente. Tamano: {len(xml_bytes)} bytes")
         return xml_bytes
     
     def enviar_solicitud(
@@ -304,31 +311,48 @@ class SIATServiceClient:
             return True, response.content
             
         except requests.exceptions.Timeout:
-            error_msg = f"⏱️ Timeout ({timeout}s) al conectar con SIAT durante {operacion}"
-            logger.error(f"[SIAT Client] {error_msg}")
+            error_msg = f"Timeout ({timeout}s) al conectar con SIAT durante {operacion}"
+            logger.error(f"[SIAT Client] [TIMEOUT] {error_msg}")
             return False, error_msg.encode('utf-8')
             
         except requests.exceptions.HTTPError as http_err:
             # Extraer código de estado si está disponible
             status_code = response.status_code if 'response' in locals() else 'N/A'
-            error_msg = f"❌ Error HTTP {status_code} durante {operacion}: {http_err}"
-            logger.error(f"[SIAT Client] {error_msg}")
             
-            # Intentar extraer mensaje de error del cuerpo de la respuesta
+            # Construir mensaje sin emojis para evitar problemas de codificación
+            error_msg = f"Error HTTP {status_code} durante {operacion}"
+            
+            # Intentar extraer mensaje de error del cuerpo de la respuesta XML
             if 'response' in locals() and response.content:
-                logger.debug(f"[SIAT Client] Cuerpo de respuesta HTTP: {response.content[:200]}")
+                try:
+                    # Intentar parsear el XML de error del SIAT
+                    tree = ET.fromstring(response.content)
+                    fault_string = tree.find('.//{http://schemas.xmlsoap.org/soap/envelope/}Fault/faultstring')
+                    
+                    if fault_string is not None and fault_string.text:
+                        error_msg += f": {fault_string.text}"
+                        logger.error(f"[SIAT Client] [HTTP ERROR] {error_msg}")
+                    else:
+                        logger.error(f"[SIAT Client] [HTTP ERROR] {error_msg}")
+                        logger.debug(f"[SIAT Client] Cuerpo de respuesta HTTP: {response.content[:500]}")
+                except Exception as parse_err:
+                    logger.error(f"[SIAT Client] [HTTP ERROR] {error_msg}")
+                    logger.debug(f"[SIAT Client] No se pudo parsear error XML: {parse_err}")
+                    logger.debug(f"[SIAT Client] Cuerpo de respuesta: {response.content[:500]}")
+            else:
+                logger.error(f"[SIAT Client] [HTTP ERROR] {error_msg}: {http_err}")
             
             return False, error_msg.encode('utf-8')
             
         except requests.exceptions.ConnectionError as conn_err:
-            error_msg = f"🔌 Error de conexión durante {operacion}: Sin acceso a Internet o servidor SIAT caído"
-            logger.error(f"[SIAT Client] {error_msg}")
+            error_msg = f"Error de conexion durante {operacion}: Sin acceso a Internet o servidor SIAT caido"
+            logger.error(f"[SIAT Client] [CONN ERROR] {error_msg}")
             logger.debug(f"[SIAT Client] Detalle: {conn_err}")
             return False, error_msg.encode('utf-8')
             
         except Exception as e:
-            error_msg = f"💥 Error inesperado durante {operacion}: {str(e)}"
-            logger.error(f"[SIAT Client] {error_msg}", exc_info=True)
+            error_msg = f"Error inesperado durante {operacion}: {str(e)}"
+            logger.error(f"[SIAT Client] [ERROR] {error_msg}", exc_info=True)
             return False, error_msg.encode('utf-8')
 
 
