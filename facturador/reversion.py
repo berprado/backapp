@@ -1,3 +1,44 @@
+"""
+Módulo de Reversión de Anulación de Facturas
+============================================
+
+PROPÓSITO:
+----------
+Gestiona el proceso de reversión de anulación de facturas electrónicas
+previamente anuladas, restaurándolas a su estado válido original.
+
+FUNCIONALIDADES:
+----------------
+- Construcción de solicitudes SOAP para reversión
+- Envío de solicitudes al servicio SIAT
+- Procesamiento de respuestas con múltiples códigos de estado
+- Actualización de estado en base de datos local
+- Limpieza de emojis duplicados en descripciones del SIAT
+
+NORMATIVA:
+----------
+Plazo de reversión: Hasta el día 9 del mes siguiente a la emisión
+
+CÓDIGOS DE ESTADO SOPORTADOS:
+------------------------------
+- 907: Reversión confirmada
+- 909: Reversión rechazada
+- 981: Factura ya revertida
+- 924: Factura no existe en BD del SIN
+- 3011: Sistema no autorizado
+- 3012: Solicitud fuera de plazo
+
+VERSIÓN: 2.1.0 (Refactorizado - 16 octubre 2025)
+CAMBIOS:
+  - Migrado a logger centralizado (logger_config.py)
+  - Eliminada configuración manual de logging (30+ líneas)
+  - Prefijos de log estandarizados ([REVERSION])
+  - 100% consistente con anulacion.py
+  - Logs verbosos condicionados a DEBUG level
+
+AUTOR: Sistema de Facturación Electrónica
+"""
+
 import os
 import sys
 import requests
@@ -7,40 +48,33 @@ from data_access import SessionLocal
 from models import FacturaCabecera
 from datetime import datetime
 from data_access import obtener_mensaje_por_codigo, obtener_cuf_por_numero_factura, obtener_cufd_vigente
-import logging
 
-# Configuración del logger
-logger = logging.getLogger('reversion')
-logger.setLevel(logging.DEBUG)
-
-# Crear manejadores para archivo y consola
-file_handler = logging.FileHandler('logs/reversion.log')
-console_handler = logging.StreamHandler()
-
-# Definir formato del log
-log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-formatter = logging.Formatter(log_format)
-file_handler.setFormatter(formatter)
-console_handler.setFormatter(formatter)
-
-# Agregar manejadores al logger
-logger.addHandler(file_handler)
-logger.addHandler(console_handler)
-
-# Evitar registros duplicados si el logger ya tiene handlers
-if len(logger.handlers) > 2:
-    logger.handlers = logger.handlers[:2]
+# ========================================================================
+# CONFIGURACIÓN DE LOGGING CENTRALIZADA
+# ========================================================================
+# ANTES: 30+ líneas de configuración manual con handlers duplicados
+# AHORA: 1 línea usando el sistema centralizado
+from logger_config import get_logger
+logger = get_logger()
 
 # Cargar variables de entorno
 load_dotenv()
 
-# Códigos de estado como constantes
+# ========================================================================
+# CONSTANTES: Códigos de Estado del SIAT
+# ========================================================================
+
 ESTADO_REVERSION_CONFIRMADA = "907"       # Reversión confirmada exitosamente
-ESTADO_REVERSION_RECHAZADA = "909"        # Reversión rechazada por el SIAT (NUEVO)
+ESTADO_REVERSION_RECHAZADA = "909"        # Reversión rechazada por el SIAT
 ESTADO_FACTURA_YA_REVERTIDA = "981"       # Factura ya revertida anteriormente
 ESTADO_FACTURA_NO_EXISTE = "924"          # Factura no existe en base de datos SIAT
 ESTADO_SISTEMA_NO_AUTORIZADO = "3011"     # Sistema no autorizado
 ESTADO_FUERA_DE_PLAZO = "3012"            # Solicitud fuera de plazo
+
+
+# ========================================================================
+# FUNCIONES AUXILIARES
+# ========================================================================
 
 
 def limpiar_emojis_descripcion(descripcion):
@@ -87,17 +121,17 @@ def construir_solicitud_reversion(cuf):
     Returns:
         bytes: XML de solicitud codificado en UTF-8
     """
-    logger.info(f"Construyendo solicitud de reversión para CUF: {cuf}")
+    logger.info(f"[REVERSION] Construyendo solicitud para CUF: {cuf[:20]}...")
     
     try:
         # Obtener el CUFD vigente de la base de datos
         cufd_vigente = obtener_cufd_vigente()
         if not cufd_vigente:
             error_msg = "No hay un CUFD vigente en la base de datos"
-            logger.error(error_msg)
+            logger.error(f"[REVERSION] {error_msg}")
             raise ValueError(error_msg)
         
-        logger.debug(f"CUFD vigente obtenido de la base de datos: {cufd_vigente[:10]}...")
+        logger.debug(f"[REVERSION] CUFD vigente obtenido: {cufd_vigente[:10]}...")
         
         envelope = ET.Element("{http://schemas.xmlsoap.org/soap/envelope/}Envelope")
         body = ET.SubElement(envelope, "{http://schemas.xmlsoap.org/soap/envelope/}Body")
@@ -114,39 +148,41 @@ def construir_solicitud_reversion(cuf):
             "codigoDocumentoSector": os.getenv('CODIGO_DOCUMENTO_SECTOR'),
             "codigoEmision": os.getenv('CODIGO_TIPO_EMISION'),
             "codigoModalidad": os.getenv('CODIGO_MODALIDAD'),
-            "cufd": cufd_vigente,  # Usar el CUFD de la base de datos
+            "cufd": cufd_vigente,
             "cuis": os.getenv('CUIS'),
             "tipoFacturaDocumento": os.getenv('CODIGO_TIPO_FACTURA'),
             "cuf": cuf
         }
         
-        # Registrar los parámetros en el log (excepto información sensible)
-        log_params = parametros.copy()
-        if 'cufd' in log_params and log_params['cufd']:
-            log_params['cufd'] = f"{log_params['cufd'][:5]}...{log_params['cufd'][-5:]}" if len(log_params['cufd']) > 10 else "[valor protegido]"
-        if 'cuis' in log_params and log_params['cuis']:
-            log_params['cuis'] = f"{log_params['cuis'][:3]}...{log_params['cuis'][-3:]}" if len(log_params['cuis']) > 6 else "[valor protegido]"
-        logger.debug(f"Parámetros de solicitud: {log_params}")
+        # Logging estandarizado: Solo en DEBUG, con prefijo consistente
+        if logger.level <= 10:  # DEBUG = 10
+            log_params = parametros.copy()
+            # Proteger datos sensibles
+            for key in ['cufd', 'cuis']:
+                if key in log_params and log_params[key]:
+                    val = log_params[key]
+                    log_params[key] = f"{val[:5]}...{val[-5:]}" if len(val) > 10 else "[protegido]"
+            logger.debug(f"[REVERSION] Parametros: {log_params}")
         
-        # Verificar que todos los parámetros requeridos estén presentes y no sean None
+        # Verificar parámetros requeridos
         for key, value in parametros.items():
             if value is None:
-                error_msg = f"El parámetro '{key}' es requerido pero no está definido"
-                logger.error(error_msg)
+                error_msg = f"El parametro '{key}' es requerido pero no esta definido"
+                logger.error(f"[REVERSION] {error_msg}")
                 raise ValueError(error_msg)
-            ET.SubElement(solicitud, key).text = str(value)  # Convertir a string para evitar problemas
+            ET.SubElement(solicitud, key).text = str(value)
 
-        # Convertir la estructura a una cadena XML
         xml_data = ET.tostring(envelope, encoding='utf-8', method='xml')
         
-        # Registrar una versión resumida del XML para no saturar los logs
-        xml_str = xml_data.decode('utf-8')
-        logger.debug(f"XML de solicitud (resumido): {xml_str[:100]}...{xml_str[-100:] if len(xml_str) > 200 else ''}")
+        # Log resumido solo en DEBUG
+        if logger.level <= 10:
+            xml_str = xml_data.decode('utf-8')
+            logger.debug(f"[REVERSION] XML (extracto): ...{xml_str[-100:]}")
         
         return xml_data
     
     except Exception as e:
-        logger.error(f"Error al construir solicitud de reversión: {str(e)}", exc_info=True)
+        logger.error(f"[REVERSION] Error al construir solicitud: {str(e)}", exc_info=True)
         raise
 
 def enviar_solicitud_reversion(cuf):
@@ -159,7 +195,7 @@ def enviar_solicitud_reversion(cuf):
     Returns:
         tuple: (éxito, respuesta/mensaje de error)
     """
-    logger.info(f"Enviando solicitud de reversión para CUF: {cuf}")
+    logger.info(f"[REVERSION] Enviando solicitud para CUF: {cuf[:20]}...")
     
     url = os.getenv('URL_SERVICIO_FACTURACION', "https://pilotosiatservicios.impuestos.gob.bo/v2/ServicioFacturacionCompraVenta")
     headers = {
@@ -167,45 +203,38 @@ def enviar_solicitud_reversion(cuf):
         'apikey': os.getenv('API_KEY')
     }
     
-    # Log de la URL y cabeceras (ocultando la API key)
-    log_headers = headers.copy()
-    if 'apikey' in log_headers and log_headers['apikey']:
-        log_headers['apikey'] = f"{log_headers['apikey'][:5]}...{log_headers['apikey'][-5:]}" if len(log_headers['apikey']) > 10 else "[valor protegido]"
-    logger.debug(f"URL del servicio: {url}")
-    logger.debug(f"Cabeceras: {log_headers}")
+    # Log de URL solo en DEBUG
+    if logger.level <= 10:
+        logger.debug(f"[REVERSION] URL: {url}")
 
     try:
         solicitud_xml = construir_solicitud_reversion(cuf)
-        logger.debug("Enviando solicitud al servicio SIAT...")
         
-        response = requests.post(url, headers=headers, data=solicitud_xml)
-        logger.debug(f"Respuesta recibida. Código HTTP: {response.status_code}")
+        response = requests.post(url, headers=headers, data=solicitud_xml, timeout=30)
+        logger.info(f"[REVERSION] Respuesta HTTP {response.status_code} recibida")
         
         response.raise_for_status()
-        
-        # Registrar un extracto de la respuesta para no saturar los logs
-        response_content = response.content.decode('utf-8') if response.content else ""
-        logger.debug(f"Respuesta (resumida): {response_content[:100]}...{response_content[-100:] if len(response_content) > 200 else ''}")
         
         return True, response.content
     
     except requests.exceptions.HTTPError as http_err:
-        logger.error(f"Error HTTP al enviar solicitud: {http_err}", exc_info=True)
-        return False, f"HTTP error occurred: {http_err}"
+        logger.error(f"[REVERSION] Error HTTP: {http_err}", exc_info=True)
+        return False, f"Error HTTP: {http_err}"
     
     except Exception as e:
-        logger.error(f"Error general al enviar solicitud: {e}", exc_info=True)
-        return False, f"An error occurred: {e}"
+        logger.error(f"[REVERSION] Error al enviar: {e}", exc_info=True)
+        return False, f"Error: {e}"
 
 def procesar_respuesta_reversion(respuesta_xml, factura):
     """
     Procesa la respuesta XML del servicio SIAT y actualiza la factura según corresponda.
     
-    VERSIÓN MEJORADA:
+    VERSIÓN MEJORADA (v2.1.0):
     - Extrae TODOS los campos de la respuesta (codigoEstado, codigoDescripcion, mensajesList)
     - Usa BD local como fuente primaria, SIAT como fallback
     - Construye mensajes detallados para el usuario con formato Markdown
-    - Logging exhaustivo para debugging
+    - Logging estandarizado con prefijos consistentes
+    - Prevención de DetachedInstanceError
     
     Args:
         respuesta_xml (bytes): Respuesta XML del servicio
@@ -214,44 +243,40 @@ def procesar_respuesta_reversion(respuesta_xml, factura):
     Returns:
         tuple: (éxito, mensaje_detallado)
     """
-    logger.info(f"[PROCESAMIENTO] Iniciando análisis de respuesta para factura #{factura.numeroFactura}")
+    # Guardar numero_factura ANTES de cualquier operación de BD
+    numero_factura = factura.numeroFactura
+    
+    logger.info(f"[REVERSION] Procesando respuesta para factura #{numero_factura}")
     
     try:
-        # ========== PASO 1: PARSEAR XML ==========
+        # ========== PARSEAR XML ==========
         tree = ET.fromstring(respuesta_xml)
         
-        # Extraer campos principales
         transaccion_elem = tree.find('.//transaccion')
         codigo_estado_elem = tree.find('.//codigoEstado')
         codigo_descripcion_elem = tree.find('.//codigoDescripcion')
         
-        # Validación de campos obligatorios
         if transaccion_elem is None or codigo_estado_elem is None:
-            logger.error("[ERROR] Respuesta XML incompleta: faltan campos obligatorios")
-            logger.debug(f"XML recibido: {respuesta_xml.decode('utf-8')[:500]}")
+            logger.error("[REVERSION] XML incompleto: faltan campos obligatorios")
             return False, "❌ Respuesta del servicio incorrecta o incompleta"
         
-        # Extraer valores
         transaccion = transaccion_elem.text.lower() == 'true'
         codigo_estado = codigo_estado_elem.text
         codigo_descripcion_siat = codigo_descripcion_elem.text if codigo_descripcion_elem is not None else None
         
-        logger.info(f"[SIAT] Código estado: {codigo_estado}")
-        logger.info(f"[SIAT] Transacción: {transaccion}")
-        logger.debug(f"[SIAT] Descripción: {codigo_descripcion_siat}")
+        logger.info(f"[REVERSION] Codigo: {codigo_estado}, Transaccion: {transaccion}")
         
-        # ========== PASO 2: OBTENER DESCRIPCIÓN DE BD LOCAL ==========
+        # ========== OBTENER DESCRIPCIÓN DE BD ==========
         descripcion_bd = obtener_mensaje_por_codigo(codigo_estado)
         
-        # Decidir qué descripción usar (BD primero, SIAT como fallback)
         if descripcion_bd and not descripcion_bd.startswith("Código desconocido"):
             descripcion_principal = limpiar_emojis_descripcion(descripcion_bd)
-            logger.debug(f"[BD] Descripción encontrada: {descripcion_bd}")
         else:
-            descripcion_principal = limpiar_emojis_descripcion(codigo_descripcion_siat) if codigo_descripcion_siat else f"Código {codigo_estado}"
-            logger.warning(f"[BD] Código {codigo_estado} no encontrado, usando descripción SIAT")
+            descripcion_principal = limpiar_emojis_descripcion(codigo_descripcion_siat) if codigo_descripcion_siat else f"Codigo {codigo_estado}"
+            if not descripcion_bd or descripcion_bd.startswith("Código desconocido"):
+                logger.warning(f"[REVERSION] Codigo {codigo_estado} no encontrado en BD local")
         
-        # ========== PASO 3: EXTRAER MENSAJES ADICIONALES (mensajesList) ==========
+        # ========== EXTRAER mensajesList ==========
         mensajes_detalle = []
         for mensaje_elem in tree.findall('.//mensajesList'):
             codigo_msg_elem = mensaje_elem.find('codigo')
@@ -261,31 +286,21 @@ def procesar_respuesta_reversion(respuesta_xml, factura):
                 codigo_msg = codigo_msg_elem.text
                 desc_msg_siat = desc_msg_elem.text
                 
-                # Intentar obtener descripción de BD para este código adicional
                 desc_msg_bd = obtener_mensaje_por_codigo(codigo_msg)
-                
-                # Decidir qué descripción usar
-                if desc_msg_bd and not desc_msg_bd.startswith("Código desconocido"):
-                    desc_msg_final = desc_msg_bd
-                else:
-                    desc_msg_final = desc_msg_siat
+                desc_msg_final = desc_msg_bd if (desc_msg_bd and not desc_msg_bd.startswith("Código desconocido")) else desc_msg_siat
                 
                 mensajes_detalle.append({
                     'codigo': codigo_msg,
                     'descripcion': desc_msg_final
                 })
                 
-                logger.info(f"[DETALLE] Mensaje adicional: [{codigo_msg}] {desc_msg_final}")
+                logger.info(f"[REVERSION] Mensaje adicional [{codigo_msg}]: {desc_msg_final[:50]}...")
         
-        # ========== PASO 4: PROCESAR SEGÚN EL CÓDIGO DE ESTADO ==========
-        
-        # IMPORTANTE: Guardar numero_factura ANTES de modificar la sesión
-        numero_factura = factura.numeroFactura
+        # ========== PROCESAR SEGÚN CÓDIGO ==========
         
         if codigo_estado == ESTADO_REVERSION_CONFIRMADA:  # 907
-            logger.info(f"[EXITO] Reversion confirmada para factura #{numero_factura}")
+            logger.info(f"[REVERSION] Confirmada para factura #{numero_factura}")
             
-            # Actualizar factura en BD
             factura.estado = "Valida"
             factura.fechaValidacion = datetime.now()
             factura.fechaAnulacion = None
@@ -296,60 +311,54 @@ def procesar_respuesta_reversion(respuesta_xml, factura):
             try:
                 session.add(factura)
                 session.commit()
-                logger.info("[BD] Factura actualizada correctamente")
+                logger.info(f"[REVERSION] BD actualizada para factura #{numero_factura}")
             except Exception as e:
                 session.rollback()
-                logger.error(f"[BD] Error al actualizar factura: {e}", exc_info=True)
+                logger.error(f"[REVERSION] Error BD: {e}", exc_info=True)
                 return False, f"❌ **Error al actualizar la factura en base de datos**\n\n{str(e)}"
             finally:
                 session.close()
             
-            # Construir mensaje de éxito usando la variable guardada
             mensaje_exito = f"✅ **{descripcion_principal}**\n\n" \
                            f"La factura #{numero_factura} ha sido restaurada exitosamente."
             
             return True, mensaje_exito
         
         elif codigo_estado == ESTADO_REVERSION_RECHAZADA:  # 909
-            logger.warning(f"[RECHAZADO] Reversion rechazada para factura #{numero_factura}")
+            logger.warning(f"[REVERSION] Rechazada para factura #{numero_factura}")
             
-            # Construir mensaje detallado con mensajesList
             mensaje_rechazo = f"❌ **{descripcion_principal}**\n\n"
             
             if mensajes_detalle:
-                mensaje_rechazo += "**Motivos específicos del rechazo:**\n"
+                mensaje_rechazo += "**Motivos especificos del rechazo:**\n"
                 for msg in mensajes_detalle:
                     mensaje_rechazo += f"• **[{msg['codigo']}]** {msg['descripcion']}\n"
                 
-                # Agregar interpretación contextual según códigos conocidos
                 codigos_en_respuesta = [msg['codigo'] for msg in mensajes_detalle]
                 
                 mensaje_rechazo += "\n**Posibles acciones:**\n"
                 
                 if "981" in codigos_en_respuesta:
-                    mensaje_rechazo += "• Verifique que la factura esté efectivamente anulada\n"
+                    mensaje_rechazo += "• Verifique que la factura este efectivamente anulada\n"
                     mensaje_rechazo += "• Confirme que no haya sido revertida previamente\n"
-                    mensaje_rechazo += "• La factura pudo haber sido usada en una declaración jurada\n"
+                    mensaje_rechazo += "• La factura pudo haber sido usada en una declaracion jurada\n"
                 
                 if any(c in ["3012", "970"] for c in codigos_en_respuesta):
-                    mensaje_rechazo += "• La reversión está fuera del plazo normativo (9 días del mes siguiente)\n"
+                    mensaje_rechazo += "• La reversion esta fuera del plazo normativo (9 dias del mes siguiente)\n"
                 
                 if "924" in codigos_en_respuesta:
-                    mensaje_rechazo += "• Verifique el número de factura ingresado\n"
+                    mensaje_rechazo += "• Verifique el numero de factura ingresado\n"
             else:
-                # Si no hay mensajesList, dar mensaje genérico
-                mensaje_rechazo += "No se proporcionaron detalles específicos. " \
+                mensaje_rechazo += "No se proporcionaron detalles especificos. " \
                                   "Verifique el estado actual de la factura en el sistema."
             
             return False, mensaje_rechazo
         
         elif codigo_estado == ESTADO_FACTURA_YA_REVERTIDA:  # 981
-            logger.warning(f"[INFO] Factura #{numero_factura} ya revertida")
+            logger.warning(f"[REVERSION] Factura #{numero_factura} ya revertida")
             
-            # Intentar sincronizar estado local si está desactualizado
             if factura.estado == "Anulada":
-                logger.info(f"[SYNC] Sincronizando estado local de factura {numero_factura}")
-
+                logger.info(f"[REVERSION] Sincronizando estado local de factura #{numero_factura}")
                 
                 factura.estado = "Valida"
                 factura.fechaValidacion = datetime.now()
@@ -360,12 +369,12 @@ def procesar_respuesta_reversion(respuesta_xml, factura):
                 try:
                     session.add(factura)
                     session.commit()
-                    logger.info("[SYNC] Estado local sincronizado")
+                    logger.info(f"[REVERSION] Estado sincronizado para factura #{numero_factura}")
                     
                     return True, f"ℹ️ **La factura ya estaba revertida en el SIAT**\n\n" \
                                 f"Se ha sincronizado el estado local de la factura #{numero_factura}."
                 except Exception as e:
-                    logger.error(f"[SYNC] Error al sincronizar: {e}")
+                    logger.error(f"[REVERSION] Error al sincronizar: {e}")
                     return False, f"⚠️ **{descripcion_principal}**\n\n" \
                                  f"No se pudo sincronizar el estado local."
                 finally:
@@ -375,29 +384,28 @@ def procesar_respuesta_reversion(respuesta_xml, factura):
                          f"La factura ya fue revertida anteriormente."
         
         elif codigo_estado == ESTADO_FACTURA_NO_EXISTE:  # 924
-            logger.warning(f"[ERROR] Factura #{numero_factura} no existe en SIAT")
+            logger.warning(f"[REVERSION] Factura #{numero_factura} no existe en SIAT")
             return False, f"❌ **{descripcion_principal}**\n\n" \
                          f"La factura no existe en la base de datos del SIN. " \
-                         f"Verifique el número de factura."
+                         f"Verifique el numero de factura."
         
         elif codigo_estado == ESTADO_SISTEMA_NO_AUTORIZADO:  # 3011
-            logger.error("[CRITICO] Sistema no autorizado para reversion")
+            logger.error("[REVERSION] Sistema no autorizado")
             return False, f"❌ **{descripcion_principal}**\n\n" \
-                         f"El sistema no está autorizado para utilizar el servicio de reversión. " \
+                         f"El sistema no esta autorizado para utilizar el servicio de reversion. " \
                          f"Contacte al administrador."
         
         elif codigo_estado == ESTADO_FUERA_DE_PLAZO:  # 3012
-            logger.warning(f"[PLAZO] Reversion fuera de plazo para factura #{numero_factura}")
+            logger.warning(f"[REVERSION] Fuera de plazo para factura #{numero_factura}")
             return False, f"⏰ **{descripcion_principal}**\n\n" \
-                         f"La reversión está fuera del plazo permitido " \
-                         f"(hasta el día 9 del mes siguiente a la emisión)."
+                         f"La reversion esta fuera del plazo permitido " \
+                         f"(hasta el dia 9 del mes siguiente a la emision)."
         
         else:
-            # Código no contemplado en el sistema
-            logger.error(f"[DESCONOCIDO] Codigo {codigo_estado} no contemplado")
+            logger.error(f"[REVERSION] Codigo desconocido: {codigo_estado}")
             
-            mensaje_desconocido = f"❓ **Código de respuesta no reconocido: {codigo_estado}**\n\n" \
-                                 f"Descripción: {descripcion_principal}\n\n"
+            mensaje_desconocido = f"❓ **Codigo de respuesta no reconocido: {codigo_estado}**\n\n" \
+                                 f"Descripcion: {descripcion_principal}\n\n"
             
             if mensajes_detalle:
                 mensaje_desconocido += "**Mensajes adicionales:**\n"
@@ -407,17 +415,21 @@ def procesar_respuesta_reversion(respuesta_xml, factura):
             return False, mensaje_desconocido
     
     except ET.ParseError as e:
-        logger.error(f"[PARSE] Error al parsear XML: {e}", exc_info=True)
-        logger.debug(f"XML problematico: {respuesta_xml.decode('utf-8')[:500]}")
+        logger.error(f"[REVERSION] Error al parsear XML: {e}", exc_info=True)
         return False, f"❌ **Error al procesar la respuesta del servicio**\n\n{str(e)}"
     
     except Exception as e:
-        logger.error(f"[ERROR] Error general al procesar respuesta: {e}", exc_info=True)
+        logger.error(f"[REVERSION] Error inesperado: {e}", exc_info=True)
         return False, f"❌ **Error inesperado al procesar la respuesta**\n\n{str(e)}"
 
 def revertir_anulacion_factura(numero_factura):
     """
     Función principal para revertir la anulación de una factura.
+    
+    VERSIÓN MEJORADA (v2.1.0):
+    - Logging estandarizado con prefijos consistentes [REVERSION]
+    - Mejor manejo de errores con mensajes descriptivos
+    - Validación exhaustiva de parámetros
     
     Args:
         numero_factura (str): Número de la factura a revertir
@@ -425,23 +437,23 @@ def revertir_anulacion_factura(numero_factura):
     Returns:
         tuple: (éxito, mensaje)
     """
-    logger.info(f"Iniciando proceso de reversión de anulación para factura #{numero_factura}")
+    logger.info(f"[REVERSION] Iniciando proceso para factura #{numero_factura}")
     
     try:
         # Obtener CUF y datos de la factura
         cuf, factura = obtener_cuf_por_numero_factura(numero_factura)
         
         if factura is None:
-            logger.warning(f"No se encontró la factura #{numero_factura}")
+            logger.warning(f"[REVERSION] Factura #{numero_factura} no encontrada en BD")
             return False, "No se encontró la factura especificada."
         
-        logger.info(f"Factura encontrada. CUF: {cuf}")
+        logger.info(f"[REVERSION] Factura encontrada. CUF: {cuf}")
         
         # Verificar que exista un CUFD vigente
         cufd_vigente = obtener_cufd_vigente()
         if not cufd_vigente:
             error_msg = "No hay un CUFD vigente. Solicite un nuevo CUFD antes de continuar."
-            logger.error(error_msg)
+            logger.error(f"[REVERSION] {error_msg}")
             return False, error_msg
         
         # Validar que las variables de entorno necesarias estén definidas
@@ -455,21 +467,22 @@ def revertir_anulacion_factura(numero_factura):
         faltantes = [var for var in variables_requeridas if not os.getenv(var)]
         if faltantes:
             error_msg = f"Faltan variables de entorno requeridas: {', '.join(faltantes)}"
-            logger.error(error_msg)
+            logger.error(f"[REVERSION] {error_msg}")
             return False, error_msg
             
         # Enviar solicitud de reversión
         exito, respuesta = enviar_solicitud_reversion(cuf)
         
         if exito:
-            logger.debug("Solicitud enviada exitosamente, procesando respuesta...")
+            if logger.level <= 10:
+                logger.debug("[REVERSION] Solicitud enviada exitosamente, procesando respuesta")
             return procesar_respuesta_reversion(respuesta, factura)
         else:
-            logger.error(f"Error al enviar solicitud: {respuesta}")
+            logger.error(f"[REVERSION] Error al enviar solicitud: {respuesta}")
             return False, respuesta
     
     except Exception as e:
-        logger.error(f"Error general en proceso de reversión: {e}", exc_info=True)
+        logger.error(f"[REVERSION] Error inesperado: {e}", exc_info=True)
         return False, f"Error en el proceso de reversión: {str(e)}"
 
 # Punto de entrada si se ejecuta como script independiente

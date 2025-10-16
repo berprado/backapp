@@ -325,7 +325,7 @@ def procesar_respuesta_anulacion(respuesta_xml, factura, descripcion_motivo):
                 session.close()
             
             # Construir mensaje de éxito con formato Markdown
-            mensaje_exito = f"✅ **{descripcion_principal}**\n\n"
+            mensaje_exito = f" **{descripcion_principal}**\n\n"
             mensaje_exito += f"📄 **Factura #{numero_factura}** anulada correctamente.\n"
             mensaje_exito += f"📅 **Fecha:** {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n"
             mensaje_exito += f"📝 **Motivo:** {descripcion_motivo}"
