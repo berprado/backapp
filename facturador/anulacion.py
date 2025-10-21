@@ -29,8 +29,15 @@ CÓDIGOS DE ESTADO SOPORTADOS:
 - 3011: Sistema no autorizado
 - 3012: Solicitud fuera de plazo
 
-VERSIÓN: 2.0.0 (Refactorizado - 15 octubre 2025)
-CAMBIOS: 
+VERSIÓN: 2.1.0 (Timeout Handler - 16 octubre 2025)
+CAMBIOS v2.1.0:
+  - ✅ Implementado protocolo oficial SIAT para manejo de timeouts
+  - ✅ Verifica estado real en SIAT si hay timeout persistente
+  - ✅ Sincronización automática de BD local con estado SIAT
+  - ✅ Previene pérdida de operaciones exitosas por timeout
+  - ✅ Cumple normativa oficial del SIN sobre timeouts
+
+CAMBIOS v2.0.0:
   - Migrado a siat_service_client.py (eliminación de código duplicado)
   - Implementado sistema de limpieza de emojis
   - Mensajes detallados con formato Markdown
@@ -55,6 +62,12 @@ from siat_service_client import get_siat_client
 from database import SessionLocal
 from models import SincronizarParametricaMotivoAnulacion, FacturaCabecera
 from data_access import obtener_mensaje_por_codigo, obtener_cuf_por_numero_factura
+
+# ========================================================================
+# TIMEOUT HANDLER - Protocolo Oficial SIAT
+# ========================================================================
+from timeout_handler import ejecutar_anulacion_con_protocolo
+from estado_factura import verificar_estado_factura
 
 # Cargar variables de entorno
 load_dotenv()
@@ -430,11 +443,17 @@ def anular_factura(numero_factura, descripcion_motivo):
     """
     Función principal para anular una factura electrónica.
     
-    VERSIÓN REFACTORIZADA (v2.0.0):
-    - Validaciones robustas antes de enviar al SIAT
-    - Uso de cliente centralizado (siat_service_client)
-    - Mensajes detallados con formato Markdown
-    - Logging estructurado sin emojis en consola
+    VERSIÓN MEJORADA (v2.1.0) - CON PROTOCOLO OFICIAL DE TIMEOUTS:
+    - ✅ Implementa protocolo oficial SIAT para manejo de timeouts
+    - ✅ Verifica estado real en SIAT si hay timeout persistente
+    - ✅ Sincroniza automáticamente BD local con estado SIAT
+    - ✅ Previene pérdida de operaciones exitosas por timeout
+    - ✅ Validaciones robustas antes de enviar al SIAT
+    - ✅ Uso de cliente centralizado (siat_service_client)
+    - ✅ Mensajes detallados con formato Markdown
+    - ✅ Logging estructurado sin emojis en consola
+    
+    Referencia: Documentación SIAT - "Anulación de Facturas" (sección Timeouts)
     
     Args:
         numero_factura (str): Número de la factura a anular
@@ -521,25 +540,68 @@ def anular_factura(numero_factura, descripcion_motivo):
         logger.info(f"[MOTIVO] Codigo de motivo: {codigo_motivo} - {descripcion_motivo}")
         
         # ====================================================================
-        # 5. ENVIAR SOLICITUD AL SIAT
+        # 5. ENVIAR SOLICITUD AL SIAT CON PROTOCOLO DE TIMEOUTS
         # ====================================================================
-        logger.info(f"[SIAT] Enviando solicitud de anulacion...")
+        logger.info(f"[SIAT] Aplicando protocolo oficial SIAT de timeouts...")
         
-        exito, respuesta = enviar_solicitud_anulacion(cuf, codigo_motivo)
+        # Función que sincroniza la BD local después de verificación exitosa
+        def sincronizar_bd_local_anulacion(cuf_param: str, estado_esperado: str) -> bool:
+            """Sincroniza el estado de la factura en BD local después de anulación."""
+            try:
+                # Recargar la factura desde la BD
+                session = SessionLocal()
+                factura_sync = session.query(FacturaCabecera).filter_by(cuf=cuf_param).first()
+                
+                if not factura_sync:
+                    logger.error(f"[ANULACION] No se pudo recargar factura para sincronización")
+                    return False
+                
+                # Actualizar estado
+                factura_sync.estado = "Anulada"
+                factura_sync.estadoValidacion = "ANULADA"
+                factura_sync.resultadoValidacion = "ANULADA"
+                factura_sync.fechaAnulacion = datetime.now()
+                factura_sync.motivoAnulacion = descripcion_motivo
+                
+                session.commit()
+                session.close()
+                
+                logger.info(f"[ANULACION] ✅ BD local sincronizada: estado='Anulada'")
+                return True
+                
+            except Exception as e:
+                logger.error(f"[ANULACION] Error al sincronizar BD: {e}")
+                return False
         
-        if not exito:
-            # Decodificar el mensaje de error si viene en bytes
-            mensaje_error = respuesta.decode('utf-8') if isinstance(respuesta, bytes) else str(respuesta)
-            logger.error(f"[SIAT ERROR] Fallo al enviar solicitud: {mensaje_error}")
-            return False, f"❌ **Error al comunicarse con el SIAT:**\n\n{mensaje_error}"
+        # Ejecutar anulación con protocolo de timeout
+        resultado = ejecutar_anulacion_con_protocolo(
+            cuf=cuf,
+            funcion_anular=lambda: enviar_solicitud_anulacion(cuf, codigo_motivo)[1],
+            funcion_verificar=lambda cuf_param, force: verificar_estado_factura(numero_factura, force_check=force),
+            funcion_sync=sincronizar_bd_local_anulacion
+        )
         
-        # Log de respuesta recibida
-        logger.info(f"[SIAT] Respuesta recibida exitosamente. Procesando...")
-        
-        # ====================================================================
-        # 6. PROCESAR RESPUESTA
-        # ====================================================================
-        return procesar_respuesta_anulacion(respuesta, factura, descripcion_motivo)
+        # Procesar resultado del protocolo
+        if resultado['exito']:
+            # Si la operación fue exitosa (con o sin timeout)
+            if resultado.get('response'):
+                # Respuesta directa del SIAT
+                return procesar_respuesta_anulacion(resultado['response'], factura, descripcion_motivo)
+            else:
+                # Operación verificada después de timeout
+                mensaje_exito = (
+                    f"✅ Anulación completada para factura #{numero_factura}\n\n"
+                    f"{resultado['mensaje']}\n\n"
+                    f"**Motivo:** {descripcion_motivo}\n"
+                    f"**Estado sincronizado con SIAT**"
+                )
+                logger.info(f"[ANULACION] {mensaje_exito}")
+                return True, mensaje_exito
+        else:
+            # Operación falló
+            mensaje_error = resultado['mensaje']
+            logger.error(f"[ANULACION] {mensaje_error}")
+            return False, f"❌ **Error en la anulación:**\n\n{mensaje_error}"
     
     except Exception as e:
         logger.error(f"[ERROR] Excepcion inesperada al anular factura #{numero_factura}: {e}")

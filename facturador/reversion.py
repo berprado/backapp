@@ -28,8 +28,21 @@ CÓDIGOS DE ESTADO SOPORTADOS:
 - 3011: Sistema no autorizado
 - 3012: Solicitud fuera de plazo
 
-VERSIÓN: 2.1.0 (Refactorizado - 16 octubre 2025)
-CAMBIOS:
+VERSIÓN: 2.3.0 (Timeout Handler - 16 octubre 2025)
+CAMBIOS v2.3.0:
+  - ✅ Implementado protocolo oficial SIAT para manejo de timeouts
+  - ✅ Verifica estado real en SIAT si hay timeout persistente
+  - ✅ Sincronización automática de BD local con estado SIAT
+  - ✅ Previene pérdida de operaciones exitosas por timeout
+  - ✅ Cumple normativa oficial del SIN sobre timeouts
+
+CAMBIOS v2.2.0:
+  - Corregido error 981 "RANGO DE FECHAS DE EVENTO SIGNIFICATIVO INVALIDO"
+  - Detecta automáticamente si la factura es online u offline
+  - Solo envía codigoEvento para facturas offline
+  - Previene envío de parámetros incorrectos al SIAT
+
+CAMBIOS v2.1.0:
   - Migrado a logger centralizado (logger_config.py)
   - Eliminada configuración manual de logging (30+ líneas)
   - Prefijos de log estandarizados ([REVERSION])
@@ -56,6 +69,12 @@ from data_access import obtener_mensaje_por_codigo, obtener_cuf_por_numero_factu
 # AHORA: 1 línea usando el sistema centralizado
 from logger_config import get_logger
 logger = get_logger()
+
+# ========================================================================
+# TIMEOUT HANDLER - Protocolo Oficial SIAT
+# ========================================================================
+from timeout_handler import ejecutar_reversion_con_protocolo
+from estado_factura import verificar_estado_factura
 
 # Cargar variables de entorno
 load_dotenv()
@@ -115,6 +134,11 @@ def construir_solicitud_reversion(cuf):
     """
     Construye el XML para solicitar la reversión de anulación de factura.
     
+    VERSIÓN CORREGIDA (v2.2.0):
+    - Detecta si la factura es online u offline consultando la BD
+    - Solo envía campos de evento significativo para facturas offline
+    - Previene error 981 "RANGO DE FECHAS DE EVENTO SIGNIFICATIVO INVALIDO"
+    
     Args:
         cuf (str): Código Único de Facturación
         
@@ -133,6 +157,30 @@ def construir_solicitud_reversion(cuf):
         
         logger.debug(f"[REVERSION] CUFD vigente obtenido: {cufd_vigente[:10]}...")
         
+        # ========== NUEVO: Detectar si la factura es online u offline ==========
+        session = SessionLocal()
+        try:
+            factura = session.query(FacturaCabecera).filter_by(cuf=cuf).first()
+            if not factura:
+                error_msg = f"No se encontró la factura con CUF {cuf[:20]}..."
+                logger.error(f"[REVERSION] {error_msg}")
+                raise ValueError(error_msg)
+            
+            # tipoEmision: "1" = online, "2" = offline
+            tipo_emision = factura.tipoEmision or "1"
+            es_offline = (tipo_emision == "2")
+            
+            logger.info(f"[REVERSION] Factura #{factura.numeroFactura}: tipoEmision={tipo_emision}, es_offline={es_offline}")
+            
+            # Si es offline, necesitamos los datos del evento significativo
+            codigo_evento = None
+            if es_offline and factura.codigoEvento:
+                codigo_evento = factura.codigoEvento
+                logger.info(f"[REVERSION] Factura offline con codigoEvento={codigo_evento}")
+            
+        finally:
+            session.close()
+        
         envelope = ET.Element("{http://schemas.xmlsoap.org/soap/envelope/}Envelope")
         body = ET.SubElement(envelope, "{http://schemas.xmlsoap.org/soap/envelope/}Body")
         reversion_anulacion_factura = ET.SubElement(body, "{https://siat.impuestos.gob.bo/}reversionAnulacionFactura")
@@ -146,13 +194,18 @@ def construir_solicitud_reversion(cuf):
             "codigoSucursal": os.getenv('CODIGO_SUCURSAL'),
             "nit": os.getenv('NIT'),
             "codigoDocumentoSector": os.getenv('CODIGO_DOCUMENTO_SECTOR'),
-            "codigoEmision": os.getenv('CODIGO_TIPO_EMISION'),
+            "codigoEmision": tipo_emision,  # ← CORREGIDO: Usar el tipoEmision de la factura
             "codigoModalidad": os.getenv('CODIGO_MODALIDAD'),
             "cufd": cufd_vigente,
             "cuis": os.getenv('CUIS'),
             "tipoFacturaDocumento": os.getenv('CODIGO_TIPO_FACTURA'),
             "cuf": cuf
         }
+        
+        # ========== NUEVO: Añadir codigoEvento solo si es offline ==========
+        if es_offline and codigo_evento:
+            parametros["codigoEvento"] = str(codigo_evento)
+            logger.info(f"[REVERSION] Añadiendo codigoEvento={codigo_evento} al XML (factura offline)")
         
         # Logging estandarizado: Solo en DEBUG, con prefijo consistente
         if logger.level <= 10:  # DEBUG = 10
@@ -426,10 +479,16 @@ def revertir_anulacion_factura(numero_factura):
     """
     Función principal para revertir la anulación de una factura.
     
-    VERSIÓN MEJORADA (v2.1.0):
-    - Logging estandarizado con prefijos consistentes [REVERSION]
-    - Mejor manejo de errores con mensajes descriptivos
-    - Validación exhaustiva de parámetros
+    VERSIÓN MEJORADA (v2.3.0) - CON PROTOCOLO OFICIAL DE TIMEOUTS:
+    - ✅ Implementa protocolo oficial SIAT para manejo de timeouts
+    - ✅ Verifica estado real en SIAT si hay timeout persistente
+    - ✅ Sincroniza automáticamente BD local con estado SIAT
+    - ✅ Previene pérdida de operaciones exitosas por timeout
+    - ✅ Logging estandarizado con prefijos consistentes [REVERSION]
+    - ✅ Mejor manejo de errores con mensajes descriptivos
+    - ✅ Validación exhaustiva de parámetros
+    
+    Referencia: Documentación SIAT - "Anulación de Facturas" (sección Timeouts)
     
     Args:
         numero_factura (str): Número de la factura a revertir
@@ -447,7 +506,7 @@ def revertir_anulacion_factura(numero_factura):
             logger.warning(f"[REVERSION] Factura #{numero_factura} no encontrada en BD")
             return False, "No se encontró la factura especificada."
         
-        logger.info(f"[REVERSION] Factura encontrada. CUF: {cuf}")
+        logger.info(f"[REVERSION] Factura encontrada. CUF: {cuf[:30]}...")
         
         # Verificar que exista un CUFD vigente
         cufd_vigente = obtener_cufd_vigente()
@@ -469,17 +528,69 @@ def revertir_anulacion_factura(numero_factura):
             error_msg = f"Faltan variables de entorno requeridas: {', '.join(faltantes)}"
             logger.error(f"[REVERSION] {error_msg}")
             return False, error_msg
-            
-        # Enviar solicitud de reversión
-        exito, respuesta = enviar_solicitud_reversion(cuf)
         
-        if exito:
-            if logger.level <= 10:
-                logger.debug("[REVERSION] Solicitud enviada exitosamente, procesando respuesta")
-            return procesar_respuesta_reversion(respuesta, factura)
+        # ========================================================================
+        # PROTOCOLO OFICIAL SIAT: Ejecutar con manejo de timeouts
+        # ========================================================================
+        logger.info("[REVERSION] Aplicando protocolo oficial SIAT de timeouts...")
+        
+        # Función que sincroniza la BD local después de verificación exitosa
+        def sincronizar_bd_local(cuf_param: str, estado_esperado: str) -> bool:
+            """Sincroniza el estado de la factura en BD local."""
+            try:
+                # Recargar la factura desde la BD
+                session = SessionLocal()
+                factura_sync = session.query(FacturaCabecera).filter_by(cuf=cuf_param).first()
+                
+                if not factura_sync:
+                    logger.error(f"[REVERSION] No se pudo recargar factura para sincronización")
+                    return False
+                
+                # Actualizar estado
+                factura_sync.estado = "Valida"
+                factura_sync.estadoValidacion = "VALIDA"
+                factura_sync.resultadoValidacion = "VALIDADA"
+                factura_sync.fechaAnulacion = None
+                factura_sync.motivoAnulacion = None
+                
+                session.commit()
+                session.close()
+                
+                logger.info(f"[REVERSION] ✅ BD local sincronizada: estado='Valida'")
+                return True
+                
+            except Exception as e:
+                logger.error(f"[REVERSION] Error al sincronizar BD: {e}")
+                return False
+        
+        # Ejecutar reversión con protocolo de timeout
+        resultado = ejecutar_reversion_con_protocolo(
+            cuf=cuf,
+            funcion_revertir=lambda: enviar_solicitud_reversion(cuf)[1],
+            funcion_verificar=lambda cuf_param, force: verificar_estado_factura(numero_factura, force_check=force),
+            funcion_sync=sincronizar_bd_local
+        )
+        
+        # Procesar resultado del protocolo
+        if resultado['exito']:
+            # Si la operación fue exitosa (con o sin timeout)
+            if resultado.get('response'):
+                # Respuesta directa del SIAT
+                return procesar_respuesta_reversion(resultado['response'], factura)
+            else:
+                # Operación verificada después de timeout
+                mensaje_exito = (
+                    f"✅ Reversión completada para factura #{numero_factura}\n\n"
+                    f"{resultado['mensaje']}\n\n"
+                    f"**Estado sincronizado con SIAT**"
+                )
+                logger.info(f"[REVERSION] {mensaje_exito}")
+                return True, mensaje_exito
         else:
-            logger.error(f"[REVERSION] Error al enviar solicitud: {respuesta}")
-            return False, respuesta
+            # Operación falló
+            mensaje_error = resultado['mensaje']
+            logger.error(f"[REVERSION] {mensaje_error}")
+            return False, mensaje_error
     
     except Exception as e:
         logger.error(f"[REVERSION] Error inesperado: {e}", exc_info=True)

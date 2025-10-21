@@ -316,13 +316,19 @@ def _procesar_reversion(numero_factura: str, message_placeholder):
     """
     Procesa la solicitud de reversión de una anulación.
     
+    VERSIÓN MEJORADA (v1.1.0):
+    - Valida que la factura esté ANULADA antes de intentar revertir
+    - Previene errores 981 del SIAT al intentar revertir facturas válidas
+    - Muestra mensajes contextuales según el estado de la factura
+    
     Este método coordina todo el flujo de reversión:
     1. Valida que el campo esté completo
     2. Obtiene el CUF de la factura
-    3. Envía la solicitud al SIAT
-    4. Procesa la respuesta
-    5. Actualiza la base de datos local
-    6. Muestra el resultado al usuario
+    3. **NUEVO:** Verifica que la factura esté anulada
+    4. Envía la solicitud al SIAT
+    5. Procesa la respuesta
+    6. Actualiza la base de datos local
+    7. Muestra el resultado al usuario
     
     Args:
         numero_factura (str): Número de la factura a revertir
@@ -354,6 +360,95 @@ def _procesar_reversion(numero_factura: str, message_placeholder):
         return
     
     logger.info(f"[REVERSIÓN] CUF encontrado para factura #{numero_factura}: {cuf}")
+    
+    # ========== VALIDACIÓN 1: Estado en Base de Datos Local ==========
+    estado_actual = factura.estado if factura else None
+    codigo_recepcion_anulacion = factura.codigoRecepcion if factura else None
+    
+    logger.info(f"[REVERSIÓN] Estado BD local de factura #{numero_factura}: {estado_actual}")
+    logger.info(f"[REVERSIÓN] Código recepción anulación: {codigo_recepcion_anulacion or 'NO DISPONIBLE'}")
+    
+    # Verificar que la factura esté anulada localmente
+    if estado_actual != "Anulada":
+        mensaje_error = (
+            f"⚠️ **La factura #{numero_factura} no está anulada**\n\n"
+            f"**Estado actual:** {estado_actual or 'Desconocido'}\n\n"
+            f"**Acción requerida:**\n"
+            f"• Solo se pueden revertir facturas que estén en estado **ANULADA**.\n"
+            f"• Si la factura está **VÁLIDA**, primero debe anularla.\n"
+            f"• Verifique el número de factura o el estado en la base de datos."
+        )
+        show_message('error', mensaje_error, message_placeholder)
+        logger.warning(f"[REVERSIÓN] Intento de revertir factura #{numero_factura} con estado '{estado_actual}' (se requiere 'Anulada')")
+        
+        # Mostrar información adicional según el estado
+        if estado_actual == "Valida":
+            st.info(
+                "💡 **Sugerencia:** Esta factura está **VÁLIDA**. "
+                "Si desea anularla, use la opción 'Anular Factura' en el selector superior."
+            )
+        
+        return
+    
+    # ========== VALIDACIÓN 2: Verificar estado en SIAT (CRÍTICO) ==========
+    if not codigo_recepcion_anulacion:
+        st.warning(
+            "⚠️ **Advertencia: Falta código de recepción**\n\n"
+            "La factura está marcada como anulada localmente, pero no tiene código de recepción del SIAT. "
+            "Esto puede indicar que la anulación no se completó correctamente.\n\n"
+            "**Verificando estado en el SIAT antes de proceder...**"
+        )
+        logger.warning(f"[REVERSIÓN] Factura #{numero_factura} anulada sin codigoRecepcion. Verificando en SIAT...")
+    
+    # Importar la función de verificación
+    from estado_factura import verificar_estado_factura
+    
+    with st.spinner("🔍 Verificando estado real de la factura en el SIAT..."):
+        try:
+            resultado_verificacion = verificar_estado_factura(numero_factura.strip(), force_check=True)
+            estado_siat = resultado_verificacion.get("estado_siat")
+            
+            logger.info(f"[REVERSIÓN] Estado en SIAT de factura #{numero_factura}: {estado_siat}")
+            
+            # Verificar consistencia entre BD local y SIAT
+            if estado_siat and estado_siat.upper() != "ANULADA":
+                mensaje_inconsistencia = (
+                    f"❌ **Inconsistencia detectada para factura #{numero_factura}**\n\n"
+                    f"**Estado en BD local:** {estado_actual}\n"
+                    f"**Estado en SIAT:** {estado_siat}\n\n"
+                    f"**Problema:** La factura está marcada como anulada localmente, "
+                    f"pero el SIAT la tiene como **{estado_siat}**.\n\n"
+                    f"**Posibles causas:**\n"
+                    f"• La anulación no se envió correctamente al SIAT\n"
+                    f"• Hubo un error de comunicación durante la anulación\n"
+                    f"• El código de recepción no se guardó\n\n"
+                    f"**Solución:**\n"
+                    f"1. Si desea que esta factura esté anulada, primero debe anularla correctamente\n"
+                    f"2. Si la factura ya debería estar anulada, contacte a soporte técnico"
+                )
+                show_message('error', mensaje_inconsistencia, message_placeholder)
+                logger.error(f"[REVERSIÓN] Inconsistencia: BD local=Anulada, SIAT={estado_siat}")
+                
+                st.error(
+                    "💡 **Acción recomendada:**\n\n"
+                    "Intente anular nuevamente la factura usando la opción 'Anular Factura' "
+                    "para sincronizar el estado con el SIAT."
+                )
+                
+                return
+            
+            logger.info(f"[REVERSIÓN] ✅ Consistencia verificada: BD local y SIAT coinciden (Anulada)")
+            
+        except Exception as e:
+            logger.error(f"[REVERSIÓN] Error al verificar estado en SIAT: {e}")
+            st.error(
+                f"⚠️ **No se pudo verificar el estado en el SIAT**\n\n"
+                f"Error: {str(e)}\n\n"
+                f"No se puede continuar con la reversión sin confirmar el estado en el SIAT."
+            )
+            return
+    
+    logger.info(f"[REVERSIÓN] ✅ Validaciones completadas. Factura #{numero_factura} lista para revertir.")
     
     # Enviar solicitud al SIAT
     with st.spinner("Procesando reversión en el SIAT..."):
