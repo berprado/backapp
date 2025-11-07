@@ -48,9 +48,7 @@ CAMBIOS v2.0.0:
 AUTOR: Sistema de Facturación Electrónica
 """
 
-import os
 import sys
-import logging
 import traceback
 import xml.etree.ElementTree as ET
 from datetime import datetime
