@@ -157,7 +157,7 @@ def construir_solicitud_reversion(cuf):
         
         logger.debug(f"[REVERSION] CUFD vigente obtenido: {cufd_vigente[:10]}...")
         
-        # ========== NUEVO: Detectar si la factura es online u offline ==========
+    # ========== NUEVO: Detectar si la factura es online u offline ==========
         session = SessionLocal()
         try:
             factura = session.query(FacturaCabecera).filter_by(cuf=cuf).first()
@@ -194,18 +194,15 @@ def construir_solicitud_reversion(cuf):
             "codigoSucursal": os.getenv('CODIGO_SUCURSAL'),
             "nit": os.getenv('NIT'),
             "codigoDocumentoSector": os.getenv('CODIGO_DOCUMENTO_SECTOR'),
-            "codigoEmision": tipo_emision,  # ← CORREGIDO: Usar el tipoEmision de la factura
+            # Normativa: Reversión se realiza en línea → codigoEmision debe ser "1"
+            "codigoEmision": "1",
             "codigoModalidad": os.getenv('CODIGO_MODALIDAD'),
             "cufd": cufd_vigente,
             "cuis": os.getenv('CUIS'),
             "tipoFacturaDocumento": os.getenv('CODIGO_TIPO_FACTURA'),
             "cuf": cuf
         }
-        
-        # ========== NUEVO: Añadir codigoEvento solo si es offline ==========
-        if es_offline and codigo_evento:
-            parametros["codigoEvento"] = str(codigo_evento)
-            logger.info(f"[REVERSION] Añadiendo codigoEvento={codigo_evento} al XML (factura offline)")
+        # No incluir codigoEvento en reversión: no está contemplado en la especificación de reversión
         
         # Logging estandarizado: Solo en DEBUG, con prefijo consistente
         if logger.level <= 10:  # DEBUG = 10
@@ -320,7 +317,10 @@ def procesar_respuesta_reversion(respuesta_xml, factura):
         logger.info(f"[REVERSION] Codigo: {codigo_estado}, Transaccion: {transaccion}")
         
         # ========== OBTENER DESCRIPCIÓN DE BD ==========
-        descripcion_bd = obtener_mensaje_por_codigo(codigo_estado)
+        try:
+            descripcion_bd = obtener_mensaje_por_codigo(int(codigo_estado))
+        except Exception:
+            descripcion_bd = obtener_mensaje_por_codigo(codigo_estado)
         
         if descripcion_bd and not descripcion_bd.startswith("Código desconocido"):
             descripcion_principal = limpiar_emojis_descripcion(descripcion_bd)
@@ -352,13 +352,29 @@ def procesar_respuesta_reversion(respuesta_xml, factura):
         # ========== PROCESAR SEGÚN CÓDIGO ==========
         
         if codigo_estado == ESTADO_REVERSION_CONFIRMADA:  # 907
-            logger.info(f"[REVERSION] Confirmada para factura #{numero_factura}")
+            logger.info(f"[EXITO] Reversión confirmada para factura #{numero_factura}")
             
-            factura.estado = "Valida"
-            factura.fechaValidacion = datetime.now()
-            factura.fechaAnulacion = None
-            factura.motivoAnulacion = None
-            factura.anuladaPor = None
+            # Usar helper centralizado para actualizar estado de negocio
+            try:
+                from utils.estado_utils import aplicar_reversion
+                
+                # Obtener usuario actual (o usar SISTEMA como fallback)
+                usuario_actual = getattr(factura, 'usuario', 'SISTEMA')
+                
+                # Aplicar reversión (actualiza estado='Validada' y limpia campos de anulación)
+                aplicar_reversion(factura, usuario_actual)
+                
+                logger.info(f"[ESTADO] estado='Validada', fechaAnulacion/motivoAnulacion limpiados")
+            except Exception as e:
+                logger.warning(f"[FALLBACK] Error al usar helper, aplicando cambios directos: {e}")
+                factura.estado = "Validada"
+                factura.fechaValidacion = datetime.now()
+                factura.fechaAnulacion = None
+                factura.motivoAnulacion = None
+                factura.anuladaPor = None
+            
+            # NO tocar estadoValidacion (se mantiene VALIDADA de la emisión original)
+            # NO tocar codigoRecepcion (ya está preservado en estado_factura.py)
             
             session = SessionLocal()
             try:
@@ -413,7 +429,11 @@ def procesar_respuesta_reversion(respuesta_xml, factura):
             if factura.estado == "Anulada":
                 logger.info(f"[REVERSION] Sincronizando estado local de factura #{numero_factura}")
                 
-                factura.estado = "Valida"
+                try:
+                    from utils.estado_utils import aplicar_reversion
+                    aplicar_reversion(factura, usuario="sistema")
+                except Exception:
+                    factura.estado = "Validada"
                 factura.fechaValidacion = datetime.now()
                 factura.fechaAnulacion = None
                 factura.motivoAnulacion = None
@@ -536,7 +556,12 @@ def revertir_anulacion_factura(numero_factura):
         
         # Función que sincroniza la BD local después de verificación exitosa
         def sincronizar_bd_local(cuf_param: str, estado_esperado: str) -> bool:
-            """Sincroniza el estado de la factura en BD local."""
+            """
+            Sincroniza el estado de negocio de la factura en BD local.
+            
+            IMPORTANTE: Solo actualiza el campo 'estado' (estado de negocio).
+            NO modifica estadoValidacion ni resultadoValidacion (datos técnicos de emisión).
+            """
             try:
                 # Recargar la factura desde la BD
                 session = SessionLocal()
@@ -546,28 +571,64 @@ def revertir_anulacion_factura(numero_factura):
                     logger.error(f"[REVERSION] No se pudo recargar factura para sincronización")
                     return False
                 
-                # Actualizar estado
-                factura_sync.estado = "Valida"
-                factura_sync.estadoValidacion = "VALIDA"
-                factura_sync.resultadoValidacion = "VALIDADA"
+                # Actualizar SOLO el estado de negocio y limpiar campos de anulación
+                factura_sync.estado = "Validada"
                 factura_sync.fechaAnulacion = None
                 factura_sync.motivoAnulacion = None
+                # codigoRecepcion se preserva automáticamente (no se toca aquí)
+                
+                # NO tocar estadoValidacion (debe mantenerse como estaba en la emisión original)
+                # NO tocar resultadoValidacion (código técnico de validación de la emisión)
                 
                 session.commit()
                 session.close()
                 
-                logger.info(f"[REVERSION] ✅ BD local sincronizada: estado='Valida'")
+                logger.info(f"[REVERSION] ✅ BD local sincronizada: estado='Validada', campos anulación limpiados")
                 return True
                 
             except Exception as e:
                 logger.error(f"[REVERSION] Error al sincronizar BD: {e}")
                 return False
         
+        # Definir wrapper para verificar_estado_factura (convierte tupla → string)
+        def _wrapper_verificar_estado(num_factura: str, force_check: bool) -> str:
+            """
+            Wrapper que convierte la tupla de verificar_estado_factura a string.
+            
+            verificar_estado_factura devuelve: (bool, str)
+            Ej: (True, "Factura: ANULADA") o (False, "❌ Error...")
+            
+            El timeout_handler necesita solo el string del estado.
+            """
+            try:
+                exito, mensaje = verificar_estado_factura(num_factura, force_check=force_check)
+                logger.debug(f"[REVERSION] Verificación retornó: exito={exito}, mensaje='{mensaje}'")
+                
+                # Extraer el estado del mensaje
+                # Ej: "Factura: ANULADA" → "ANULADA"
+                if isinstance(mensaje, str):
+                    mensaje_upper = mensaje.upper()
+                    if "ANULADA" in mensaje_upper or "ANULADO" in mensaje_upper:
+                        return "ANULADA"
+                    elif "VALIDA" in mensaje_upper or "VALIDADA" in mensaje_upper:
+                        return "VALIDA"
+                    elif "OBSERVADA" in mensaje_upper or "OBSERVADO" in mensaje_upper:
+                        return "OBSERVADA"
+                    elif "RECHAZADA" in mensaje_upper or "RECHAZADO" in mensaje_upper:
+                        return "RECHAZADA"
+                
+                # Si no se pudo extraer, devolver el mensaje completo
+                return str(mensaje)
+                
+            except Exception as e:
+                logger.error(f"[REVERSION] Error en wrapper_verificar_estado: {e}")
+                return f"ERROR: {str(e)}"
+        
         # Ejecutar reversión con protocolo de timeout
         resultado = ejecutar_reversion_con_protocolo(
             cuf=cuf,
             funcion_revertir=lambda: enviar_solicitud_reversion(cuf)[1],
-            funcion_verificar=lambda cuf_param, force: verificar_estado_factura(numero_factura, force_check=force),
+            funcion_verificar=lambda cuf_param, force: _wrapper_verificar_estado(numero_factura, force),
             funcion_sync=sincronizar_bd_local
         )
         

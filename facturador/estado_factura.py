@@ -255,7 +255,9 @@ def actualizar_estado_factura(factura, estado_validacion, codigo_recepcion=None,
 
         # Update the factura's validation state
         factura.estadoValidacion = estado_validacion
-        factura.codigoRecepcion = codigo_recepcion
+        # Preservar el codigoRecepcion si no se provee uno nuevo (evita borrarlo en ANULACIÓN / REVISIÓN)
+        if codigo_recepcion is not None:
+            factura.codigoRecepcion = codigo_recepcion
         factura.mensajeError = mensaje_error
 
         # If the factura is valid, update the validation date and result
@@ -265,8 +267,11 @@ def actualizar_estado_factura(factura, estado_validacion, codigo_recepcion=None,
         
         # If the factura is annulled, update the result as annulled
         elif estado_validacion == "ANULADA":
+            # Mantener resultadoValidacion técnico original si existía VALIDADA.
+            # Evitar sobrescribir con "ANULADA" salvo que aún no tenga resultado.
+            if not factura.resultadoValidacion:
+                factura.resultadoValidacion = "ANULADA"
             factura.fechaAnulacion = datetime.now()
-            factura.resultadoValidacion = "ANULADA"
         
         # If the factura is rejected, keep the rejection result
         elif estado_validacion == "RECHAZADA":

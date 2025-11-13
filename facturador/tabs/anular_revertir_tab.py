@@ -405,19 +405,34 @@ def _procesar_reversion(numero_factura: str, message_placeholder):
     
     with st.spinner("🔍 Verificando estado real de la factura en el SIAT..."):
         try:
-            resultado_verificacion = verificar_estado_factura(numero_factura.strip(), force_check=True)
-            estado_siat = resultado_verificacion.get("estado_siat")
+            # ✅ CORRECCIÓN: verificar_estado_factura devuelve (bool, str)
+            exito_verificacion, mensaje_verificacion = verificar_estado_factura(numero_factura.strip(), force_check=True)
             
-            logger.info(f"[REVERSIÓN] Estado en SIAT de factura #{numero_factura}: {estado_siat}")
+            logger.info(f"[REVERSIÓN] Resultado verificación SIAT: exito={exito_verificacion}, mensaje='{mensaje_verificacion}'")
+            
+            # Extraer el estado del mensaje (ej: "Factura: ANULADA" → "ANULADA")
+            estado_siat = None
+            if isinstance(mensaje_verificacion, str):
+                mensaje_upper = mensaje_verificacion.upper()
+                if "ANULADA" in mensaje_upper or "ANULADO" in mensaje_upper:
+                    estado_siat = "ANULADA"
+                elif "VALIDA" in mensaje_upper or "VALIDADA" in mensaje_upper:
+                    estado_siat = "VALIDA"
+                elif "OBSERVADA" in mensaje_upper:
+                    estado_siat = "OBSERVADA"
+                elif "RECHAZADA" in mensaje_upper:
+                    estado_siat = "RECHAZADA"
+            
+            logger.info(f"[REVERSIÓN] Estado extraído del mensaje: {estado_siat}")
             
             # Verificar consistencia entre BD local y SIAT
-            if estado_siat and estado_siat.upper() != "ANULADA":
+            if not exito_verificacion or (estado_siat and estado_siat != "ANULADA"):
                 mensaje_inconsistencia = (
                     f"❌ **Inconsistencia detectada para factura #{numero_factura}**\n\n"
                     f"**Estado en BD local:** {estado_actual}\n"
-                    f"**Estado en SIAT:** {estado_siat}\n\n"
+                    f"**Estado en SIAT:** {estado_siat or 'ERROR AL VERIFICAR'}\n\n"
                     f"**Problema:** La factura está marcada como anulada localmente, "
-                    f"pero el SIAT la tiene como **{estado_siat}**.\n\n"
+                    f"pero el SIAT la tiene como **{estado_siat or 'desconocido'}**.\n\n"
                     f"**Posibles causas:**\n"
                     f"• La anulación no se envió correctamente al SIAT\n"
                     f"• Hubo un error de comunicación durante la anulación\n"
@@ -427,7 +442,7 @@ def _procesar_reversion(numero_factura: str, message_placeholder):
                     f"2. Si la factura ya debería estar anulada, contacte a soporte técnico"
                 )
                 show_message('error', mensaje_inconsistencia, message_placeholder)
-                logger.error(f"[REVERSIÓN] Inconsistencia: BD local=Anulada, SIAT={estado_siat}")
+                logger.error(f"[REVERSIÓN] Inconsistencia: BD local=Anulada, SIAT={estado_siat}, mensaje={mensaje_verificacion}")
                 
                 st.error(
                     "💡 **Acción recomendada:**\n\n"
@@ -440,7 +455,7 @@ def _procesar_reversion(numero_factura: str, message_placeholder):
             logger.info(f"[REVERSIÓN] ✅ Consistencia verificada: BD local y SIAT coinciden (Anulada)")
             
         except Exception as e:
-            logger.error(f"[REVERSIÓN] Error al verificar estado en SIAT: {e}")
+            logger.error(f"[REVERSIÓN] Error al verificar estado en SIAT: {e}", exc_info=True)
             st.error(
                 f"⚠️ **No se pudo verificar el estado en el SIAT**\n\n"
                 f"Error: {str(e)}\n\n"

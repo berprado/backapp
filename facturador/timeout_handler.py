@@ -310,11 +310,43 @@ class TimeoutHandler:
         
         return " | ".join(mensajes) if mensajes else "Sin mensajes específicos"
     
-    def _normalizar_estado(self, estado: str) -> str:
-        """Normaliza estados para comparación (mayúsculas, sin espacios)."""
+    def _normalizar_estado(self, estado: Any) -> str:
+        """
+        Normaliza estados para comparación consistente.
+        
+        Maneja tuplas, strings y otros tipos devueltos por verificación.
+        Ej: (True, 'Factura: ANULADA') → 'ANULADA'
+            'VALIDADA' → 'VALIDADA'
+        
+        Args:
+            estado: Puede ser tuple, str o cualquier tipo
+            
+        Returns:
+            str: Estado normalizado en mayúsculas
+        """
         if not estado:
             return ""
-        return str(estado).strip().upper()
+        
+        # Si es una tupla (resultado de verificación), extraer el segundo elemento
+        if isinstance(estado, tuple):
+            # Ej: (True, 'Factura: ANULADA') → 'Factura: ANULADA'
+            estado = estado[1] if len(estado) > 1 else estado[0]
+        
+        # Convertir a string y normalizar
+        estado_str = str(estado).strip().upper()
+        
+        # Extraer el estado del texto (por si viene "Factura: ANULADA")
+        if "ANULADA" in estado_str or "ANULADO" in estado_str:
+            return "ANULADA"
+        elif "VALIDA" in estado_str or "VALIDADA" in estado_str:
+            return "VALIDA"
+        elif "RECHAZADA" in estado_str or "RECHAZADO" in estado_str:
+            return "RECHAZADA"
+        elif "OBSERVADA" in estado_str or "OBSERVADO" in estado_str:
+            return "OBSERVADA"
+        
+        # Si no coincide con patrones conocidos, devolver limpio
+        return estado_str
 
 
 # Instancia global singleton

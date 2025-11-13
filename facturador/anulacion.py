@@ -59,7 +59,7 @@ from logger_config import get_logger
 from siat_service_client import get_siat_client
 from database import SessionLocal
 from models import SincronizarParametricaMotivoAnulacion, FacturaCabecera
-from data_access import obtener_mensaje_por_codigo, obtener_cuf_por_numero_factura
+from data_access import obtener_mensaje_por_codigo, obtener_cuf_por_numero_factura, obtener_cufd_vigente
 
 # ========================================================================
 # TIMEOUT HANDLER - Protocolo Oficial SIAT
@@ -82,9 +82,6 @@ ESTADO_ANULACION_RECHAZADA = "906"        # Anulación rechazada por el SIAT
 ESTADO_FACTURA_NO_EXISTE = "924"          # Factura no existe en BD del SIN
 ESTADO_FACTURA_YA_ANULADA = "936"         # Factura ya anulada anteriormente
 ESTADO_FUERA_DE_PLAZO = "970"             # Solicitud fuera de plazo
-ESTADO_SISTEMA_NO_AUTORIZADO = "3011"     # Sistema no autorizado
-ESTADO_SOLICITUD_FUERA_PLAZO = "3012"     # Solicitud fuera de plazo (código alternativo)
-
 ESTADO_SISTEMA_NO_AUTORIZADO = "3011"     # Sistema no autorizado
 ESTADO_SOLICITUD_FUERA_PLAZO = "3012"     # Solicitud fuera de plazo (código alternativo)
 
@@ -127,33 +124,7 @@ def limpiar_emojis_descripcion(descripcion):
     return descripcion_limpia
 
 
-def obtener_cufd_vigente():
-    """
-    DEPRECADO: Esta función será removida en v3.0.0
-    
-    Usar data_access.obtener_cufd_vigente() en su lugar para mantener
-    consistencia en el acceso a datos.
-    
-    Returns:
-        str: Código CUFD vigente o None si no existe
-    """
-    from models import Cufd
-    
-    logger.warning("[DEPRECADO] Usando obtener_cufd_vigente() local. Migrar a data_access.")
-    
-    session = SessionLocal()
-    try:
-        cufd_vigente = session.query(Cufd).filter_by(vigente=1).first()
-        if cufd_vigente:
-            return cufd_vigente.codigo
-        else:
-            logger.error("No se encontro CUFD vigente en la base de datos.")
-            return None
-    except Exception as e:
-        logger.error(f"Error al obtener CUFD vigente: {e}")
-        return None
-    finally:
-        session.close()
+## Eliminado: obtener_cufd_vigente() local (usar data_access.obtener_cufd_vigente)
 
 
 def obtener_codigo_motivo(descripcion_motivo):
@@ -318,16 +289,32 @@ def procesar_respuesta_anulacion(respuesta_xml, factura, descripcion_motivo):
         if codigo_estado_valor == ESTADO_ANULACION_CONFIRMADA:  # 905 - Anulación confirmada
             logger.info(f"[EXITO] Anulacion confirmada para factura #{numero_factura}")
             
-            # Actualizar estado en BD
-            factura.estado = "Anulada"
-            factura.fechaAnulacion = datetime.now()
-            factura.motivoAnulacion = descripcion_motivo
+            # Usar helper centralizado para actualizar estado de negocio
+            try:
+                from utils.estado_utils import aplicar_anulacion
+                
+                # Obtener código de motivo desde la descripción
+                codigo_motivo_num = obtener_codigo_motivo(descripcion_motivo)
+                usuario_actual = getattr(factura, 'usuario', 'SISTEMA')
+                
+                # Aplicar anulación (actualiza estado, fechaAnulacion, motivoAnulacion)
+                aplicar_anulacion(factura, codigo_motivo_num, usuario_actual)
+                
+                logger.info(f"[ESTADO] estado='Anulada', motivoAnulacion='{factura.motivoAnulacion}'")
+            except Exception as e:
+                logger.warning(f"[FALLBACK] Error al usar helper, aplicando cambios directos: {e}")
+                factura.estado = "Anulada"
+                factura.fechaAnulacion = datetime.now()
+                factura.motivoAnulacion = descripcion_motivo
+            
+            # NO tocar estadoValidacion (se mantiene VALIDADA de la emisión)
+            # NO tocar codigoRecepcion (ya está preservado en estado_factura.py)
             
             session = SessionLocal()
             try:
                 session.add(factura)
                 session.commit()
-                logger.info(f"[BD] Factura #{numero_factura} actualizada exitosamente.")
+                logger.info(f"[BD] Factura #{numero_factura} persistida como Anulada")
             except Exception as e:
                 session.rollback()
                 logger.error(f"[BD ERROR] Error al actualizar factura: {e}")
@@ -336,7 +323,7 @@ def procesar_respuesta_anulacion(respuesta_xml, factura, descripcion_motivo):
                 session.close()
             
             # Construir mensaje de éxito con formato Markdown
-            mensaje_exito = f" **{descripcion_principal}**\n\n"
+            mensaje_exito = f"✅ **{descripcion_principal}**\n\n"
             mensaje_exito += f"📄 **Factura #{numero_factura}** anulada correctamente.\n"
             mensaje_exito += f"📅 **Fecha:** {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n"
             mensaje_exito += f"📝 **Motivo:** {descripcion_motivo}"
@@ -485,7 +472,7 @@ def anular_factura(numero_factura, descripcion_motivo):
         # ====================================================================
         
         # Verificar si la factura ya fue revertida (no se puede anular de nuevo)
-        if str(factura.estado) == "Valida" and factura.fechaValidacion is not None:
+        if str(factura.estado) == "Validada" and factura.fechaValidacion is not None:
             logger.warning(f"[RECHAZO] Factura #{numero_factura} fue revertida, no se puede anular")
             mensaje = f"⚠️ **Operación no permitida**\n\n"
             mensaje += f"📄 **Factura #{numero_factura}** ya fue revertida y no puede ser anulada nuevamente.\n"
@@ -554,12 +541,12 @@ def anular_factura(numero_factura, descripcion_motivo):
                     logger.error(f"[ANULACION] No se pudo recargar factura para sincronización")
                     return False
                 
-                # Actualizar estado
+                # Actualizar estado de negocio (campo 'estado')
+                # NO tocar estadoValidacion ni resultadoValidacion
                 factura_sync.estado = "Anulada"
-                factura_sync.estadoValidacion = "ANULADA"
-                factura_sync.resultadoValidacion = "ANULADA"
                 factura_sync.fechaAnulacion = datetime.now()
                 factura_sync.motivoAnulacion = descripcion_motivo
+                # codigoRecepcion se preserva automáticamente
                 
                 session.commit()
                 session.close()
