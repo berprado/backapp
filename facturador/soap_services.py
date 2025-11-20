@@ -189,6 +189,11 @@ def enviar_evento_significativo(evento: Dict, fecha_fin: datetime, cufd: str) ->
         logger.error(f"❌ fecha_fin debe ser datetime, recibido: {type(fecha_fin)}")
         return None, False
 
+    # Validar rango de fechas
+    if fecha_fin <= fecha_inicio:
+        logger.error("❌ Rango de fechas inválido: fecha_fin debe ser posterior a fecha_inicio")
+        return None, False
+
     # ========================================
     # 3. FORMATEAR FECHAS SEGÚN NORMATIVA
     # ========================================
@@ -196,20 +201,30 @@ def enviar_evento_significativo(evento: Dict, fecha_fin: datetime, cufd: str) ->
     fecha_inicio_str = fecha_inicio.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
     fecha_fin_str = fecha_fin.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
     
+    # Sanitizar descripción
+    descripcion_escaped = _xml_escape(descripcion)
+
+    # Helper para truncar logs
+    def _safe_tail(val: str) -> str:
+        return f"{val[:8]}...{val[-8:]}" if val and len(val) > 20 else val
+
     logger.info(f"📊 Datos del evento a registrar:")
     logger.info(f"   • Código evento: {codigo_evento}")
     logger.info(f"   • Descripción: {descripcion}")
     logger.info(f"   • Fecha inicio: {fecha_inicio_str}")
     logger.info(f"   • Fecha fin: {fecha_fin_str}")
-    logger.info(f"   • CUFD evento (durante contingencia) COMPLETO:")
-    logger.info(f"     {cufd_evento}")
-    logger.info(f"   • CUFD actual (post-contingencia) COMPLETO:")
-    logger.info(f"     {cufd}")
-    logger.info(f"   • NIT: {NIT}")
-    logger.info(f"   • Código Sistema: {CODIGO_SISTEMA}")
-    logger.info(f"   • Código Sucursal: {CODIGO_SUCURSAL}")
-    logger.info(f"   • Código Punto Venta: {CODIGO_PUNTO_VENTA}")
-    logger.info(f"   • CUIS: {CUIS}")
+    logger.info(f"   • CUFD evento: {_safe_tail(cufd_evento)}")
+    logger.info(f"   • CUFD actual: {_safe_tail(cufd)}")
+
+    # Cast numéricos (defensivo)
+    try:
+        CODIGO_AMBIENTE_INT = int(CODIGO_AMBIENTE)
+        CODIGO_SUCURSAL_INT = int(CODIGO_SUCURSAL)
+        CODIGO_PUNTO_VENTA_INT = int(CODIGO_PUNTO_VENTA)
+        NIT_INT = int(NIT)
+    except (TypeError, ValueError):
+        logger.error("❌ Variables numéricas con formato inválido")
+        return None, False
 
     # ========================================
     # 4. CONSTRUIR SOLICITUD SOAP
@@ -219,6 +234,10 @@ def enviar_evento_significativo(evento: Dict, fecha_fin: datetime, cufd: str) ->
         "apikey": f"TokenApi {TOKEN_API}"
     }
 
+    # Ajuste de tags según mensaje de error del servidor (WSDL real vs Documentación web):
+    # codigoEvento -> codigoMotivoEvento
+    # fechaFinEvento -> fechaHoraFinEvento
+    # fechaInicioEvento -> fechaHoraInicioEvento
     soap_body = f"""<?xml version="1.0" encoding="UTF-8"?>
     <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" 
                       xmlns:siat="https://siat.impuestos.gob.bo/">
@@ -226,18 +245,18 @@ def enviar_evento_significativo(evento: Dict, fecha_fin: datetime, cufd: str) ->
        <soapenv:Body>
           <siat:registroEventoSignificativo>
              <SolicitudEventoSignificativo>
-                <codigoAmbiente>{CODIGO_AMBIENTE}</codigoAmbiente>
-                <codigoMotivoEvento>{codigo_evento}</codigoMotivoEvento>
-                <codigoPuntoVenta>{CODIGO_PUNTO_VENTA}</codigoPuntoVenta>
+                <codigoAmbiente>{CODIGO_AMBIENTE_INT}</codigoAmbiente>
+                <codigoPuntoVenta>{CODIGO_PUNTO_VENTA_INT}</codigoPuntoVenta>
                 <codigoSistema>{CODIGO_SISTEMA}</codigoSistema>
-                <codigoSucursal>{CODIGO_SUCURSAL}</codigoSucursal>
+                <codigoSucursal>{CODIGO_SUCURSAL_INT}</codigoSucursal>
                 <cufd>{cufd}</cufd>
                 <cufdEvento>{cufd_evento}</cufdEvento>
                 <cuis>{CUIS}</cuis>
-                <descripcion>{descripcion}</descripcion>
+                <descripcion>{descripcion_escaped}</descripcion>
                 <fechaHoraFinEvento>{fecha_fin_str}</fechaHoraFinEvento>
                 <fechaHoraInicioEvento>{fecha_inicio_str}</fechaHoraInicioEvento>
-                <nit>{NIT}</nit>
+                <nit>{NIT_INT}</nit>
+                <codigoMotivoEvento>{codigo_evento}</codigoMotivoEvento>
              </SolicitudEventoSignificativo>
           </siat:registroEventoSignificativo>
        </soapenv:Body>
@@ -252,10 +271,12 @@ def enviar_evento_significativo(evento: Dict, fecha_fin: datetime, cufd: str) ->
     # ========================================
     # 5. ENVIAR SOLICITUD AL SIN
     # ========================================
+    endpoint_url = ENDPOINT.replace("?wsdl", "")
+
     try:
-        logger.info(f"📡 Enviando solicitud al SIN: {ENDPOINT}")
+        logger.info(f"📡 Enviando solicitud al SIN: {endpoint_url}")
         response = requests.post(
-            ENDPOINT, 
+            endpoint_url, 
             data=soap_body.encode("utf-8"), 
             headers=headers,
             timeout=10
@@ -358,4 +379,13 @@ def enviar_evento_significativo(evento: Dict, fecha_fin: datetime, cufd: str) ->
     except Exception as e:
         logger.error(f"❌ Error inesperado al registrar evento significativo: {e}", exc_info=True)
         return None, False
+
+
+def _xml_escape(val: str) -> str:
+    """Escapa caracteres especiales para XML."""
+    return (val.replace("&", "&amp;")
+               .replace("<", "&lt;")
+               .replace(">", "&gt;")
+               .replace('"', "&quot;")
+               .replace("'", "&apos;"))
 
