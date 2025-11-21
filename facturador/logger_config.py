@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import logging
+import time
 from logging.handlers import RotatingFileHandler
 import sys
 from datetime import datetime
@@ -272,3 +273,23 @@ def _get_custom_logger(name, log_file):
         logger.addHandler(file_handler)
 
     return logger
+
+
+def timed_call(logger, operation_name, func, *args, **kwargs):
+    """
+    Ejecuta una funcion registrando el tiempo que toma.
+
+    Si la funcion lanza una excepcion, tambien se registra el tiempo transcurrido
+    antes de propagar el error.
+    """
+    start = time.perf_counter()
+    logger.info("%s | inicio", operation_name)
+    try:
+        result = func(*args, **kwargs)
+        elapsed = time.perf_counter() - start
+        logger.info("%s | completado en %.3fs", operation_name, elapsed)
+        return result
+    except Exception:
+        elapsed = time.perf_counter() - start
+        logger.exception("%s | error tras %.3fs", operation_name, elapsed)
+        raise

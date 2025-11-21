@@ -9,7 +9,7 @@ from data_access import (
 )
 from contingencia_auto import finalizar_evento_si_conectado
 from facturador.communication_manager import communication_manager
-from facturador.logger_config import get_logger
+from facturador.logger_config import get_logger, timed_call
 
 logger = get_logger("ui")
 
@@ -23,7 +23,11 @@ logger.info("[EVENTOS] Pantalla de gestion de eventos iniciada")
 
 st.session_state.setdefault("evento_cafc", {})
 
-resultado_completo = communication_manager.verificar_comunicacion_completa()
+resultado_completo = timed_call(
+    logger,
+    "[EVENTOS] Verificacion de comunicacion completa",
+    communication_manager.verificar_comunicacion_completa
+)
 principal = resultado_completo.get("verificacion_principal", {})
 conectado = principal.get("conectado", False)
 mensaje = principal.get("mensaje", "Estado de comunicacion no disponible.")
@@ -35,7 +39,7 @@ else:
     st.warning("El sistema no tiene comunicacion con el SIN. Solo podra cerrar eventos cuando se restablezca la conexion.")
     logger.warning("[EVENTOS] SIN sin conexion: %s", mensaje)
 
-evento_abierto = obtener_evento_activo_actual()
+evento_abierto = timed_call(logger, "[EVENTOS] Consulta de evento activo", obtener_evento_activo_actual)
 logger.debug("[EVENTOS] Evento activo: %s", evento_abierto)
 
 
@@ -77,7 +81,10 @@ if evento_abierto:
             if codigo_evento in NON_OPERATIONAL_CODES:
                 cafc_para_cierre = cafc_guardado or None
 
-            exito_cierre, detalle_cierre = finalizar_evento_si_conectado(
+            exito_cierre, detalle_cierre = timed_call(
+                logger,
+                f"[EVENTOS] Finalizacion evento {evento_id}",
+                finalizar_evento_si_conectado,
                 cierre_manual=(codigo_evento in MANUAL_EVENT_CODES),
                 cafc_manual=cafc_para_cierre,
                 confirmacion_manual=confirmacion
@@ -94,7 +101,10 @@ else:
     st.info("No hay eventos abiertos actualmente.")
     logger.info("[EVENTOS] Sin evento activo, mostrar formularios de registro")
 
-    eventos_parametricos = {e["codigoClasificador"]: e["descripcion"] for e in get_eventos_parametricos()}
+    eventos_parametricos = {
+        e["codigoClasificador"]: e["descripcion"]
+        for e in timed_call(logger, "[EVENTOS] Obtener eventos parametricos", get_eventos_parametricos)
+    }
     eventos_planificados = {k: v for k, v in eventos_parametricos.items() if k in PLAN_EVENT_CODES}
     eventos_no_operativos = {k: v for k, v in eventos_parametricos.items() if k in NON_OPERATIONAL_CODES}
 
@@ -120,7 +130,10 @@ else:
             st.error("Debe proporcionar el CUFD vigente para el evento planificado.")
         else:
             try:
-                evento_id = registrar_evento_local_normativo(
+                evento_id = timed_call(
+                    logger,
+                    f"[EVENTOS] Registro evento planificado {tipo_evento_plan}",
+                    registrar_evento_local_normativo,
                     codigo_evento=tipo_evento_plan,
                     cufd=cufd_plan.strip(),
                     fecha_inicio=datetime.combine(fecha_plan, hora_plan)
@@ -132,7 +145,7 @@ else:
                 else:
                     st.error("No se pudo registrar el evento planificado. Consulte los registros.")
             except Exception as exc:
-                logger.exception("[EVENTOS] Error registrando evento planificado")
+                logger.error("[EVENTOS] Error registrando evento planificado: %s", exc)
                 st.error(f"Error al registrar evento planificado: {exc}")
 
     st.subheader("Eventos no operativos (codigos 5, 6 y 7)")
@@ -157,7 +170,10 @@ else:
             st.error("Debe proporcionar el CUFD vigente para registrar el evento.")
         else:
             try:
-                evento_id = registrar_evento_local_normativo(
+                evento_id = timed_call(
+                    logger,
+                    f"[EVENTOS] Registro evento no operativo {tipo_evento_manual}",
+                    registrar_evento_local_normativo,
                     codigo_evento=tipo_evento_manual,
                     cufd=cufd_manual.strip(),
                     fecha_inicio=datetime.combine(fecha_manual, hora_manual)
@@ -169,5 +185,5 @@ else:
                 else:
                     st.error("No se pudo registrar el evento no operativo. Consulte los registros.")
             except Exception as exc:
-                logger.exception("[EVENTOS] Error registrando evento no operativo")
+                logger.error("[EVENTOS] Error registrando evento no operativo: %s", exc)
                 st.error(f"Error al registrar evento no operativo: {exc}")
