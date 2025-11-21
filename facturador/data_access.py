@@ -197,15 +197,10 @@ def obtener_cufd_de_evento_activo() -> Optional[str]:
 def registrar_evento_local_normativo(codigo_evento: str, descripcion: str = None, cufd: str = None, fecha_inicio: datetime = None):
     """
     Registra un evento significativo en la BD local siguiendo la normativa boliviana.
-    IMPORTANTE: Solo puede existir UN evento activo a la vez.
     
-    Args:
-        codigo_evento: Código del tipo de evento (1, 2, 5, etc.)
-        descripcion: Descripción personalizada (opcional - si no se proporciona, se obtiene de la tabla paramétrica)
-        cufd: CUFD que estaba vigente al momento del evento
-        
-    Returns:
-        int: ID del evento (nuevo o existente), None si hay error
+    MEJORA AUTOMÁTICA: Si el CUFD proporcionado ya ha caducado (ej. sistema apagado varios días),
+    esta función ajusta automáticamente la fecha de inicio del evento para que coincida
+    con la vigencia de ese CUFD, evitando el error 984 del SIN.
     """
     session = SessionLocal()
     try:
@@ -216,36 +211,62 @@ def registrar_evento_local_normativo(codigo_evento: str, descripcion: str = None
                 .first()
             
             if evento_parametrico:
-                # ✅ Usar la descripción oficial de la tabla sincronizada
                 descripcion = evento_parametrico.descripcion
-                logger.info(f"Descripción obtenida de tabla paramétrica: {descripcion}")
             else:
-                # Fallback si no existe en la tabla paramétrica (no debería pasar si la sincronización está completa)
                 descripcion = f"Evento significativo código {codigo_evento}"
-                logger.warning(f"No se encontró descripción para código {codigo_evento} en tabla paramétrica. Usando descripción genérica.")
 
-        # 2. Verificar si ya existe un evento ABIERTO (sin codigo_recepcion)
+        # 2. Verificar si ya existe un evento ABIERTO
         evento_abierto = session.query(EventoSignificativoRegistrado)\
             .filter(EventoSignificativoRegistrado.codigo_recepcion.is_(None))\
             .first()
             
         if evento_abierto:
             logger.info(f"Ya existe un evento abierto con ID {evento_abierto.id}. Reutilizando evento existente.")
-            # IMPORTANTE: No creamos uno nuevo, devolvemos el existente
             return evento_abierto.id
 
-        # 2. Si no hay evento abierto, crear uno nuevo
-        logger.info(f"No hay eventos abiertos. Creando nuevo evento de contingencia.")
-        if fecha_inicio:
-            logger.info(f"Fecha de inicio proporcionada para el evento: {fecha_inicio}")
+        # ==============================================================================
+        # 3. LÓGICA DE AJUSTE TEMPORAL (TU PROPUESTA)
+        # ==============================================================================
+        fecha_inicio_real = fecha_inicio or datetime.now()
+        
+        if cufd:
+            # Buscamos la info del CUFD en la base de datos para ver sus fechas reales
+            cufd_obj = session.query(Cufd).filter_by(codigo=cufd).first()
+            
+            if cufd_obj and cufd_obj.fecha_vigencia:
+                # Si la fecha actual es MAYOR a la vigencia del CUFD, tenemos un problema
+                if fecha_inicio_real > cufd_obj.fecha_vigencia:
+                    logger.warning(f"⚠️ El CUFD proporcionado expiró el {cufd_obj.fecha_vigencia}. Ajustando fecha inicio del evento.")
+                    
+                    # ESTRATEGIA: "Retroceder en el tiempo"
+                    # Establecemos el inicio del evento poco después de que se generó el CUFD
+                    # para garantizar que esté dentro de su vigencia.
+                    # Usamos fecha_solicitud + 1 minuto (o fecha_vigencia - 23 horas si prefieres)
+                    fecha_ajustada = cufd_obj.fecha_solicitud 
+                    
+                    # Pequeña validación por si fecha_solicitud es nula (raro)
+                    if not fecha_ajustada:
+                         # Fallback: 1 hora antes de que venza
+                         from datetime import timedelta
+                         fecha_ajustada = cufd_obj.fecha_vigencia - timedelta(hours=1)
+
+                    fecha_inicio_real = fecha_ajustada
+                    
+                    detalle_ajuste = f" (Fecha ajustada automáticamente por caducidad de CUFD: {fecha_inicio_real})"
+                    descripcion = f"{descripcion} {detalle_ajuste}"[:200] # Cortar si es muy largo
+                    logger.info(f"🕒 Fecha de inicio retroactiva aplicada: {fecha_inicio_real}")
+
+        # ==============================================================================
+
+        logger.info(f"Creando nuevo evento. Inicio: {fecha_inicio_real}")
 
         nuevo_evento = EventoSignificativoRegistrado(
             codigo_evento=codigo_evento,
             descripcion=descripcion,
-            fecha_inicio=fecha_inicio or datetime.now(),
+            fecha_inicio=fecha_inicio_real,
             fecha_fin=None,  # NULL = evento abierto
             cufd=cufd,
-            codigo_recepcion=None  # NULL = evento abierto
+            codigo_recepcion=None
         )
         
         session.add(nuevo_evento)
