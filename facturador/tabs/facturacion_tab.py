@@ -164,7 +164,7 @@ def render(is_online: bool, evento_activo: dict = None):
             return
     
     # Renderizar sidebar
-    client_data = render_sidebar_client_data(tipos_documento, message_placeholder)
+    client_data = render_sidebar_client_data(tipos_documento, message_placeholder, is_online)
     invoice_config = render_sidebar_invoice_config(comandas, metodos_pago)
     
     # Calcular totales y generar vista previa

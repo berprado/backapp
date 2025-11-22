@@ -42,7 +42,7 @@ def load_base_data():
     
     return comandas, metodos_pago, tipos_documento, None
 
-def render_sidebar_client_data(tipos_documento, message_placeholder):
+def render_sidebar_client_data(tipos_documento, message_placeholder, is_online=True):
     """Renderiza la sección de datos del cliente en la sidebar."""
     if st.session_state.pop('reset_cliente', False):
         numero_documento = st.sidebar.text_input(
@@ -149,15 +149,25 @@ def render_sidebar_client_data(tipos_documento, message_placeholder):
                 telefono = st.sidebar.text_input("Teléfono:", key="telefono")
 
                 if seleccion_tipo_documento == "NIT - NÚMERO DE IDENTIFICACIÓN TRIBUTARIA":
-                    valido, mensaje = verificar_nit_cliente(numero_documento, message_placeholder)
-                    if valido:
-                        show_message('success', f"✔️ NIT válido: {mensaje}", message_placeholder)
-                        nit_valido = True
-                        logger.info(f"NIT válido verificado: {numero_documento}")
+                    if is_online:
+                        valido, mensaje = verificar_nit_cliente(numero_documento, message_placeholder)
+                        if valido:
+                            show_message('success', f"✔️ NIT válido: {mensaje}", message_placeholder)
+                            nit_valido = True
+                            logger.info(f"NIT válido verificado: {numero_documento}")
+                        else:
+                            show_message('error', mensaje, message_placeholder)
+                            nit_valido = False
+                            logger.warning(f"NIT inválido: {numero_documento}")
                     else:
-                        show_message('error', mensaje, message_placeholder)
-                        nit_valido = False
-                        logger.warning(f"NIT inválido: {numero_documento}")
+                        # Lógica Offline: Validación numérica simple sin conexión al SIN
+                        if numero_documento.isdigit():
+                            nit_valido = True
+                            show_message('warning', "⚠️ Modo Offline: NIT registrado sin validación del SIN.", message_placeholder)
+                            logger.info(f"NIT registrado en offline (sin validar): {numero_documento}")
+                        else:
+                            nit_valido = False
+                            show_message('error', "❌ El NIT debe contener solo números.", message_placeholder)
 
                 guardar_cliente_button = st.sidebar.button(
                     "Guardar Cliente", 
