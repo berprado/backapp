@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 from typing import Tuple, Optional, Dict
 from datetime import datetime
 from dotenv import load_dotenv
-from logger_config import get_logger
+from logger_config import get_logger, timed_call
 
 # Cargar variables de entorno
 load_dotenv()
@@ -53,7 +53,15 @@ def verificar_comunicacion() -> Tuple[str, bool, Optional[str]]:
     </soapenv:Envelope>"""
 
     try:
-        response = requests.post(ENDPOINT, data=body.encode("utf-8"), headers=headers, timeout=6)
+        response = timed_call(
+            logger,
+            "[SOAP] verificarComunicacion -> POST",
+            requests.post,
+            ENDPOINT,
+            data=body.encode("utf-8"),
+            headers=headers,
+            timeout=6
+        )
         
         logger.debug(f"Respuesta HTTP del SIN: Status {response.status_code}")
 
@@ -275,9 +283,12 @@ def enviar_evento_significativo(evento: Dict, fecha_fin: datetime, cufd: str) ->
 
     try:
         logger.info(f"📡 Enviando solicitud al SIN: {endpoint_url}")
-        response = requests.post(
-            endpoint_url, 
-            data=soap_body.encode("utf-8"), 
+        response = timed_call(
+            logger,
+            "[SOAP] registroEventoSignificativo -> POST",
+            requests.post,
+            endpoint_url,
+            data=soap_body.encode("utf-8"),
             headers=headers,
             timeout=10
         )
