@@ -485,8 +485,11 @@ def _handle_online_submission(invoice_config, client_data, tipos_documento, coma
         )
         logger.info(f"CUF generado: {cuf}")
 
-        codigo_excepcion = 1 if (tipo_documento_seleccionado and
-                                  tipo_documento_seleccionado['codigoClasificador'] == '5') else 0
+        # CORRECCIÓN ONLINE: Por defecto 0. Solo 1 si el usuario marcó excepción explícitamente.
+        if client_data.get('usar_excepcion', False):
+            codigo_excepcion = 1
+        else:
+            codigo_excepcion = 0
 
         cafc_para_factura = None
 

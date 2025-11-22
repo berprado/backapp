@@ -60,6 +60,7 @@ def render_sidebar_client_data(tipos_documento, message_placeholder, is_online=T
     
     # Inicializar variables por defecto
     nit_valido = False
+    usar_excepcion = False
     nombre_cliente = ""
     complemento = None
     email = ""
@@ -119,6 +120,17 @@ def render_sidebar_client_data(tipos_documento, message_placeholder, is_online=T
             nit_valido = True  # Cliente existente es válido
             logger.info(f"Cliente existente cargado: {numero_documento}")
 
+            # Verificar validez del NIT para clientes existentes en modo Online
+            if is_online and seleccion_tipo_documento == "NIT - NÚMERO DE IDENTIFICACIÓN TRIBUTARIA":
+                valido, mensaje = verificar_nit_cliente(numero_documento, message_placeholder)
+                if not valido:
+                    st.sidebar.warning(f"⚠️ NIT registrado pero no válido en SIN.")
+                    usar_excepcion = st.sidebar.checkbox(
+                        "¿Emitir con Código de Excepción?",
+                        value=True,
+                        help="El NIT no pasa la validación del SIN. Marque esto para enviar con código 1."
+                    )
+
         else:
             # Cliente nuevo
             opciones_tipos_documento = [doc["descripcion"] for doc in tipos_documento]
@@ -156,9 +168,18 @@ def render_sidebar_client_data(tipos_documento, message_placeholder, is_online=T
                             nit_valido = True
                             logger.info(f"NIT válido verificado: {numero_documento}")
                         else:
-                            show_message('error', mensaje, message_placeholder)
-                            nit_valido = False
-                            logger.warning(f"NIT inválido: {numero_documento}")
+                            show_message('warning', f"⚠️ El NIT no es válido según el SIN: {mensaje}", message_placeholder)
+                            usar_excepcion = st.sidebar.checkbox(
+                                "¿Emitir con Código de Excepción?",
+                                help="Marque esta casilla si está seguro de que el NIT es correcto aunque el SIN no lo valide. Se enviará con código de excepción 1."
+                            )
+                            if usar_excepcion:
+                                nit_valido = True
+                                show_message('info', "ℹ️ Se emitirá como excepción (Código 1).", message_placeholder)
+                                logger.info(f"Usuario forzó excepción para NIT: {numero_documento}")
+                            else:
+                                nit_valido = False
+                                logger.warning(f"NIT inválido: {numero_documento}")
                     else:
                         # Lógica Offline: Validación numérica simple sin conexión al SIN
                         if numero_documento.isdigit():
@@ -197,6 +218,7 @@ def render_sidebar_client_data(tipos_documento, message_placeholder, is_online=T
     return {
         'numero_documento': numero_documento,
         'nit_valido': nit_valido,
+        'usar_excepcion': usar_excepcion,
         'nombre_cliente': nombre_cliente,
         'complemento': complemento,
         'email': email,
