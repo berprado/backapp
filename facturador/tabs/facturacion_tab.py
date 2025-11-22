@@ -486,7 +486,7 @@ def _handle_online_submission(invoice_config, client_data, tipos_documento, coma
         logger.info(f"CUF generado: {cuf}")
 
         codigo_excepcion = 1 if (tipo_documento_seleccionado and
-                                  tipo_documento_seleccionado['codigoClasificador'] == '5') else None
+                                  tipo_documento_seleccionado['codigoClasificador'] == '5') else 0
 
         cafc_para_factura = None
 
@@ -686,7 +686,7 @@ def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos
             (doc for doc in tipos_documento if doc["descripcion"] == client_data['seleccion_tipo_documento']),
             None
         )
-        codigo_excepcion = 1 if tipo_documento_seleccionado and tipo_documento_seleccionado['codigoClasificador'] == '5' else None
+        codigo_excepcion = 1 if tipo_documento_seleccionado and tipo_documento_seleccionado['codigoClasificador'] == '5' else 0
 
         xml_str, factura_cabecera_data, detalles_data = generate_xml_invoice(
             nit_emisor=nit_emisor,
