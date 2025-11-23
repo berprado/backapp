@@ -24,7 +24,7 @@ from cufd import solicitar_cufd
 from zeeper import validar_xml, comprimir_xml, obtener_hash, enviar_solicitud
 from response_handler import parse_siat_response, display_siat_response
 from data_access import guardar_factura_cabecera, guardar_factura_detalle
-from invoice_manager import obtener_y_reservar_numero_factura
+from invoice_manager import obtener_y_reservar_numero_factura, revertir_incremento_numero_factura
 from print_manager import initialize_print_state, solicitar_impresion, get_print_state_summary
 
 # Módulos locales
@@ -198,7 +198,17 @@ def render(is_online: bool, evento_activo: dict = None):
     fecha_emision_display = fecha_emision.strftime("%d/%m/%Y %H:%M:%S")
     
     # Vista previa de la factura
-    numero_factura_preview = '(se asignará al emitir)'
+    # Intentamos leer el próximo número disponible sin reservarlo (solo lectura)
+    numero_factura_preview = 1
+    if os.path.exists("invoice_number.txt"):
+        try:
+            with open("invoice_number.txt", "r") as f:
+                content = f.read().strip()
+                if content:
+                    numero_factura_preview = int(content)
+        except Exception:
+            # Si hay error leyendo, asumimos 1 o mostramos un placeholder
+            pass
     
     # Obtener el NIT del emisor para la vista previa
     nit_emisor = os.getenv('NIT')
@@ -468,6 +478,11 @@ def _handle_online_submission(invoice_config, client_data, tipos_documento, coma
         codigo_documento_sector = int(os.getenv('CODIGO_DOCUMENTO_SECTOR'))
         direccion = os.getenv('DIRECCION')
 
+        # Validaciones previas para evitar quemar números innecesariamente
+        if total <= 0:
+             show_message('error', "El monto total debe ser mayor a 0.", message_placeholder)
+             return False
+
         cufd = verificar_y_obtener_cufd(message_placeholder)
         numero_factura = obtener_y_reservar_numero_factura()
         logger.info(f"Número de factura reservado: {numero_factura}")
@@ -535,9 +550,7 @@ def _handle_online_submission(invoice_config, client_data, tipos_documento, coma
 
         xsd_main_path = 'xmls/schemas/facturaElectronicaCompraVenta.xsd'
         if not validar_xml(filename, xsd_main_path):
-            show_message('error', "❌ El XML generado no es válido contra el XSD.", message_placeholder)
-            logger.error("XML no válido contra XSD")
-            return False
+            raise ValueError("El XML generado no es válido contra el XSD.")
 
         gzip_path = comprimir_xml(filename)
         obtener_hash(gzip_path)
@@ -643,8 +656,25 @@ def _handle_online_submission(invoice_config, client_data, tipos_documento, coma
             return False
 
     except Exception as e:
-        show_message('error', f"❌ Error en el proceso de facturación: {str(e)}", message_placeholder)
         logger.exception("Error en facturación")
+        
+        msg_adicional = ""
+        if 'numero_factura' in locals():
+            # Intentar revertir el número de factura
+            if revertir_incremento_numero_factura(numero_factura):
+                msg_adicional = " El número de factura ha sido recuperado."
+            else:
+                msg_adicional = " El número de factura no se pudo recuperar."
+            
+            # Intentar borrar el archivo si se creó
+            if 'filename' in locals() and os.path.exists(filename):
+                try:
+                    os.remove(filename)
+                    logger.info(f"Archivo XML eliminado: {filename}")
+                except Exception as del_e:
+                    logger.error(f"No se pudo eliminar archivo XML: {del_e}")
+
+        show_message('error', f"❌ Error en el proceso de facturación: {str(e)}.{msg_adicional}", message_placeholder)
         return False
 
     return False
@@ -662,6 +692,11 @@ def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos
         if not cufd_evento:
             show_message('error', "No se encontró un CUFD válido para el evento de contingencia.", message_placeholder)
             return False
+
+        # Validaciones previas para evitar quemar números innecesariamente
+        if total <= 0:
+             show_message('error', "El monto total debe ser mayor a 0.", message_placeholder)
+             return False
 
         numero_factura = obtener_y_reservar_numero_factura()
         nit_emisor = int(os.getenv('NIT'))
@@ -733,8 +768,7 @@ def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos
             f.write(signed_xml_str)
 
         if not validar_xml(filename, 'xmls/schemas/facturaElectronicaCompraVenta.xsd'):
-            show_message('error', "El XML generado localmente no es válido. Revise los logs.", message_placeholder)
-            return False
+            raise ValueError("El XML generado localmente no es válido. Revise los logs.")
 
         try:
             facturacion_logger.info("Ensamblando objeto FacturaProcesada para modo OFFLINE.")
@@ -810,8 +844,25 @@ def _handle_offline_submission(invoice_config, client_data, evento_activo, tipos
         return True
 
     except Exception as e:
-        show_message('error', f"❌ Error en el proceso de facturación offline: {str(e)}", message_placeholder)
         logger.exception("Error en facturación offline")
+        
+        msg_adicional = ""
+        if 'numero_factura' in locals():
+            # Intentar revertir el número de factura
+            if revertir_incremento_numero_factura(numero_factura):
+                msg_adicional = " El número de factura ha sido recuperado."
+            else:
+                msg_adicional = " El número de factura no se pudo recuperar."
+            
+            # Intentar borrar el archivo si se creó
+            if 'filename' in locals() and os.path.exists(filename):
+                try:
+                    os.remove(filename)
+                    logger.info(f"Archivo XML eliminado: {filename}")
+                except Exception as del_e:
+                    logger.error(f"No se pudo eliminar archivo XML: {del_e}")
+
+        show_message('error', f"❌ Error en el proceso de facturación offline: {str(e)}.{msg_adicional}", message_placeholder)
         return False
 
     return False

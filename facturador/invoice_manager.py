@@ -93,6 +93,40 @@ def obtener_y_reservar_numero_factura():
             facturacion_logger.error(f"Error al reservar número de factura: {e}")
             raise RuntimeError(f"Error al reservar número de factura: {e}")
 
+def revertir_incremento_numero_factura(numero_fallido):
+    """
+    Intenta revertir el contador de facturas si la generación falló.
+    Solo revierte si el contador actual es exactamente (numero_fallido + 1).
+    Esto evita condiciones de carrera si otro usuario ya generó una factura mientras tanto.
+    
+    Args:
+        numero_fallido (int): El número de factura que falló y queremos recuperar.
+        
+    Returns:
+        bool: True si se pudo revertir, False si el contador ya había avanzado.
+    """
+    with numero_factura_lock:
+        try:
+            if not os.path.exists("invoice_number.txt"):
+                return False
+            
+            with open("invoice_number.txt", "r") as f:
+                contenido = f.read().strip()
+                siguiente_numero_actual = int(contenido) if contenido else 1
+            
+            # Verificamos si el contador sigue donde lo dejamos (numero_fallido + 1)
+            if siguiente_numero_actual == numero_fallido + 1:
+                with open("invoice_number.txt", "w") as f:
+                    f.write(str(numero_fallido))
+                facturacion_logger.info(f"Contador de facturas revertido exitosamente. Próximo número será: {numero_fallido}")
+                return True
+            else:
+                facturacion_logger.warning(f"No se pudo revertir el contador para la factura {numero_fallido}. El sistema ya avanzó a {siguiente_numero_actual}.")
+                return False
+        except Exception as e:
+            facturacion_logger.error(f"Error crítico al revertir contador: {e}")
+            return False
+
 def increment_invoice_number(numero_factura):
     """
     [OBSOLETA] Usar obtener_y_reservar_numero_factura().
