@@ -648,6 +648,41 @@ def _handle_online_submission(invoice_config, client_data, tipos_documento, coma
                         show_message('error', error_message, message_placeholder)
                         logger.error(f"Error al validar cabecera: {error_message}")
                         return False
+                
+                # NUEVO: Manejo de facturas RECHAZADAS por el SIN (Código 902)
+                elif str(response_data.get('codigoEstado')) == '902':
+                    facturacion_logger.warning(f"Factura {numero_factura} RECHAZADA por el SIN. Guardando registro.")
+                    
+                    # Extraer mensajes de error detallados
+                    mensajes_error = []
+                    mensajes_list = response_data.get('mensajesList', [])
+                    
+                    # Normalizar a lista si es un solo objeto
+                    if isinstance(mensajes_list, dict):
+                        mensajes_list = [mensajes_list]
+                    elif not isinstance(mensajes_list, list):
+                        mensajes_list = []
+                        
+                    for msg in mensajes_list:
+                        desc = msg.get('descripcion', '')
+                        if desc:
+                            mensajes_error.append(desc)
+                    
+                    mensaje_completo = " | ".join(mensajes_error) if mensajes_error else "Rechazada por el SIN sin detalle."
+                    
+                    # Actualizar datos para guardar como rechazada
+                    factura_cabecera_data['tipoEmision'] = "1"
+                    factura_cabecera_data['estado'] = "RECHAZADA"
+                    factura_cabecera_data['resultadoValidacion'] = "RECHAZADA"
+                    factura_cabecera_data['mensajeError'] = mensaje_completo
+                    
+                    # Guardar en BD para trazabilidad (el número se consume)
+                    guardar_factura_cabecera(factura_cabecera_data)
+                    for detalle in detalles_data:
+                        guardar_factura_detalle(detalle)
+                        
+                    show_message('error', f"❌ Factura RECHAZADA por el SIN: {mensaje_completo}. El número de factura ha sido consumido.", message_placeholder)
+                    return False
             else:
                 facturacion_logger.error(f"[SIAT] Error al procesar respuesta: {response_data.get('error')}")
         except Exception as e:

@@ -152,6 +152,26 @@ def parse_siat_response(content, operation_type=None, force_save=False):
                     else:
                         response_data[field] = element.text
             
+            # Extraer lista de mensajes (mensajesList)
+            mensajes_list = facturacion_element.findall('.//mensajesList')
+            if mensajes_list:
+                mensajes = []
+                for mensaje in mensajes_list:
+                    msg_data = {}
+                    codigo = mensaje.find('codigo')
+                    descripcion = mensaje.find('descripcion')
+                    
+                    if codigo is not None:
+                        msg_data['codigo'] = codigo.text
+                    if descripcion is not None:
+                        msg_data['descripcion'] = descripcion.text
+                        
+                    if msg_data:
+                        mensajes.append(msg_data)
+                
+                if mensajes:
+                    response_data['mensajesList'] = mensajes
+
             # Si no se encontró una transacción, asumir error
             if 'transaccion' not in response_data:
                 logger.warning("No se encontró el elemento 'transaccion' en RespuestaServicioFacturacion")
