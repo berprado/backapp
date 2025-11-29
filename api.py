@@ -27,14 +27,26 @@ db_dependency = Annotated[Session, Depends(get_db)]
 @app.get("/", status_code=200, response_model=List[ComandaResponse])
 async def get_all_comandas(db: Session = Depends(get_db)):
     """
-    Obtiene todas las comandas disponibles en el sistema
+    Obtiene todas las comandas disponibles en el sistema (excluyendo cortesías)
     """
-    comandas = db.query(models_api.Comanda).all()
+    comandas = db.query(models_api.Comanda).filter(models_api.Comanda.sub_total != 0).all()
 
     if not comandas:
         raise HTTPException(status_code=404, detail="No se encontraron comandas")
 
     return comandas
+
+@app.get("/cortesias", status_code=200, response_model=List[ComandaResponse])
+async def get_cortesias(db: Session = Depends(get_db)):
+    """
+    Obtiene todas las comandas que tienen subtotal 0 (Cortesías)
+    """
+    cortesias = db.query(models_api.Comanda).filter(models_api.Comanda.sub_total == 0).all()
+
+    if not cortesias:
+        raise HTTPException(status_code=404, detail="No se encontraron cortesías")
+
+    return cortesias
 
 @app.get("/favicon.ico", status_code=200)
 async def favicon():
@@ -62,7 +74,10 @@ async def get_comandas_by_usuario(usuario_reg: str, db: Session = Depends(get_db
     """
     Obtiene todas las comandas registradas por un usuario específico
     """
-    comandas = db.query(models_api.Comanda).filter(models_api.Comanda.usuario_reg == usuario_reg).all()
+    comandas = db.query(models_api.Comanda).filter(
+        models_api.Comanda.usuario_reg == usuario_reg,
+        models_api.Comanda.sub_total != 0
+    ).all()
 
     if not comandas:
         raise HTTPException(status_code=404, detail=f"No se encontraron comandas para el usuario {usuario_reg}")

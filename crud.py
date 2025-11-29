@@ -13,5 +13,8 @@ def get_comanda_data(comanda_ids: List[int], db: Session) -> List[Comanda]:
     Returns:
         Lista de comandas
     """
-    comandas_data = db.query(Comanda).filter(Comanda.id_comanda.in_(comanda_ids)).all()
+    comandas_data = db.query(Comanda).filter(
+        Comanda.id_comanda.in_(comanda_ids),
+        Comanda.sub_total != 0
+    ).all()
     return comandas_data
