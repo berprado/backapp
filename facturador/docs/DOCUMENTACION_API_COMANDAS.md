@@ -85,3 +85,33 @@ A continuación se describe el ciclo de vida de una petición típica desde el s
 7.  **Serialización (Schemas)**: FastAPI toma estos objetos y usa `ComandaResponse` (`schemas.py`) para convertirlos a formato JSON, validando los tipos de datos en el proceso.
 8.  **Respuesta**: El JSON resultante se envía de vuelta al sistema de facturación.
 9.  **Cierre**: La función `get_db()` finaliza y cierra la conexión a la base de datos.
+
+---
+
+## 5. POR HACER: INCONSISTENCIAS, REDUNDANCIAS Y MEJORAS
+
+Tras un análisis del código actual, se han identificado las siguientes áreas de mejora para optimizar el rendimiento, la consistencia y la mantenibilidad del sistema.
+
+### 5.1. Riesgos de Rendimiento (Crítico)
+*   **Problema**: Los endpoints `GET /` y `GET /comandas/usuario/{usuario}` recuperan todos los registros sin límite (`.all()`). Si la tabla crece, esto puede bloquear la base de datos y causar timeouts.
+*   **Acción Requerida**: Implementar **paginación** (parámetros `skip` y `limit`) en las consultas de SQLAlchemy.
+
+### 5.2. Inconsistencia en el Patrón CRUD
+*   **Problema**: Aunque existe `crud.py`, algunos endpoints en `api.py` realizan consultas directas a la base de datos.
+*   **Acción Requerida**: Mover toda la lógica de consulta (filtros, queries) a funciones dentro de `crud.py` y dejar `api.py` solo como controlador.
+
+### 5.3. Redundancia en Modelos
+*   **Problema**: La clase `Comanda` en `models_api.py` incluye un método manual `to_dict()`.
+*   **Acción Requerida**: Eliminar este método. La serialización ya es manejada eficientemente por Pydantic (`schemas.py`) gracias a la configuración `from_attributes=True`.
+
+### 5.4. Diseño REST y Manejo de IDs
+*   **Problema**: El endpoint `GET /comandas/{id_comanda}` acepta una cadena separada por comas para buscar múltiples IDs, lo cual no es estándar y complica la validación de tipos.
+*   **Acción Requerida**: Migrar a el uso de *Query Parameters* estándar (ej. `?ids=1&ids=2`) para búsquedas múltiples.
+
+### 5.5. Resiliencia de Conexión
+*   **Problema**: La configuración de `create_engine` es básica y puede sufrir desconexiones silenciosas de MySQL ("server has gone away").
+*   **Acción Requerida**: Añadir el parámetro `pool_pre_ping=True` en `database_api.py` para verificar la conexión antes de usarla.
+
+### 5.6. Gestión de Esquema de Base de Datos
+*   **Problema**: Se ejecuta `Base.metadata.create_all()` al inicio. Dado que `comandas` es una vista SQL, esto es innecesario y potencialmente conflictivo.
+*   **Acción Requerida**: Eliminar la creación automática de tablas en producción y gestionar el esquema mediante migraciones o scripts SQL externos.
