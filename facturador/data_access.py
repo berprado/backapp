@@ -664,7 +664,7 @@ def obtener_nombre_unidad_medida(codigo_producto: str, db: Session) -> str:
         producto = db.query(ProductoSiat).filter(ProductoSiat.codigo == codigo_producto).first()
         if producto and producto.unidad_medida:
             return producto.unidad_medida
-        return "Unidadxxx."  # Valor por defecto si la unidad no se encuentra
+        return "Unid."  # Valor por defecto si la unidad no se encuentra
     except SQLAlchemyError as e:
         logger.error(f"Error al obtener el nombre de la unidad de medida: {e}")
         return "Error"
